@@ -1,6 +1,10 @@
 To Do List:
 ---------------------------------------------
 
+-killer castles are just avoided when retrieving them, instead they should be evaluated for validity.
+
+-in NextMove() play the killer that has a higher count.
+
 -If only one root move, dont search, just return that move.
 
 -Game 1 of the Futility tests, should not choose to keep checking, instead should advance the passed pawn.

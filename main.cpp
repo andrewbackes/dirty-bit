@@ -15,106 +15,58 @@ bool DEBUG_FLAG = false;
 int main(int argv, char* argc[]) 
 {
 
-	/*
-	cout << (FileMask(g));
-	cout << endl;
-	cout << (FileMask(f)|FileMask(h));
-	cout << endl;
-	cout << (FileMask(e)|FileMask(g));
-	cout << endl;
-	cout << (FileMask(d)|FileMask(f));
-	cout << endl;
-	cout << (FileMask(c)|FileMask(e));
-	cout << endl;
-	cout << (FileMask(b)|FileMask(d));
-	cout << endl;
-	cout << (FileMask(a)|FileMask(c));
-	cout << endl;
-	cout << (FileMask(b));
-	cout << endl;
-	*/
-	/*
-	bitboard rook_masks[65];
-	bitboard bishop_masks[65];
-	int l;
-
-	for(int i = 0; i <= 7; i++){
-        for(int j = 0; j <= 7; j++){
-            rook_masks[(8*j) + i] = 0;
-            for(int k = 1; k <= 6; k++){
-                if(k != i) rook_masks[(8*j) + i] += (1i64 << ((8*j) + k));  // Horizontal
-                if(k != j) rook_masks[(8*j) + i] += (1i64 << ((8*k) + i));  // Vertical
-            }
-
-			bishop_masks[(8*j) + i] = 0;
-            for(int k = i+1, l=j+1; max(k,l) <= 6; k++, l++) bishop_masks[(8*j)+i]+=(1i64<<((8*l)+k));        // Up, left
-            for(int k = i+1, l=j-1; (k <= 6) & (l >= 1); k++, l--) bishop_masks[(8*j)+i]+=(1i64<<((8*l)+k));  // Down, left
-            for(int k = i-1, l=j+1; (k >= 1) & (l <= 6); k--, l++) bishop_masks[(8*j)+i]+=(1i64<<((8*l)+k));  // Up, right
-            for(int k = i-1, l=j-1; min(k, l) >= 1; k--, l--) bishop_masks[(8*j)+i]+=(1i64<<((8*l)+k));       // Down, right
-            
-            
-        }
-    }
-
-	ofstream myfile;
-	myfile.open ("output.txt");
-	bitboard border = mask::file[a] | mask::file[h] | mask::rank[1] | mask::rank[8];
-
-	myfile << "const bitboard MagicBishopMask[65] = {";
-	for(int i =0; i < 64 ; i++) {
-		myfile << bishop_masks[i] << ", ";
-	}
-	myfile << "0000000000000000000000000000000000000000000000000000000000000000";
-	myfile << "};\n\n";
-
-	myfile << "const bitboard MagicRookMask[65] = {";
-	for(int i =0; i < 64 ; i++) {
-		myfile << rook_masks[i] << ", ";
-	}
-	myfile << "0000000000000000000000000000000000000000000000000000000000000000";
-	myfile << "};\n\n";
 	
-	myfile.close();
-	//-----------------------------------------------------------
-	*/
-
 	/*
-	cout << "const bitboard passed_pawn[2][64] = {";
-	cout << "{\n";
-	for(int i=0; i < 64; i++) {
-		bitboard mask = mask::north[i];
-		if( i % 8 < 7)
-			mask |= mask::north[i+1];
-		if( i % 8 > 0)
-			mask |= mask::north[i-1];
-		//bitprint(mask);
-		cout << mask;
-		if(i<63) cout << ",";
-		if(i%3 == 0) cout << endl;
-	}
-	cout << "\n},\n{\n";
-	for(int i=0; i < 64; i++) {
-		bitboard mask = mask::south[i];
-		if( i % 8 < 7)
-			mask |= mask::south[i+1];
-		if( i % 8 > 0)
-			mask |= mask::south[i-1];
-		//bitprint(mask);
-		cout << mask;
-		if(i<63) cout << ",";
-		if(i%3 == 0) cout << endl;
-	}
-	cout << "};\n";
+	bitboard mask1 = (1i64 << b5) | (1i64 << b6) | (1i64 << c7);
+	bitprint(mask1);
+	bitboard mask2 = (1i64 << b4) | (1i64 << b3) | (1i64 << c2);
+	bitprint(mask2);
+	cout << "trapped_bishop_long[] = {" << mask1 << ", " << mask2 <<endl;
+
+	bitboard mask3 = (1i64 << g5) | (1i64 << g6) | (1i64 << f7);
+	bitprint(mask3);
+	bitboard mask4 = (1i64 << g4) | (1i64 << g3) | (1i64 << f2);
+	bitprint(mask4);
+	cout << "trapped_bishop_short[] = {" << mask3 << ", " << mask4 << endl;
+	*/
+	/*
+	bitboard mask1 = (1i64 << a1) | (1i64 << a2) | (1i64 << b1);
+	bitprint(mask1);
+	bitboard mask2 = (1i64 << a8) | (1i64 << a7) | (1i64 << b8);
+	bitprint(mask2);
+	cout << "trapped_rook_long[] = {" << mask1 << ", " << mask2 << " };" << endl;
+	mask1 = (1i64 << b1) | (1i64 << c1);
+	bitprint(mask1);
+	mask2 = (1i64 << b8) | (1i64 << c8);
+	bitprint(mask2);
+	cout << "trapped_rook_long_king[] = { " << mask1 << ", " << mask2 << " };" << endl;
+
+	mask1 = (1i64 << h1) | (1i64 << h2) | (1i64 << g1);
+	bitprint(mask1);
+	mask2 = (1i64 << h8) | (1i64 << h7) | (1i64 << g8);
+	bitprint(mask2);
+	cout << "trapped_rook_short[] = {" << mask1 << ", " << mask2 << " };" << endl;
+	mask1 = (1i64 << f1) | (1i64 << g1);
+	bitprint(mask1);
+	mask2 = (1i64 << f8) | (1i64 << g8);
+	bitprint(mask2);
+	cout << "trapped_rook_short_king[] = { " << mask1 << ", " << mask2 << " };" << endl;
 	*/
 
-	//initializeMagicBishops();
+	precompute::rays();
+	precompute::shelter_scores();
+	precompute::rule_of_the_squares();
+	precompute::passed_pawns();
+	precompute::material_adjustments();
+	//precompute::castle_areas();
+	//precompute::castle_pawns();
 	populateMagicBishopArray(); 
 	populateMagicRookArray();
 
+	
 	string user_input;
 	//UCI_loop();
 
-	
 	while(user_input != "q" && user_input != "quit") 
 	{
 		cout << "Command? (q to quit, h for help): ";

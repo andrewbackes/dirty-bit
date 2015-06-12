@@ -94,7 +94,6 @@ public:
 	int			getMoveCount()						{return current_ply/2;}
 	int			getPly()							{return current_ply;}
 	bitboard	getKey()							{return gamestate[current_ply].zobrist_key;}
-	//bitboard	getPawnKey()						{return gamestate[current_ply].pawn_key;}
 	phash_lock	getPawnKey()						{return gamestate[current_ply].pawn_key;}
 	short		getHalfMovesRule()					{return gamestate[current_ply].half_move_rule;}
 	short		getEnPassantIndex()					{return gamestate[current_ply].en_passant_index;}
@@ -122,7 +121,6 @@ public:
 	void		position(std::string fen); //passes a FEN string.
 	void		clearBoard();
 	bitboard	generateKey();
-	//bitboard	generatePawnKey();
 	phash_lock  generatePawnKey();
 	void		toggleActivePlayer();
 

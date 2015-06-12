@@ -10,6 +10,8 @@
 //void CaptureGen(CHESSBOARD *b, MOVELIST * m);
 //void CaptureGen(CHESSBOARD *b, QMOVELIST * capture_list);
 void nonCaptureGen(CHESSBOARD *b, MOVELIST * m);
+void uncheckGen(CHESSBOARD * b, MOVELIST * m);
+
 
 template <class LIST> void CaptureGen(CHESSBOARD * b, LIST * capture_list) {
 //void CaptureGen(CHESSBOARD *b, MOVELIST * capture_list) {

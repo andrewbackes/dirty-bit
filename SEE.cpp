@@ -12,11 +12,27 @@ Static Exchange Evaluation and Static Table Evaluation.
 #include "macros.h"
 #include "bitboards.h"
 
+//int ordering_tables[2][8][64];
+/*
+void initOrderingTables(short t) {
+	for (int color = 0; color < 2; color++) {
+		for (int square = 0; square < 64; square++) {
+			ordering_tables[color][nPawn][square]	=	interpolate(nSquareValue[color][nPawn][square], nEndgamePawnValue[color][square], t);
+			ordering_tables[color][nKing][square]	=	interpolate(nSquareValue[color][nKing][square], nEndgameKingValue[color][square], t);
+			ordering_tables[color][nKnight][square] =	nSquareValue[color][nKnight][square];
+			ordering_tables[color][nBishop][square] =	nSquareValue[color][nBishop][square];
+			ordering_tables[color][nRook][square]	=	nSquareValue[color][nRook][square];
+			ordering_tables[color][nQueen][square]	=	nSquareValue[color][nQueen][square];
+		}
+	}
+}
+*/
+
 short STE(CHESSBOARD * b, MOVE m) {
 	//return 0;
 	short early_game = nSquareValue[m.color][m.active_piece_id][m.to] - nSquareValue[m.color][m.active_piece_id][m.from];
-
 	return early_game;
+	//return ordering_tables[m.color][m.active_piece_id][m.to] - ordering_tables[m.color][m.active_piece_id][m.from];
 }
 
 void findAttackingSquares(bitboard &attackers, CHESSBOARD *b, unsigned char square) {

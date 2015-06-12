@@ -198,6 +198,7 @@ void CHESSBOARD::MakeMove(MOVE m) {
 	}
 	*/
 	/*
+	#ifdef DEBUG_ZOBRIST
 	if(generateKey() != gamestate[current_ply].zobrist_key) {
 		print();
 		print_bb();
@@ -206,7 +207,7 @@ void CHESSBOARD::MakeMove(MOVE m) {
 		cout << "Material is suppose to be: " << materialScore(this) << ". But is: " << material_score[WHITE] - material_score[BLACK] << endl;
 
 		//for(int i=0; i < move_history.size(); i++) {
-		//	cout << "keys dont match. makemove: ";
+		cout << "keys dont match. makemove: ";
 		m.print(true);
 		//	cout << endl;
 		//}
@@ -215,6 +216,7 @@ void CHESSBOARD::MakeMove(MOVE m) {
 		cout << "KEYS DONT MATCH!" << endl;
 		system("PAUSE");
 	}
+	#endif
 	*/
 	/*
 	for(int i =0; i < 64; i++) {

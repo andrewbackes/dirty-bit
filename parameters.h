@@ -8,7 +8,7 @@ General Info:
 *******************************************************************************/
 
 #define ID_NAME		"DirtyBit"
-#define ID_VERSION	"0.38"
+#define ID_VERSION	"0.39.5"
 #define ID_AUTHOR	"Andrew Backes"
 
 
@@ -21,7 +21,8 @@ Debug:
 //#define DEBUG_TIME
 //#define DEBUG_SEARCH
 //#define SEARCH_STATS
-
+//#define DEBUG_ZOBRIST
+//#define DEBUG_KILLERS
 
 /*******************************************************************************
 
@@ -36,7 +37,7 @@ Search:
 
 #define ENABLE_CHECK_EXTENSIONS
 
-//#define ENABLE_KILLER_MOVES		//Currently has a bug which causes illegal moves to be played.
+#define ENABLE_KILLER_MOVES		
 
 #define PVS_HORIZON					2
 
@@ -49,7 +50,9 @@ Search:
 #define ENABLE_FUTILITY_PRUNING
 #define FUTILITY_DEPTH				4
 const short
+//futility_margin[] =					{ 0, 190, 190, 375, 375 };
 futility_margin[] =					{ 0, 120, 120, 310, 310 };
+
 
 #define ENABLE_NULLMOVE
 #define NULL_REDUCTION				3
@@ -113,8 +116,8 @@ Board and Pieces:
 #define nRook				6
 #define nQueen				7
 
-#define WHITE				0
-#define BLACK				1
+#define WHITE				false
+#define BLACK				true
 #define BOTH				2
 
 #define KING_SIDE			0
@@ -168,42 +171,92 @@ Engine:
 Evaluation:
 
 *******************************************************************************/
-//#define ENABLE_SIMPLE_EVAL
 
-#define SIDE_TO_MOVE_BONUS				0//11
+#define PAWN_PHASE_VALUE				0
+#define KNIGHT_PHASE_VALUE				1
+#define BISHOP_PHASE_VALUE				1
+#define ROOK_PHASE_VALUE				2
+#define QUEEN_PHASE_VALUE				4
+#define TOTAL_PHASE						(PAWN_PHASE_VALUE*16 + KNIGHT_PHASE_VALUE*4 + BISHOP_PHASE_VALUE*4 + ROOK_PHASE_VALUE*4 + QUEEN_PHASE_VALUE*2)
+
+// Piece Values:
+#define PAWN_VALUE						100
+#define KNIGHT_VALUE					375//325		//Remember: that making knight!=bishop will mess up a condition in SEE
+#define BISHOP_VALUE					375//325
+#define ROOK_VALUE						500
+#define QUEEN_VALUE						1050//975
+#define KING_VALUE						9900
+#define EDGE_PAWN_PENALTY				8//0//15
+
+// Adjust piece values as a function of pawns:
+//#define ENABLE_PIECE_VALUE_ADJUSTMENTS
+const char KNIGHT_ADJUSTMENT[] =		{ -31, -25, -19, -13, -6, 0, 6, 13, 19};
+const char BISHOP_ADJUSTMENT[] =		{ 38, 31, 25, 19, 13, 0, -13, -19, -25 };
+const char ROOK_ADJUSTMENT[] =			{ 62, 50, 38, 25, 13, 0, -13, -25, -38 };
+
+//#define ENABLE_SIMPLE_EVAL
+#define SIDE_TO_MOVE_EARLY_BONUS			2//5//11
+#define SIDE_TO_MOVE_LATE_BONUS				4//8//11
+
+// PST
+#define ENABLE_QUEEN_PST
+//#define NEW_PSTS
+//#define OLD_PSTS
+#define TEST_PSTS
 
 // Pawn evaluation:
-#define PASSED_PAWN_EARLY_VALUE			10
-#define PASSED_PAWN_LATE_VALUE			10
-#define ISOLATED_PAWN_EARLY_PENALTY		1
-#define ISOLATED_PAWN_LATE_PENALTY		1
-#define DOUBLED_PAWN_EARLY_PENALTY		1	
-#define DOUBLED_PAWN_LATE_PENALTY		2
-#define BACKWARD_PAWN_EARLY_PENALTY		1
-#define BACKWARD_PAWN_LATE_PENALTY		1
-//#define CONNECTED_PAWN_EARLY_VALUE	5
-//#define CONNECTED_PAWN_LATE_VALUE		10
+#define PASSED_PAWN_EARLY_MIN_VALUE		4//9
+#define PASSED_PAWN_EARLY_MAX_VALUE		60//66
+#define PASSED_PAWN_LATE_MIN_VALUE		10//13
+#define PASSED_PAWN_LATE_MAX_VALUE		120//99
+#define CANIDATE_EARLY_MIN_VALUE		4//4
+#define CANIDATE_EARLY_MAX_VALUE		36//36
+#define CANIDATE_LATE_MIN_VALUE			6//9
+#define CANIDATE_LATE_MAX_VALUE			48//48
+#define GUARANTEED_PROMOTION_VALUE		(QUEEN_VALUE - PAWN_VALUE - PASSED_PAWN_LATE_MAX_VALUE - 66)
+//Late only. From self:
+#define SELF_BLOCKING_MIN_PENALTY		2
+#define SELF_BLOCKING_MAX_PENALTY		8//15
+//Late only. From Enemies:
+#define UNTHREATENED_PATH_MIN_BONUS		4
+#define UNTHREATENED_PATH_MAX_BONUS		24//20
+#define CLEAR_PATH_MIN_BONUS			4
+#define CLEAR_PATH_MAX_BONUS			24//20
+
+#define ISOLATED_PAWN_EARLY_PENALTY		5//1//10
+#define ISOLATED_PAWN_LATE_PENALTY		10//1//18
+#define ISOLATED_OPEN_FILE				5//0//12
+
+#define DOUBLED_PAWN_EARLY_PENALTY		5//6//1//9//6	
+#define DOUBLED_PAWN_LATE_PENALTY		10//12//2//15//25
+#define DOUBLED_PAWN_OPEN_FILE			5//0//15
+#define DOUBLED_PAWN_REAR_ADVANCED		2//0//6
+
+#define BACKWARD_PAWN_EARLY_PENALTY		2//1//1//0//8
+#define BACKWARD_PAWN_LATE_PENALTY		4//2//10//0//12 
+#define BACKWARD_PAWN_OPEN_FILE			1//0//10//0//8 //additionally
+
+//two types of connectedness:
+#define CONNECTED_PAWN_EARLY_VALUE		2
+#define CONNECTED_PAWN_LATE_VALUE		3
+#define PAWN_DUO_EARLY_VALUE			3
+#define PAWN_DUO_LATE_VALUE				7
 
 // Pawn Shelter:
-#define SHELTER_BONUS					3	//Temporary
-#define PIECE_SHELTER_BONUS				0
-
-#define SHELTER_SECOND_RANK_PENALTY		0
-#define SHELTER_THIRD_RANK_PENALTY		1
-#define SHELTER_FOURTH_RANK_PENALTY		2
-#define SHELTER_FIFTH_RANK_PENALTY		3
-
-
+const unsigned char
+shelter_penalty[] =						{ 0, 0, 1, 4, 8, 9, 10, 10 };//{ 0, 0, 5, 10, 13, 16, 17, 18 };//{ 0, 0, 11, 20, 27, 32, 34, 36 };
+const unsigned char
+storm_penalty[] =						{ 0, 0, 0, 0, 4, 8, 12, 0 };//{ 0, 0, 0, 0, 4, 13, 27, 0 };// { 0, 0, 0, 9, 27, 54, 0, 0 };
 
 // King Safety:
-#define KNIGHT_KING_THREAT_EARLY_BONUS	3
-#define KNIGHT_KING_THREAT_LATE_BONUS	3
-#define BISHOP_KING_THREAT_EARLY_BONUS	3
-#define BISHOP_KING_THREAT_LATE_BONUS	3
-#define ROOK_KING_THREAT_EARLY_BONUS	5
-#define ROOK_KING_THREAT_LATE_BONUS		5
-#define QUEEN_KING_THREAT_EARLY_BONUS	9
-#define QUEEN_KING_THREAT_LATE_BONUS	9
+const unsigned char
+threat_score[] =						//{ 0, 50, 75, 88, 93, 96, 98, 100, 100, 100, 100, 100, 100, 100, 100, 100 };
+{ 0, 50, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100 };
+#define THREAT_RATIO					100//100
+#define KNIGHT_THREAT_WEIGHT			3//1
+#define BISHOP_THREAT_WEIGHT			3//1
+#define ROOK_THREAT_WEIGHT				5//2
+#define QUEEN_THREAT_WEIGHT				9//4
 
 #define SEMIOPEN_THREAT_EARLY_BONUS		1
 #define SEMIOPEN_THREAT_LATE_BONUS		0
@@ -211,35 +264,44 @@ Evaluation:
 #define OPEN_THREAT_LATE_BONUS			1
 
 // Bishop and Knight:
-#define BISHOP_PAIR_EARLY_BONUS			0	//0.31=0.
-#define BISHOP_PAIR_LATE_BONUS			75
-
-#define	KNIGHT_LATE_PENALTY				10
+#define BISHOP_PAIR_EARLY_BONUS			25	//0.31=0.
+#define BISHOP_PAIR_LATE_BONUS			50//75
+							 			//{ 75, 75, 72, 69, 66, 63, 59, 56, 53, 47, 44, 41, 38, 34, 31, 28, 25, 0 };
+										//{ 75, 75, 70, 65, 60, 55, 50, 45, 40, 35, 30, 25, 20, 15, 10, 5,0 };
+										  
+#define	KNIGHT_LATE_PENALTY				10//0//10
+#define ROOK_REDUNDANCY_LATE_PENALTY	0
 
 // Mobility:
+const char knight_mobility[] =			{ -19, -13, -6, 0, 6, 13, 16, 19, 19 };
+const char bishop_mobility[] =			{ -13, -6, 2, 9, 16, 23, 29, 33, 36, 37, 38, 39, 40, 40, 41, 41 };
+const char rook_mobility[] =			{ -10, -7, -4, -1, 2, 5, 7, 10, 12, 13, 14, 14, 15, 15, 16, 16};
+const char queen_mobility[] =			{ -5, -4, -3, -2, -1, 1, 2, 3, 4, 5, 6, 8, 8, 9, 9, 10};
 
-#define QUEEN_MOBILITY_EARLY_BONUS		1	//Added to the bonus already given when calculating rook and bishop moves.
-#define QUEEN_MOBILITY_LATE_BONUS		1	//Added to the bonus already given when calculating rook and bishop moves.
+#define QUEEN_MOBILITY_EARLY_BONUS		1//1
+#define QUEEN_MOBILITY_LATE_BONUS		1//1
 
-#define ROOK_SEMI_OPEN_FILE_EARLY_BONUS	1
-#define ROOK_SEMI_OPEN_FILE_LATE_BONUS	1
-#define ROOK_OPEN_FILE_EARLY_BONUS		3	//keep in mind this is added in addition to the semi bonus.
-#define ROOK_OPEN_FILE_LATE_BONUS		1	//keep in mind this is added in addition to the semi bonus.
-#define ROOK_MOBILITY_EARLY_BONUS		1
-#define ROOK_MOBILITY_LATE_BONUS		1
+#define ROOK_SEMI_OPEN_FILE_EARLY_BONUS	9//1//10
+#define ROOK_SEMI_OPEN_FILE_LATE_BONUS	9//1//10
+#define ROOK_OPEN_FILE_EARLY_BONUS		9//3//24	
+#define ROOK_OPEN_FILE_LATE_BONUS		18//1//14	
+#define ROOK_MOBILITY_EARLY_BONUS		1//1
+#define ROOK_MOBILITY_LATE_BONUS		1//1
+#define ROOK_SUPPORTING_PP_EARLY_BONUS	10//10
+#define ROOK_SUPPORTING_PP_LATE_BONUS	20//25
+#define ROOK_7TH_FILE_EARLY_BONUS		15//15
+#define ROOK_7TH_FILE_LATE_BONUS		25//25
 
-#define BISHOP_MOBILITY_EARLY_BONUS		1
-#define BISHOP_MOBILITY_LATE_BONUS		1
+#define BISHOP_MOBILITY_EARLY_BONUS		1//1
+#define BISHOP_MOBILITY_LATE_BONUS		1//1
 
-#define KNIGHT_MOBILITY_EARLY_BONUS		2
-#define KNIGHT_MOBILITY_LATE_BONUS		2
+#define KNIGHT_MOBILITY_EARLY_BONUS		2//2
+#define KNIGHT_MOBILITY_LATE_BONUS		2//2
 
-// Piece Values:
-#define PAWN_VALUE						100
-#define KNIGHT_VALUE					325		//Remember: that making knight!=bishop will mess up a condition in SEE
-#define BISHOP_VALUE					325
-#define ROOK_VALUE						500
-#define QUEEN_VALUE						975
-#define KING_VALUE						9900
+//Patterns:
+//#define ENABLE_PATTERNS
+#define TRAPPED_BISHOP					100//170
+#define TRAPPED_ROOK					50//60
+
 
 #endif

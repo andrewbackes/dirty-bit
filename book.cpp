@@ -31,7 +31,7 @@ void BOOK_LINE::eval() {
 			0							));
 	}
 	
-	evaluation_score = 	evaluate(&sample);
+	evaluation_score = 	evaluate(&sample, sample.getActivePlayer());
 }
 
 void BOOK::addLine(int priority, std::string name, std::string line) {

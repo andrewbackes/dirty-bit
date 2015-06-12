@@ -18,7 +18,7 @@ public:
 	{	root_depth = depth; root_game = game; q_max_ply = 0; selective_depth = 0;
 		start_time =0; end_time = 0; allotted_time = time; fTimeOut = false;
 		node_count =0; best_score = -INFTY; 
-		hashtable = h; 
+		hashtable = h; side_to_move = game->getActivePlayer();
 		//move_list = new MOVELIST[root_depth+1];
 		//for(int i =0; i<=root_depth; i++) {
 		for(int i =0; i < MAX_PLY; i++) {
@@ -126,6 +126,7 @@ public:
 private:
 	
 	CHESSBOARD * root_game;
+	bool side_to_move;
 	int root_depth;
 	short selective_depth;
 

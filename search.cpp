@@ -14,6 +14,8 @@
 
 using namespace std;
 
+
+
 void SEARCH::setHasheTable(HASHTABLE * t) {
 	hashtable = t;
 }
@@ -37,6 +39,10 @@ void SEARCH::start(int alpha_bound, int beta_bound) {
 	//for record keeping:
 	start_time = clock()/(CLOCKS_PER_SEC/1000);
 	node_count = 0;
+	
+	//Generate move ordering tables:
+	//short gauge = phase_gauge(root_game);
+	//initOrderingTables(gauge);
 	
 	//Search:
 	//PVS_Root();
@@ -72,8 +78,15 @@ void SEARCH::collectPV() {
 
 int SEARCH::Hard_qSearch(CHESSBOARD * game, int alpha, int beta, int qPly) {
 	
-	int value = relative_eval(game,alpha, beta);
-
+	int value = evaluate(game, side_to_move);
+	/*
+	int value2 = evaluate_old(game, alpha, beta);
+	if (abs(value - value2) > 1) {
+		game->print();
+		cout << "old: " << value << ". new: " << value2 << endl;
+		system("PAUSE");
+	}
+	*/
 	if(qPly > q_max_ply) {
 		q_max_ply = qPly;
 		
@@ -96,8 +109,8 @@ int SEARCH::Hard_qSearch(CHESSBOARD * game, int alpha, int beta, int qPly) {
 	}
 	
 	short delta = nPieceValue[nQueen];
-	if(mask::pawns_spawn[!game->getActivePlayer()] & game->getPieceBB(game->getActivePlayer(),nPawn) )
-		delta += nPieceValue[nQueen] - nPieceValue[nPawn]- nPieceValue[nPawn];
+	if (mask::pawns_spawn[!game->getActivePlayer()] & game->getPieceBB(game->getActivePlayer(), nPawn))
+		delta += QUEEN_VALUE - PAWN_VALUE - PAWN_VALUE;
 	
 	if(value + delta < alpha)
 		return value;
@@ -306,15 +319,12 @@ int SEARCH::Hard_PVS(unsigned char depth, unsigned char ply, CHESSBOARD * game, 
 		if (game->checkThreeFold() || (game->getHalfMovesRule() >= 100))
 			return contempt(game);
 	}
-	/*
 	#ifdef INSUFFICIENT_MATERIAL_CHECK
 	else {
-		if(insufficientMaterial(game)) {
-			return contempt(game);
-		}
+		if(insufficientMaterial(game)) return DRAW;
 	}
 	#endif
-	*/
+	
 	//Hashe table Check:
 	MOVE hash_suggestion;	
 	int score = hashtable->SearchHash(game->getKey(), depth, alpha, beta, &hash_suggestion);
@@ -325,19 +335,23 @@ int SEARCH::Hard_PVS(unsigned char depth, unsigned char ply, CHESSBOARD * game, 
 	if(depth <= 0) {
 		if(ply > selective_depth)
 			selective_depth = ply;
-		//int value = relative_eval(game);
+		//int value = evaluate(game);
 		int value = Hard_qSearch(game, alpha, beta,0);
 		//hashtable->RecordHash( game->getKey(), 0, value, HASH_EXACT );
 		return value; 
 	}
 	//move_list[ply + 1].clearKillers();
 	bool checked = game->isInCheck();
+	
+	
 
 /**************************************************************************************
 	Null move if it is not a King/pawn game and the previous move want a null move.
 ***************************************************************************************/
 	#ifdef ENABLE_NULLMOVE
 	
+	move_list[ply + 1].clearKillers();
+
 	if(	!fNulled				//Do not null if we just nulled
 	&&	!checked				//Do not null in check, thats stupid
 	//&&	hash_score!=alpha	//Do not null if the hash table says that we might get a fail low. (BUG: that is NOT what the condition written actually does!)
@@ -347,7 +361,7 @@ int SEARCH::Hard_PVS(unsigned char depth, unsigned char ply, CHESSBOARD * game, 
 	{
 		game->NullMove(); //make nullmove!
 		if(depth - 1 - NULL_REDUCTION > 0) {
-			move_list[ply + 1].clearKillers();
+			
 			score = -Hard_PVS(depth - 1 - NULL_REDUCTION, ply+1, game, -beta,-beta+1, true);
 		}
 		else {
@@ -364,7 +378,6 @@ int SEARCH::Hard_PVS(unsigned char depth, unsigned char ply, CHESSBOARD * game, 
 	IID: If there is no hash suggestion, try to generate one with a lower depth search.
 ***************************************************************************************/	
 	move_list[ply].reset();
-	move_list[ply+1].clearKillers();
 	
 	#ifdef ENABLE_IID	
 	if((hash_suggestion.from == 64) 
@@ -405,9 +418,35 @@ int SEARCH::Hard_PVS(unsigned char depth, unsigned char ply, CHESSBOARD * game, 
 		short last_alpha = 0;
 		short last_alpha_phase = 0;
 	#endif
-
+	
+	move_list[ply + 1].clearKillers();
+	
 	while( move_list[ply].NextMove() ) {
 		game->MakeMove(*move_list[ply].move());
+
+		#ifdef DEBUG_ZOBRIST
+		if (game->generateKey() != game->getKey()) {
+			game->print();
+			game->print_bb();
+			game->print_mailbox();
+
+			cout << "keys dont match. search: ";
+			move_list[ply].move()->print(true);
+			cout << "movelist phase: " << (int) move_list[ply].phase() << endl;
+			
+			for (int i = 1; i <= ply; i++) {
+				cout << "killers ply " << i << ": (" << move_list[i].countKiller(0) << " ) ";
+				move_list[i].getKiller(0).print(true);
+				cout << endl;
+				cout << "killers ply " << i << ": (" << move_list[i].countKiller(1) << " ) ";
+				move_list[i].getKiller(1).print(true);
+				cout << endl;
+			}
+			cout << "KEYS DONT MATCH!" << endl;
+			system("PAUSE");
+		}
+		#endif
+
 		if(!game->isInCheck(!game->getActivePlayer())) {
 			node_count++;
 
@@ -478,10 +517,11 @@ int SEARCH::Hard_PVS(unsigned char depth, unsigned char ply, CHESSBOARD * game, 
 
 			move_count++;
 			game->unMakeMove(*move_list[ply].move());
+			
 			//Normal Alpha-Beta:
 			if( score >= beta ) {
 				#ifdef ENABLE_KILLER_MOVES
-				if(move_list[ply].phase() == NONCAPTURES) {
+				if (move_list[ply].phase() == NONCAPTURES && move_list[ply].move()->promote_piece_to == 0) {
 					move_list[ply].addKiller(*move_list[ply].move());
 				}
 				#endif

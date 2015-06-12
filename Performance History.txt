@@ -374,3 +374,61 @@ qSearch node check:
 	Midgame 1               16      11.418
 	Midgame 2               16      8.943
 	King-Pawn               30      12.426
+
+passed pawn PST:
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   14      6.402
+	Midgame 1               16      12.212
+	Midgame 2               16      8.438
+	King-Pawn               30      11.414
+
+
+killers:
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   16      23.418
+	Midgame 1               16      10.142
+	Midgame 2               16      11.313
+	King-Pawn               30      11.335
+
+disabled killers:
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   14      5.882
+	Midgame 1               16      11.777
+	Midgame 2               15      6.331
+	King-Pawn               30      11.09
+
+0.39.3 - +10 endgame pp:
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   15      9.141
+	Midgame 1               16      12.497
+	Midgame 2               16      7.629
+	King-Pawn               30      11.231
+
+64-bit pawn hash key
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   15      7.87
+	Midgame 1               16      9.744
+	Midgame 2               16      12.566
+	King-Pawn               29      9.638
+
+
+With patterns:
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   14      6.95
+	Midgame 1               15      10.131
+	Midgame 2               16      10.614
+	King-Pawn               30      11.41
+
+Without patterns:
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   14      8.896
+	Midgame 1               16      11.665
+	Midgame 2               16      8.359
+	King-Pawn               29      8.61
