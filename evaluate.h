@@ -29,7 +29,7 @@ const int DRAW = 0;
 */
 
 
-const short nPieceValue[9] = {0,100,320,9900,0,325,500,975,0};
+const short nPieceValue[9] = {0,PAWN_VALUE,KNIGHT_VALUE,KING_VALUE,0,BISHOP_VALUE,ROOK_VALUE,QUEEN_VALUE,0};
 
 //See https://chessprogramming.wikispaces.com/Simplified+evaluation+function
 
@@ -147,7 +147,7 @@ const int nSquareValue[2][8][64] = {
 };
 
 
-/*
+
 const int nEndgameKingValue[2][64] =	{
 		{
 			-30,-18,-18,-18,-18,-18,-18,-30,
@@ -169,6 +169,7 @@ const int nEndgameKingValue[2][64] =	{
 			-18,-18,  0,  0,  0,  0,-18,-18,
 			-30,-18,-18,-18,-18,-18,-18,-30
 		} }; 
+			/*
 const int nSquareValue[2][8][64] = { 
 	//WHITE:
 	{

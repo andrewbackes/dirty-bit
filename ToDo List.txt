@@ -1,9 +1,45 @@
 To Do List:
 ---------------------------------------------
 
+
+-add checking moves to the captures list in the qsearch.
+
+-revamp HASH class. do not need an entire MOVE in there, just to/from. Also, score does not need to be an int, it can be a short. 
+
+-revamp MOVE, to take out score and do score in MOVELIST instead.
+
+-In NextMove(), do not return the dublicate of the hash move and the killers
+
+-Add killers from 2 plies ago.
+
+-replace cout with a send command, this way output streams can be easily controlled.
+
+-remove static score from MOVE class.
+
+-rewrite SEE.
+
+-Replace several masks with macros.
+
+-Tune IID
+
+-Some search features seem to be better in different game phases (like hashing nullmove beta cutoffs are better in late game), toggle them accordingly.
+
+-Have the MOVELIST return a pointer to the current move to play. not a copy of it.
+
+-by having knight=bishop, the even captures include NxB and BxN, but if these are changed the even capture detection will get messed up.
+
+-reuse the "to" variable in the move gen functions, dont make them inside the {}'s.
+-replace all of the turning off the lsb that are currently of the form 
+	bitboard^=(1i64 << x); to be bitboard &= bitboard -1;
+	
+-Make MOVE and CAPTURER derived from the same class.
+-Make QMOVELIST and MOVELIST derived from the same parent class.
+
+-verify that alpha cutoffs values are actually returned byt the searchhash, so that it can acurately be used in the null move condition.
+
 -when in check, generate evasions first.
 
--Hash table should not be global.
+-Hash table should not be global. Put this in an engine class.
 
 -try countering the oscilation by doing a one ply search on the last move in the PV
 -also try using the previous odd or even search, if there is under 100 change.
@@ -15,7 +51,7 @@ To Do List:
 -Do not LMR when:
 	-to close to horizon (within 3 ply??)
 	-can not be in check
-	-move does not check opponent
+	-move does not check opponent  <- For this, maybe pass to the next search if this was a reduction, then extend 1 more if in check.
 	-non capture / non promotion
 	-already extended
 
@@ -24,14 +60,7 @@ To Do List:
 
 -change makemove capture detection by board[m.to] rather than captured_piece_id, then score en passant kills.
 
--change check detection to simulate putting the piece on the kings current square and see if they can hit a piece of their type. 
-if so, then they can attack the king. (at least for knights, bishops, rooks, queens).
-
 -use a seperate movegen when the king is in check.
-
--if there are no moves on the list to search, the fail soft portions could cause a crash.
-
--SEE, killer moves, history heuristics, countermove, etc.
 
 -Optimization: arrange if statements by popularity in isInCheck, isAttacked, makemove, etc.
 -Optimization: some of the bitscans can be byref to save memory.
@@ -43,13 +72,6 @@ if so, then they can attack the king. (at least for knights, bishops, rooks, que
 -hash suggestion is on the move list twice.
 
 -Move generation may favor white, since N,NE,NW moves are generated before S,SE,SW
-
--Ideal move generation:
-	-Good Captures
-	-captures removed
-	-Killer moves
-	-non-captures
-	
 
 -fit the time allocation function better to the graph: http://chessprogramming.wikispaces.com/Time+Management
 -early iterative deepening cutoff for take-backs
@@ -72,7 +94,7 @@ if so, then they can attack the king. (at least for knights, bishops, rooks, que
 -Parrallel search
 -magics!
 
--Research futility, limited razoring, Late move
+-Research futility, limited razoring
 
 -Evaluation order: mobility, passed pawn.
 

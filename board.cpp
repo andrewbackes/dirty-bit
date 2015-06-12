@@ -11,7 +11,86 @@
 #include "evaluate.h"
 #include "utilities.h"
 
+#include "macros.h"
+
 using namespace std;
+
+/*
+void CHESSBOARD::quickCapture(MOVE attacker) {
+	// Only update the bitboards and the mailbox.
+	// Do not update the zobrist key, material value, etc.
+
+	//Turn off the attackees bit:
+	pieceBB[!attacker.color][attacker.captured_piece] ^= (1i64 << attacker.to);
+	occupiedBB[!attacker.color] ^= (1i64 << attacker.to);
+
+	//Swap the attackers bit:
+	pieceBB[attacker.color][attacker.active_piece_id] ^= ( (1i64 << attacker.from) | (1i64 << attacker.to) );
+	occupiedBB[attacker.color] ^= ( (1i64 << attacker.from) | (1i64 << attacker.to) );
+	occupiedBB[BOTH] ^= (1i64 << attacker.from);
+
+	//Adjust the mailbox board representation:
+	board[attacker.to] = attacker.active_piece_id;
+	board[attacker.from] = 0;
+
+}
+*/
+void CHESSBOARD::quickCapture(CAPTURER attacker) {
+	// Only update the bitboards and the mailbox.
+	// Do not update the zobrist key, material value, etc.
+
+	//Turn off the attackees bit:
+	pieceBB[!attacker.color][attacker.captured_id] ^= (1i64 << attacker.to);
+	occupiedBB[!attacker.color] ^= (1i64 << attacker.to);
+
+	//Swap the attackers bit:
+	pieceBB[attacker.color][attacker.piece_id] ^= ( (1i64 << attacker.from) | (1i64 << attacker.to) );
+	occupiedBB[attacker.color] ^= ( (1i64 << attacker.from) | (1i64 << attacker.to) );
+	occupiedBB[BOTH] ^= (1i64 << attacker.from);
+
+	//Adjust the mailbox board representation:
+	board[attacker.to] = attacker.piece_id;
+	board[attacker.from] = 0;
+
+}
+/*
+void CHESSBOARD::quickUnCapture(MOVE attacker) {
+	// Only update the bitboards and the mailbox.
+	// Do not update the zobrist key, material value, etc.
+
+	//Adjust the mailbox board representation:
+	board[attacker.to] = attacker.captured_piece;
+	board[attacker.from] = attacker.active_piece_id;
+
+	//Turn on the attackees bit:
+	pieceBB[!attacker.color][attacker.captured_piece] ^= (1i64 << attacker.to);
+	occupiedBB[!attacker.color] ^= (1i64 << attacker.to);
+
+	//Swap the attackers bit:
+	pieceBB[attacker.color][attacker.active_piece_id] ^= ( (1i64 << attacker.from) | (1i64 << attacker.to) );
+	occupiedBB[attacker.color] ^= ( (1i64 << attacker.from) | (1i64 << attacker.to) );
+	occupiedBB[BOTH] ^= (1i64 << attacker.from);
+
+}
+*/
+void CHESSBOARD::quickUnCapture(CAPTURER attacker) {
+	// Only update the bitboards and the mailbox.
+	// Do not update the zobrist key, material value, etc.
+
+	//Adjust the mailbox board representation:
+	board[attacker.to] = attacker.captured_id;
+	board[attacker.from] = attacker.piece_id;
+
+	//Turn on the attackees bit:
+	pieceBB[!attacker.color][attacker.captured_id] ^= (1i64 << attacker.to);
+	occupiedBB[!attacker.color] ^= (1i64 << attacker.to);
+
+	//Swap the attackers bit:
+	pieceBB[attacker.color][attacker.piece_id] ^= ( (1i64 << attacker.from) | (1i64 << attacker.to) );
+	occupiedBB[attacker.color] ^= ( (1i64 << attacker.from) | (1i64 << attacker.to) );
+	occupiedBB[BOTH] ^= (1i64 << attacker.from);
+
+}
 
 bool CHESSBOARD::checkThreeFold() {
 	//Decides if the current board state is a draw due to 3fold repitition.
@@ -27,26 +106,27 @@ bool CHESSBOARD::checkThreeFold() {
 	return false;
 }
 
-bool CHESSBOARD::isAttacked(short square_index) {
+bool CHESSBOARD::isAttacked(unsigned char square_index) {
 	return isAttacked(active_player, square_index);
 }
 
-bool CHESSBOARD::isAttacked(bool player, short square_index) {
-		
+bool CHESSBOARD::isAttacked(bool player, unsigned char square_index) {
+	//TODO hardcode the masks that do not require a dynamic index.
+
 	bool opponent = !player;
 	bitboard pieceDB =0;
 
 	// Is in danger from pawns?:
 	if(opponent == WHITE) {
-		pieceDB =	((pieceBB[opponent][nPawn] & ~mask::file[a]) << 9) 
-				  |	((pieceBB[opponent][nPawn] & ~mask::file[h]) << 7); //5 bit operations for this?
+		pieceDB =	((pieceBB[opponent][nPawn] & ~FileMask(a)/*~mask::file[a]*/) << 9)  
+				  |	((pieceBB[opponent][nPawn] & ~FileMask(h)/*~mask::file[h]*/) << 7); 
 		if(pieceDB & (1i64 << square_index) ) {
 			return true;
 		}
 	}
 	else {
-		pieceDB =	((pieceBB[opponent][nPawn] & ~mask::file[h]) >> 9) 
-				  |	((pieceBB[opponent][nPawn] & ~mask::file[a]) >> 7); //5 bit operations for this?
+		pieceDB =	((pieceBB[opponent][nPawn] & ~FileMask(h)/*~mask::file[h]*/) >> 9) 
+				  |	((pieceBB[opponent][nPawn] & ~FileMask(a)/*~mask::file[a]*/) >> 7);
 		if(pieceDB & (1i64 << square_index) ) {
 			return true;
 		}
@@ -56,48 +136,17 @@ bool CHESSBOARD::isAttacked(bool player, short square_index) {
 	if(mask::knight_moves[square_index] & pieceBB[opponent][nKnight]){
 		return true;
 	}
-	//Diagonal attacks:
-	bitboard t;
-	if(t = mask::ne[square_index] & (pieceBB[opponent][nBishop] | pieceBB[opponent][nQueen])) {
-		if(bitscan_lsb(t) == bitscan_lsb( mask::ne[square_index] & occupiedBB[BOTH]) ){
-			return true;
-		}
-	}
-	if(t = mask::nw[square_index] & (pieceBB[opponent][nBishop] | pieceBB[opponent][nQueen])) {
-		if(bitscan_lsb(t) == bitscan_lsb( mask::nw[square_index] & occupiedBB[BOTH]) ) {
-			return true;
-		}
-	}
-	if(t = mask::se[square_index] & (pieceBB[opponent][nBishop] | pieceBB[opponent][nQueen])) {
-		if(bitscan_msb(t) == bitscan_msb( mask::se[square_index] & occupiedBB[BOTH]) ) {
-			return true;
-		}
-	}
-	if(t = mask::sw[square_index] & (pieceBB[opponent][nBishop] | pieceBB[opponent][nQueen])) {
-		if(bitscan_msb(t) == bitscan_msb( mask::sw[square_index] & occupiedBB[BOTH]) ) {
-			return true;
-		}
-	}
 
+	//Diagonal attacks:
+	if(mask::MagicBishopMoves[square_index][ ((occupiedBB[BOTH] & mask::MagicBishopMask[square_index]) * mask::MagicBishopNumbers[square_index]) >> mask::MagicBishopShift[square_index] ] 
+			& (pieceBB[opponent][nBishop] | pieceBB[opponent][nQueen])) {
+		return true;
+	}
+	
 	// Horizontal and Vertical attacks:
-	if(t = mask::north[square_index] & (pieceBB[opponent][nRook] | pieceBB[opponent][nQueen])) {
-		if(bitscan_lsb(t) == bitscan_lsb( mask::north[square_index] & occupiedBB[BOTH]) ) {
-			return true;
-		}
-	}
-	if(t = mask::west[square_index] & (pieceBB[opponent][nRook] | pieceBB[opponent][nQueen])) {
-		if(bitscan_lsb(t) == bitscan_lsb( mask::west[square_index] & occupiedBB[BOTH]) ) {
-			return true;
-		}
-	}
-	if(t = mask::south[square_index] & (pieceBB[opponent][nRook] | pieceBB[opponent][nQueen])) {
-		if(bitscan_msb(t) == bitscan_msb( mask::south[square_index] & occupiedBB[BOTH]) ) {
-			return true;
-		}
-	}
-	if(t = mask::east[square_index] & (pieceBB[opponent][nRook] | pieceBB[opponent][nQueen])) {
-		if(bitscan_msb(t) == bitscan_msb( mask::east[square_index] & occupiedBB[BOTH]) )
-			return true;
+	if(mask::MagicRookMoves[square_index][((occupiedBB[BOTH]&mask::MagicRookMask[square_index]) * mask::MagicRookNumbers[square_index])>>mask::MagicRookShift[square_index]] 
+			& (pieceBB[opponent][nRook] | pieceBB[opponent][nQueen])) {
+		return true;
 	}
 	
 	// King attacks:
@@ -107,97 +156,6 @@ bool CHESSBOARD::isAttacked(bool player, short square_index) {
 
 	return false;
 
-
-
-	/*
-	bool opponent = !player;
-	bitboard pieceDB =0;
-
-	// Is in danger from pawns?:
-	if(opponent == WHITE) {
-		pieceDB =	((pieceBB[opponent][nPawn] & ~mask::file[a]) << 9) 
-				  |	((pieceBB[opponent][nPawn] & ~mask::file[h]) << 7); //5 bit operations for this?
-		if(pieceDB & (1i64 << square_index) )
-			return true;
-	}
-	else {
-		pieceDB =	((pieceBB[opponent][nPawn] & ~mask::file[h]) >> 9) 
-				  |	((pieceBB[opponent][nPawn] & ~mask::file[a]) >> 7); //5 bit operations for this?
-		if(pieceDB & (1i64 << square_index) )
-			return true;
-	}
-	
-	// Is in danger from knights? :
-	pieceDB = pieceBB[opponent][nKnight];
-	while(pieceDB) {
-		int index = bitscan_lsb(pieceDB);
-		if(mask::knight_moves[index] & (1i64 << square_index))
-			return true;
-		pieceDB ^= (1i64 << index);
-	}
-
-	// In Danger from Diagonal Attacks? Bishops and Queens:
-	pieceDB = pieceBB[opponent][nBishop] | pieceBB[opponent][nQueen];
-	while(pieceDB) {
-		int index = bitscan_lsb(pieceDB);
-		//NE:
-		if(mask::ne[index] & (1i64 << square_index)) { 
-			if(square_index == bitscan_lsb(mask::ne[index] & (occupiedBB[BOTH] | (1i64 << square_index))) )
-				return true;
-		}
-		//NW:
-		if(mask::nw[index] & (1i64 << square_index)) { 
-			if(square_index == bitscan_lsb(mask::nw[index] & (occupiedBB[BOTH] | (1i64 << square_index))) )
-				return true;
-		}
-		//SE:
-		if(mask::se[index] & (1i64 << square_index)) { 
-			if(square_index == bitscan_msb(mask::se[index] & (occupiedBB[BOTH] | (1i64 << square_index))) )
-				return true;
-		}
-		//SW:
-		if(mask::sw[index] & (1i64 << square_index)) { 
-			if(square_index == bitscan_msb(mask::sw[index] & (occupiedBB[BOTH] | (1i64 << square_index))) )
-				return true;
-		}
-		pieceDB ^= (1i64 << index);
-	}
-
-	// Is in danger from straight attacks? Rooks and Queens:
-	pieceDB = pieceBB[opponent][nRook] | pieceBB[opponent][nQueen];
-	while(pieceDB) {
-		int index = bitscan_lsb(pieceDB);
-		//North:
-		if(mask::north[index] & (1i64 << square_index)) { 
-			if(square_index == bitscan_lsb(mask::north[index] & (occupiedBB[BOTH] | (1i64 << square_index))) )
-				return true;
-		}
-		//West:
-		if(mask::west[index] & (1i64 << square_index)) { 
-			if(square_index == bitscan_lsb(mask::west[index] & (occupiedBB[BOTH] | (1i64 << square_index))) )
-				return true;
-		}
-		//South:
-		if(mask::south[index] & (1i64 << square_index)) { 
-			if(square_index == bitscan_msb(mask::south[index] & (occupiedBB[BOTH] | (1i64 << square_index))) )
-				return true;
-		}
-		//East:
-		if(mask::east[index] & (1i64 << square_index)) { 
-			if( square_index == bitscan_msb(mask::east[index] & (occupiedBB[BOTH] | (1i64 << square_index))) )
-				return true;
-		}
-		pieceDB ^= (1i64 << index);
-	}
-
-	// Is in danger from the other king:
-	pieceDB = pieceBB[opponent][nKing];
-	int index = bitscan_lsb(pieceDB);
-	if(mask::king_moves[index] & (1i64 << square_index))
-		return true;
-
-	return false;
-	*/
 }
 
 bool CHESSBOARD::isInCheck() {
@@ -206,181 +164,9 @@ bool CHESSBOARD::isInCheck() {
 
 bool CHESSBOARD::isInCheck(bool player) {
 	//Returns if the active player is in check.
-	
-	// TODO:	-Re-arrange in order of most occurring if/else.
-	
-	bool opponent = !player;
-	bitboard pieceDB =0;
-
-	// Is in danger from pawns?:
-	if(opponent == WHITE) {
-		pieceDB =	((pieceBB[opponent][nPawn] & ~mask::file[a]) << 9) 
-				  |	((pieceBB[opponent][nPawn] & ~mask::file[h]) << 7); //5 bit operations for this?
-		if(pieceDB & pieceBB[player][nKing] ) {
-			return true;
-		}
-	}
-	else {
-		pieceDB =	((pieceBB[opponent][nPawn] & ~mask::file[h]) >> 9) 
-				  |	((pieceBB[opponent][nPawn] & ~mask::file[a]) >> 7); //5 bit operations for this?
-		if(pieceDB & pieceBB[player][nKing] ) {
-			return true;
-		}
-	}
-	
-	short kings_square = bitscan_msb(pieceBB[player][nKing]);
-
-	//Knight attacks:
-	if(mask::knight_moves[kings_square] & pieceBB[opponent][nKnight]){
-		return true;
-	}
-	//Diagonal attacks:
-	bitboard t;
-	if(t = mask::ne[kings_square] & (pieceBB[opponent][nBishop] | pieceBB[opponent][nQueen])) {
-		if(bitscan_lsb(t) == bitscan_lsb( mask::ne[kings_square] & occupiedBB[BOTH]) ){
-			return true;
-		}
-	}
-	if(t = mask::nw[kings_square] & (pieceBB[opponent][nBishop] | pieceBB[opponent][nQueen])) {
-		if(bitscan_lsb(t) == bitscan_lsb( mask::nw[kings_square] & occupiedBB[BOTH]) ) {
-			return true;
-		}
-	}
-	if(t = mask::se[kings_square] & (pieceBB[opponent][nBishop] | pieceBB[opponent][nQueen])) {
-		if(bitscan_msb(t) == bitscan_msb( mask::se[kings_square] & occupiedBB[BOTH]) ) {
-			return true;
-		}
-	}
-	if(t = mask::sw[kings_square] & (pieceBB[opponent][nBishop] | pieceBB[opponent][nQueen])) {
-		if(bitscan_msb(t) == bitscan_msb( mask::sw[kings_square] & occupiedBB[BOTH]) ) {
-			return true;
-		}
-	}
-
-	// Horizontal and Vertical attacks:
-	if(t = mask::north[kings_square] & (pieceBB[opponent][nRook] | pieceBB[opponent][nQueen])) {
-		if(bitscan_lsb(t) == bitscan_lsb( mask::north[kings_square] & occupiedBB[BOTH]) ) {
-			return true;
-		}
-	}
-	if(t = mask::west[kings_square] & (pieceBB[opponent][nRook] | pieceBB[opponent][nQueen])) {
-		if(bitscan_lsb(t) == bitscan_lsb( mask::west[kings_square] & occupiedBB[BOTH]) ) {
-			return true;
-		}
-	}
-	if(t = mask::south[kings_square] & (pieceBB[opponent][nRook] | pieceBB[opponent][nQueen])) {
-		if(bitscan_msb(t) == bitscan_msb( mask::south[kings_square] & occupiedBB[BOTH]) ) {
-			return true;
-		}
-	}
-	if(t = mask::east[kings_square] & (pieceBB[opponent][nRook] | pieceBB[opponent][nQueen])) {
-		if(bitscan_msb(t) == bitscan_msb( mask::east[kings_square] & occupiedBB[BOTH]) )
-			return true;
-	}
-	
-	// King attacks:
-	if(mask::king_moves[kings_square] & pieceBB[opponent][nKing]) {
-		return true;
-	}
-
-	return false;
+	return isAttacked(player, bitscan_msb(pieceBB[player][nKing]));	
 }
-/*
 
-bool CHESSBOARD::isInCheck(bool player) {
-	//Returns if the active player is in check.
-	
-	// TODO:	-Re-arrange in order of most occurring if/else.
-	
-	bool opponent = !player;
-	bitboard pieceDB =0;
-
-	// Is in danger from pawns?:
-	if(opponent == WHITE) {
-		pieceDB =	((pieceBB[opponent][nPawn] & ~mask::file[a]) << 9) 
-				  |	((pieceBB[opponent][nPawn] & ~mask::file[h]) << 7); //5 bit operations for this?
-		if(pieceDB & pieceBB[player][nKing] )
-			return true;
-	}
-	else {
-		pieceDB =	((pieceBB[opponent][nPawn] & ~mask::file[h]) >> 9) 
-				  |	((pieceBB[opponent][nPawn] & ~mask::file[a]) >> 7); //5 bit operations for this?
-		if(pieceDB & pieceBB[player][nKing] )
-			return true;
-	}
-	
-	// Is in danger from knights? :
-	pieceDB = pieceBB[opponent][nKnight];
-	while(pieceDB) {
-		int square = bitscan_lsb(pieceDB);
-		if(mask::knight_moves[square] & pieceBB[player][nKing])
-			return true;
-		pieceDB ^= (1i64 << square);
-	}
-
-	// In Danger from Diagonal Attacks? Bishops and Queens:
-	pieceDB = pieceBB[opponent][nBishop] | pieceBB[opponent][nQueen];
-	while(pieceDB) {
-		int square = bitscan_lsb(pieceDB);
-		//NE:
-		if(mask::ne[square] & pieceBB[player][nKing]) { 
-			if(bitscan_lsb(pieceBB[player][nKing]) == bitscan_lsb(mask::ne[square] & occupiedBB[BOTH]))
-				return true;
-		}
-		//NW:
-		if(mask::nw[square] & pieceBB[player][nKing]) { 
-			if(bitscan_lsb(pieceBB[player][nKing]) == bitscan_lsb(mask::nw[square] & occupiedBB[BOTH]))
-				return true;
-		}
-		//SE:
-		if(mask::se[square] & pieceBB[player][nKing]) { 
-			if(bitscan_msb(pieceBB[player][nKing]) == bitscan_msb(mask::se[square] & occupiedBB[BOTH]))
-				return true;
-		}
-		//SW:
-		if(mask::sw[square] & pieceBB[player][nKing]) { 
-			if(bitscan_msb(pieceBB[player][nKing]) == bitscan_msb(mask::sw[square] & occupiedBB[BOTH]))
-				return true;
-		}
-		pieceDB ^= (1i64 << square);
-	}
-
-	// Is in danger from straight attacks? Rooks and Queens:
-	pieceDB = pieceBB[opponent][nRook] | pieceBB[opponent][nQueen];
-	while(pieceDB) {
-		int square = bitscan_lsb(pieceDB);
-		//North:
-		if(mask::north[square] & pieceBB[player][nKing]) { 
-			if(bitscan_lsb(pieceBB[player][nKing]) == bitscan_lsb(mask::north[square] & occupiedBB[BOTH]))
-				return true;
-		}
-		//West:
-		if(mask::west[square] & pieceBB[player][nKing]) { 
-			if(bitscan_lsb(pieceBB[player][nKing]) == bitscan_lsb(mask::west[square] & occupiedBB[BOTH]))
-				return true;
-		}
-		//South:
-		if(mask::south[square] & pieceBB[player][nKing]) { 
-			if(bitscan_msb(pieceBB[player][nKing]) == bitscan_msb(mask::south[square] & occupiedBB[BOTH]))
-				return true;
-		}
-		//East:
-		if(mask::east[square] & pieceBB[player][nKing]) { 
-			if(bitscan_msb(pieceBB[player][nKing]) == bitscan_msb(mask::east[square] & occupiedBB[BOTH]))
-				return true;
-		}
-		pieceDB ^= (1i64 << square);
-	}
-
-	// Is in danger from the other king:
-	pieceDB = pieceBB[opponent][nKing];
-	int square = bitscan_lsb(pieceDB);
-	if(mask::king_moves[square] & pieceBB[player][nKing])
-		return true;
-
-	return false;
-}
-*/
 void CHESSBOARD::clearBoard() {
 	
 	current_ply = 0;
