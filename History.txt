@@ -1,0 +1,29 @@
+
+Benchmark from root, depth 1-12:
+
+Insertion sort:
+	8.6s,	2.15m NPS
+
+captureGen then nonCaptureGen:
+	8.039s, 2.41m NPS
+
+Changed the order of move generation:
+	7.042s, 2.39m NPS
+
+Prior to incremental position scoring:
+	6.192s, 2.67m NPS
+
+score-=11 uci_test():
+	d13 11.3s, d12 10.5s, d12 8.874s, d28 14.354s
+
+score=-11 fail hard:
+	d13 11.4s, d12 10.6s, d13 8.5s, d27 10.5s
+
+old PSTs:
+	d13 17.6s, d12 9.6s, d13 9.8s, d29 12.2s
+
+With full PVS at all depths:
+	d13 8s, d14 12.4s, d28 15s
+
+With PVS and AB at depths 2 and below:
+	d13 7.96s, d14 12.4s, d15 12.4s, d29 10.19s
