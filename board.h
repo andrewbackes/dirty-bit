@@ -43,7 +43,7 @@ public:
 	//{zobrist_key = 0; half_move_rule = 0; en_passant_index=64; kCastleWhite =false;  qCastleWhite=false; kCastleBlack=false; qCastleBlack=false; }
 	GAMESTATE(bitboard key, short half_moves, short en_passant, bool kCastleWhite, bool qCastleWhite, bool kCastleBlack, bool qCastleBlack) {
 		std::cout << "start GAMESTATE()" << std::endl;
-		zobrist_key =key; 
+		zobrist_key = key; 
 		half_move_rule = half_moves; 
 		en_passant_index = en_passant;
 		castling_rights[WHITE][KING_SIDE] =		kCastleWhite;
@@ -52,16 +52,12 @@ public:
 		castling_rights[BLACK][QUEEN_SIDE] =	qCastleBlack;
 	}
 
-	bitboard	zobrist_key;
-	short		half_move_rule;
-	short		en_passant_index;
-	/*
-	bool		kCastleWhite;
-	bool		qCastleWhite;
-	bool		kCastleBlack;
-	bool		qCastleBlack;
-	*/
-	bool		castling_rights[2][2];
+	bitboard		zobrist_key;
+	//bitboard		pawn_key;
+	phash_lock		pawn_key;
+	short			half_move_rule;
+	short			en_passant_index;
+	bool			castling_rights[2][2];
 	
 };
 
@@ -98,6 +94,8 @@ public:
 	int			getMoveCount()						{return current_ply/2;}
 	int			getPly()							{return current_ply;}
 	bitboard	getKey()							{return gamestate[current_ply].zobrist_key;}
+	//bitboard	getPawnKey()						{return gamestate[current_ply].pawn_key;}
+	phash_lock	getPawnKey()						{return gamestate[current_ply].pawn_key;}
 	short		getHalfMovesRule()					{return gamestate[current_ply].half_move_rule;}
 	short		getEnPassantIndex()					{return gamestate[current_ply].en_passant_index;}
 	bool		getCastlingRights(bool p, bool s)	{return gamestate[current_ply].castling_rights[p][s];}
@@ -124,6 +122,8 @@ public:
 	void		position(std::string fen); //passes a FEN string.
 	void		clearBoard();
 	bitboard	generateKey();
+	//bitboard	generatePawnKey();
+	phash_lock  generatePawnKey();
 	void		toggleActivePlayer();
 
 private:

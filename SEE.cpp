@@ -13,7 +13,10 @@ Static Exchange Evaluation and Static Table Evaluation.
 #include "bitboards.h"
 
 short STE(CHESSBOARD * b, MOVE m) {
-	return nSquareValue[m.color][m.active_piece_id][m.to] - nSquareValue[m.color][m.active_piece_id][m.from];
+	//return 0;
+	short early_game = nSquareValue[m.color][m.active_piece_id][m.to] - nSquareValue[m.color][m.active_piece_id][m.from];
+
+	return early_game;
 }
 
 void findAttackingSquares(bitboard &attackers, CHESSBOARD *b, unsigned char square) {

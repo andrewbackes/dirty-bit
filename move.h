@@ -84,6 +84,10 @@ private:
 	
 };
 
+inline bool empty_move(MOVE m) {
+	return (m.from == 64);
+}
+
 bool equal(MOVE a, MOVE b);
 
 const MOVE NO_MOVE = MOVE(64,64,0);

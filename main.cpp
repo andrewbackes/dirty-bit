@@ -14,6 +14,25 @@ bool DEBUG_FLAG = false;
 
 int main(int argv, char* argc[]) 
 {
+
+	/*
+	cout << (FileMask(g));
+	cout << endl;
+	cout << (FileMask(f)|FileMask(h));
+	cout << endl;
+	cout << (FileMask(e)|FileMask(g));
+	cout << endl;
+	cout << (FileMask(d)|FileMask(f));
+	cout << endl;
+	cout << (FileMask(c)|FileMask(e));
+	cout << endl;
+	cout << (FileMask(b)|FileMask(d));
+	cout << endl;
+	cout << (FileMask(a)|FileMask(c));
+	cout << endl;
+	cout << (FileMask(b));
+	cout << endl;
+	*/
 	/*
 	bitboard rook_masks[65];
 	bitboard bishop_masks[65];

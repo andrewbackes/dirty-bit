@@ -1,6 +1,12 @@
 To Do List:
 ---------------------------------------------
 
+-If only one root move, dont search, just return that move.
+
+-Game 1 of the Futility tests, should not choose to keep checking, instead should advance the passed pawn.
+
+-Re-write the variable size hash table.
+
 -add checking moves to the captures list in the qsearch.
 
 -revamp HASH class. do not need an entire MOVE in there, just to/from. Also, score does not need to be an int, it can be a short. 
@@ -14,8 +20,6 @@ To Do List:
 -replace cout with a send command, this way output streams can be easily controlled.
 
 -remove static score from MOVE class.
-
--rewrite SEE.
 
 -Replace several masks with macros.
 

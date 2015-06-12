@@ -2384,7 +2384,7 @@ int SEARCH::PVS(int depth, CHESSBOARD * game, int alpha, int beta, bool fNulled)
 	bool foundPV = false;
 	bool fMate = true;
 	short move_count = 0;
-	int best_local_score = -INFINITY;
+	int best_local_score = -INFTY;
 
 /**************************************************************************************
 	First search the hash suggestion:
@@ -2732,7 +2732,7 @@ int SEARCH::PVS(int depth, CHESSBOARD * game, int alpha, int beta, bool fNulled)
 /**************************************************************************************
 	First search the hash suggestion:
 ***************************************************************************************/
-	int best_local_score = -INFINITY;
+	int best_local_score = -INFTY;
 	if(hash_suggestion.from != 64) {
 		node_count++;		
 		game->MakeMove(hash_suggestion);
@@ -2756,7 +2756,7 @@ int SEARCH::PVS(int depth, CHESSBOARD * game, int alpha, int beta, bool fNulled)
 	//Try to generate another good first move to search:
 	else if (!fNulled){
 		if(depth >= 6) {
-			SEARCH find_first_move(depth-2, game, hashtable, INFINITY);
+			SEARCH find_first_move(depth-2, game, hashtable, INFTY);
 			find_first_move.start();
 			game->MakeMove(find_first_move.getBestMove());
 			if(!game->isInCheck(!game->getActivePlayer())) {

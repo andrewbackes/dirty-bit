@@ -2,7 +2,12 @@
 
 void HASHTABLE::initialize(long long megabytes) {
 		bytes = (megabytes * 1048576);
-		size = bytes / sizeof(HASH);
+		// 1028 * 1048576 = 1073741824
+		// 1073741824 / 24 = 44739242.666666666666666666666667
+		// 2^25 = 33554432
+
+		size = 33554432;
+		//size = bytes / sizeof(HASH);
 		table = new HASH[size]; 
 }
 
@@ -12,7 +17,8 @@ void HASHTABLE::reinitialize(long long megabytes) {
 }
 
 int HASHTABLE::SearchHash(bitboard key, unsigned char depth, int alpha, int beta) {
-	HASH * pEntry = &table[key % size];
+	//HASH * pEntry = &table[key % size];
+	HASH * pEntry = &table[key & 33554431 ];
 	if( pEntry->key == key) {
 		if( pEntry->depth >= depth) {
 			if(pEntry->flags == HASH_EXACT)
@@ -27,7 +33,8 @@ int HASHTABLE::SearchHash(bitboard key, unsigned char depth, int alpha, int beta
 }
 
 int HASHTABLE::SearchHash(bitboard key, unsigned char depth, int alpha, int beta, MOVE * hashed_move) {
-	HASH * pEntry = &table[key % size];
+	//HASH * pEntry = &table[key % size];
+	HASH * pEntry = &table[key & 33554431 ];
 	if( pEntry->key == key) {
 		if( pEntry->depth >= depth) {
 			if(pEntry->flags == HASH_EXACT)
@@ -43,7 +50,8 @@ int HASHTABLE::SearchHash(bitboard key, unsigned char depth, int alpha, int beta
 }
 
 int HASHTABLE::getHashScore(bitboard key) {
-	HASH * pEntry = &table[key % size];
+	//HASH * pEntry = &table[key % size];
+	HASH * pEntry = &table[key & 33554431 ];
 	if( pEntry->key == key) {
 		return pEntry->value;
 	}
@@ -51,7 +59,8 @@ int HASHTABLE::getHashScore(bitboard key) {
 }
 
 MOVE HASHTABLE::getHashMove(bitboard key) {
-	HASH * pEntry = &table[key % size];
+	//HASH * pEntry = &table[key % size];
+	HASH * pEntry = &table[key & 33554431 ];
 	if( pEntry->key == key) {
 		//if(pEntry->depth >= depth) {
 			return pEntry->best_move;
@@ -68,7 +77,8 @@ void HASHTABLE::RecordHash(bitboard key, unsigned char depth, int val, unsigned 
 	else
 		non_empty_saves++;
 	*/
-	HASH * pEntry = &table[key % size];
+	//HASH * pEntry = &table[key % size];
+	HASH * pEntry = &table[key & 33554431 ];
 	if( hashflag >= pEntry->flags) {
 		pEntry->key = key;
 		pEntry->best_move = *hashed_move;
@@ -80,7 +90,8 @@ void HASHTABLE::RecordHash(bitboard key, unsigned char depth, int val, unsigned 
 
 void HASHTABLE::RecordHash(bitboard key, unsigned char depth, int val, unsigned char hashflag) {
 	//RecordHash(key,depth,val,hashflag, &MOVE());
-	HASH * pEntry = &table[key % size];
+	//HASH * pEntry = &table[key % size];
+	HASH * pEntry = &table[key & 33554431 ];
 	if( hashflag >= pEntry->flags) {
 		pEntry->key = key;
 		pEntry->value = val;

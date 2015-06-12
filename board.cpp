@@ -194,6 +194,7 @@ void CHESSBOARD::clearBoard() {
 	gamestate[0].castling_rights[1][1] = false;
 
 	gamestate[0].zobrist_key = generateKey();
+	gamestate[0].pawn_key = 0;
 	
 }
 
@@ -278,6 +279,7 @@ void CHESSBOARD::position(string fen)
 			board[index] = nPawn;
 			material_score[WHITE] += nPieceValue[nPawn];
 			gamestate[0].zobrist_key ^= zobrist::pieces[WHITE][nPawn][index];
+			gamestate[0].pawn_key	 ^= (phash_lock)zobrist::pieces[WHITE][nPawn][index];
 		}
 		else if(piece == 'N') {
 			pieceBB[0][nKnight] |= (1i64 << index);
@@ -314,6 +316,7 @@ void CHESSBOARD::position(string fen)
 			board[index] = nPawn;
 			material_score[BLACK] += nPieceValue[nPawn];
 			gamestate[0].zobrist_key ^= zobrist::pieces[BLACK][nPawn][index];
+			gamestate[0].pawn_key	 ^= (phash_lock)zobrist::pieces[BLACK][nPawn][index];
 		}
 		else if(piece == 'n') {
 			pieceBB[1][nKnight] |= (1i64 << index);
@@ -360,6 +363,7 @@ void CHESSBOARD::position(string fen)
 	occupiedBB[2] = occupiedBB[0] | occupiedBB[1];
 
 	gamestate[0].zobrist_key = generateKey();
+	gamestate[0].pawn_key = generatePawnKey();
 }
 
 void CHESSBOARD::print_bb() {
@@ -529,3 +533,34 @@ bitboard CHESSBOARD::generateKey() {
 	return key;
 }
 
+phash_lock CHESSBOARD::generatePawnKey() {
+//bitboard CHESSBOARD::generatePawnKey() {
+	//Since this function is only used for debugging
+	phash_lock key = 0;
+
+	for(int i =0; i < 64; i++) {
+		short piece = getBoard(i);
+		if( piece == nPawn ) {
+			bool color = BLACK;
+			if( getPieceBB(WHITE,nPawn) & (1i64 << i) )
+				color = WHITE;
+			key ^= (phash_lock)zobrist::pieces[color][nPawn][i];
+		}
+	}
+
+	/*
+	bitboard pieceDB = getPieceBB(WHITE,nPawn);
+	while(pieceDB) {
+		int square = bitscan_msb(pieceDB);
+		key ^= zobrist::pieces[WHITE][nPawn][square];
+		pieceDB ^= (1i64 << square);
+	}
+	pieceDB = getPieceBB(BLACK,nPawn);
+	while(pieceDB) {
+		int square = bitscan_msb(pieceDB);
+		key ^= zobrist::pieces[BLACK][nPawn][square];
+		pieceDB ^= (1i64 << square);
+	}
+	*/
+	return key;
+}

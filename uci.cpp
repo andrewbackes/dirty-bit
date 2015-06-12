@@ -21,6 +21,7 @@
 #include "book.h"
 #include "SEE.h"
 #include "perft.h"
+#include "evaluate.h"
 
 using namespace std;
 
@@ -285,6 +286,9 @@ int uci_go(CHESSBOARD * game, string go_string, BOOK * book, string move_history
 		else if(command == "binc") {
 			time_increment[BLACK] = str_to_int(value);
 		}
+		else if(command == "movestogo") {
+			moves_till_time_control = str_to_int(value);
+		}
 		else if(command == "infinite" || command == "INFINITE") {
 			//give 3 min for each move.
 			time_remaining[WHITE] = (long) floor((180000 * moves_till_time_control) / time_factor);
@@ -295,6 +299,11 @@ int uci_go(CHESSBOARD * game, string go_string, BOOK * book, string move_history
 	// Crude time management:
 	double time_target = time_remaining[game->getActivePlayer()]  / moves_till_time_control;
 	long time_allotted   = (long)( time_factor * time_target );
+	
+	//Safety hack so not to use all of the remaining time if there is only 1 move left:
+	if (moves_till_time_control == 1)
+		time_allotted = (long)(time_allotted * 0.75);
+
 	cout << "Allotted time: " << time_allotted << endl;
 	long time_left = time_allotted;
 	long time_lapsed = 0;
@@ -319,8 +328,8 @@ int uci_go(CHESSBOARD * game, string go_string, BOOK * book, string move_history
 	MOVE ponder_move;
 	short best_score;
 	
-	int alpha_window = -INFINITY;
-	int beta_window = INFINITY;
+	int alpha_window = -INFTY;
+	int beta_window = INFTY;
 	int window_range = ASPIRATION_WINDOW;
 	
 	int fail_high_count = 0;
@@ -349,7 +358,7 @@ int uci_go(CHESSBOARD * game, string go_string, BOOK * book, string move_history
 		vector<MOVE> pv;
 		bool fFailHigh = false;
 		bool fFailLow = false;
-		SEARCH search(depth, game, &hashtable, (long)floor(time_left * TIME_WIGGLE_ROOM));
+		SEARCH search(depth, game, &hashtable, (long)floor(time_left * ((moves_till_time_control == 1)? 1:TIME_WIGGLE_ROOM)));
 		//Aspiration window:
 		string fFailed = "";
 		#ifdef DEBUG_TIME
@@ -365,9 +374,9 @@ int uci_go(CHESSBOARD * game, string go_string, BOOK * book, string move_history
 				alpha_window = alpha_window - A_LOT;
 			}
 			else {
-				alpha_window = -INFINITY;
+				alpha_window = -INFTY;
 			}
-			//alpha_window = -INFINITY;
+			//alpha_window = -INFTY;
 			//beta_window = search.getScore() + A_LITTLE;
 			fFailed = " lowerbound ";
 		}
@@ -375,12 +384,12 @@ int uci_go(CHESSBOARD * game, string go_string, BOOK * book, string move_history
 			//failed high:
 			fail_high_count++;
 			fFailHigh = true;
-			//beta_window = INFINITY;
+			//beta_window = INFTY;
 			if(fail_high_count < 2) {
 				beta_window = beta_window + A_LOT;
 			}
 			else {
-				beta_window = INFINITY;
+				beta_window = INFTY;
 			}
 			//alpha_window = search.getScore() - A_LITTLE;
 			fFailed = " upperbound ";
@@ -429,6 +438,10 @@ int uci_go(CHESSBOARD * game, string go_string, BOOK * book, string move_history
 			}
 		}
 		else {
+			//Stop immediately because it is too dangerous to continue.
+			if(moves_till_time_control <= 2)
+				break;
+
 			#ifdef DEBUG_TIME
 				cout << "\tSearch timed out." << endl;
 			#endif
@@ -458,8 +471,8 @@ int uci_go(CHESSBOARD * game, string go_string, BOOK * book, string move_history
 			//Out of time but the last search was a fail.
 			else {
 				if(time_remaining[game->getActivePlayer()]/5 > time_needed) {
-					alpha_window = -INFINITY;
-					beta_window = INFINITY;
+					alpha_window = -INFTY;
+					beta_window = INFTY;
 					//alpha_window -= A_LOT;
 					//beta_window += A_LOT;
 					//time_allotted = time_remaining[game->getActivePlayer()]/5;
@@ -527,7 +540,7 @@ int uci_go(CHESSBOARD * game, string go_string, BOOK * book, string move_history
 void uci_search(CHESSBOARD * game, int depth) {
 	//Specific depth search.
 	
-	SEARCH search(depth, game, &hashtable, INFINITY);
+	SEARCH search(depth, game, &hashtable, INFTY);
 	search.start();
 
 	//Print the UCI info:
@@ -563,10 +576,10 @@ void uci_iterativeDeepening(CHESSBOARD * game, int depth) {
 	long start_time = clock()/(CLOCKS_PER_SEC/1000);
 	
 	MOVE best_move; 
-	int best_score = -INFINITY;
+	int best_score = -INFTY;
 
-	int alpha_window = -INFINITY;
-	int beta_window = INFINITY;
+	int alpha_window = -INFTY;
+	int beta_window = INFTY;
 	int window_range = ASPIRATION_WINDOW;
 
 	int d=1;
@@ -574,7 +587,7 @@ void uci_iterativeDeepening(CHESSBOARD * game, int depth) {
 	previous_score = 0;
 	while(d <= depth)
 	{
-		SEARCH search(d, game, &hashtable, INFINITY);
+		SEARCH search(d, game, &hashtable, INFTY);
 		
 		//Aspiration window:
 		string fFailed = "";
@@ -584,13 +597,13 @@ void uci_iterativeDeepening(CHESSBOARD * game, int depth) {
 		if(search.getScore() <= alpha_window) {
 			//failed low:
 			fFailedLow = true;
-			alpha_window = -INFINITY;
+			alpha_window = -INFTY;
 			fFailed = " lowerbound ";
 		}
 		else if(search.getScore() >= beta_window) {
 			//failed high:
 			fFailedHigh = true;
-			beta_window = INFINITY;
+			beta_window = INFTY;
 			fFailed = " upperbound ";
 		}
 			
@@ -999,6 +1012,11 @@ int UCI_loop()
 			cout << "Phase Gauge:         " << phase_gauge << endl;
 			cout << "Formula:             " << "opening_bonus*(" << ((double)phase_gauge)/2775 <<") + endgame_bonus*(" << (double)1 - ((double)phase_gauge)/2775 << ")\n";
 			cout << "Formula 2:           ";
+		}
+		else if(command == "pawneval") {
+			short s=0, o=0, e=0;
+			PawnEval(&active_game, s, o, e);
+			cout << "White Opening: " << o << "\nWhite Ending:  " << e << endl;
 		}
 		else if(command == "id" || command == "i" ) {
 			uci_iterativeDeepening(&active_game, depth);
