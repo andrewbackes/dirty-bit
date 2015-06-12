@@ -202,3 +202,20 @@ SEE on every capture:
 	Midgame 2               12      9.135
 	King-Pawn               25      8.513
 
+LMR:
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   14      11.67
+	Midgame 1               13      8.668
+	Midgame 2               14      12.769
+	King-Pawn               27      8.304
+
+
+LMR + R=3:
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   14      8.051
+	Midgame 1               15      13.094
+	Midgame 2               15      11.995
+	King-Pawn               29      8.824
+

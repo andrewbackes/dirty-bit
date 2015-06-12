@@ -7,7 +7,7 @@ General Info:
 *******************************************************************************/
 
 #define ID_NAME		"DirtyBit"
-#define ID_VERSION	"0.3"
+#define ID_VERSION	"0.31"
 #define ID_AUTHOR	"Andrew Backes"
 
 
@@ -34,7 +34,7 @@ Search:
 
 #define ENABLE_CHECK_EXTENSIONS
 
-//#define ENABLE_KILLER_MOVES
+//#define ENABLE_KILLER_MOVES		//Currently has a bug which causes illegal moves to be played.
 
 #define PVS_HORIZON					2
 
@@ -42,8 +42,9 @@ Search:
 #define LMR_THRESHOLD				4
 #define LMR_HORIZON					3
 
+#define ENABLE_FUTILITY_PRUNING
 #define ENABLE_NULLMOVE
-#define NULL_REDUCTION				2
+#define NULL_REDUCTION				3
 
 //#define ENABLE_IID
 #define IID_REDUCTION				2
