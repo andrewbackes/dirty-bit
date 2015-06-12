@@ -1,0 +1,80 @@
+To Do List:
+---------------------------------------------
+
+-when in check, generate evasions first.
+
+-Hash table should not be global.
+
+-try countering the oscilation by doing a one ply search on the last move in the PV
+-also try using the previous odd or even search, if there is under 100 change.
+
+-try different compilers for possible speed increases.
+
+-Try regular alpha-beta for depths 1 and 2.
+
+-Do not LMR when:
+	-to close to horizon (within 3 ply??)
+	-can not be in check
+	-move does not check opponent
+	-non capture / non promotion
+	-already extended
+
+-check extensions
+	-If the move checks the opponent, extend the depth by one ply. also, can not reduce depth later or forward prune.
+
+-change makemove capture detection by board[m.to] rather than captured_piece_id, then score en passant kills.
+
+-change check detection to simulate putting the piece on the kings current square and see if they can hit a piece of their type. 
+if so, then they can attack the king. (at least for knights, bishops, rooks, queens).
+
+-use a seperate movegen when the king is in check.
+
+-if there are no moves on the list to search, the fail soft portions could cause a crash.
+
+-SEE, killer moves, history heuristics, countermove, etc.
+
+-Optimization: arrange if statements by popularity in isInCheck, isAttacked, makemove, etc.
+-Optimization: some of the bitscans can be byref to save memory.
+
+-incremental position scoring. for move ordering?
+
+-move count will be messed up from entering the FEN in directly. Fix this.
+
+-hash suggestion is on the move list twice.
+
+-Move generation may favor white, since N,NE,NW moves are generated before S,SE,SW
+
+-Ideal move generation:
+	-Good Captures
+	-captures removed
+	-Killer moves
+	-non-captures
+	
+
+-fit the time allocation function better to the graph: http://chessprogramming.wikispaces.com/Time+Management
+-early iterative deepening cutoff for take-backs
+-early iterative deepening cutoff for only one move.
+
+-Opening book.
+-endgame tables
+
+-Solidify how castling is handled... 
+	Right now it is sort of split between moveGen and makeMove.
+	This more than likely leads to unneeded checks along the way.
+
+-Revamp MakeMove(). It is possible that there are several unneeded checks.
+
+-Create a UCI class
+	-Have a const array of command and function pointer pairs.
+	-make sure everything uses an arbitrary stream, not just cout.
+
+-Pondering!
+-Parrallel search
+-magics!
+
+-Research futility, limited razoring, Late move
+
+-Evaluation order: mobility, passed pawn.
+
+-Eval ideas:
+---> instead of doing a tapered eval. have something like 256 evals and use a pointer in the search class or board class to the eval that will be used in that search, this will have to be changed in MakeMove though, so it may not be worth it.
