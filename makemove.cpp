@@ -43,7 +43,7 @@ void CHESSBOARD::MakeMove(MOVE m) {
 	board[m.from] = 0;
 
 	//Adjust the bitboard:
-	bitboard mask = ((1i64 << m.to) | (1i64 << m.from));
+	bitboard mask = ((((bitboard)1) << m.to) | (((bitboard)1) << m.from));
 	pieceBB[active_player][m.active_piece_id] ^= mask;
 	occupiedBB[active_player] ^= mask;
 	
@@ -56,8 +56,8 @@ void CHESSBOARD::MakeMove(MOVE m) {
 
 	if (m.captured_piece != 0) {
 		//adjust BBs for a capture occuring.
-		pieceBB[!active_player][m.captured_piece] ^= (1i64 << m.to);
-		occupiedBB[!active_player] ^= (1i64 << m.to);
+		pieceBB[!active_player][m.captured_piece] ^= (((bitboard)1) << m.to);
+		occupiedBB[!active_player] ^= (((bitboard)1) << m.to);
 		
 		//Remove the captured piece from the Zobrist Key:
 		gamestate[current_ply].zobrist_key ^= zobrist::pieces[!active_player][m.captured_piece][m.to];
@@ -79,8 +79,8 @@ void CHESSBOARD::MakeMove(MOVE m) {
 		gamestate[current_ply].pawn_key ^= (phash_lock)zobrist::pieces[active_player][nPawn][m.from];
 		
 		//set enPassant if needed.
-		if( ((1i64 << m.from) & mask::pawns_spawn[active_player]) 
-					&& ((1i64 << m.to) & mask::pawn_double_jump[active_player]) ) {
+		if( ((((bitboard)1) << m.from) & mask::pawns_spawn[active_player]) 
+					&& ((((bitboard)1) << m.to) & mask::pawn_double_jump[active_player]) ) {
 			
 			gamestate[current_ply].en_passant_index = bitscan_msb(mask::pawn_enPassant[active_player][m.from]);
 			gamestate[current_ply].zobrist_key ^= zobrist::enPassant[gamestate[current_ply].en_passant_index];
@@ -103,8 +103,8 @@ void CHESSBOARD::MakeMove(MOVE m) {
 		//Check for pawn promotion:
 		else if (m.promote_piece_to != 0 ) {
 			board[m.to] = m.promote_piece_to;
-			pieceBB[active_player][nPawn] ^= (1i64 << m.to);
-			pieceBB[active_player][m.promote_piece_to] ^= (1i64 << m.to);
+			pieceBB[active_player][nPawn] ^= (((bitboard)1) << m.to);
+			pieceBB[active_player][m.promote_piece_to] ^= (((bitboard)1) << m.to);
 			gamestate[current_ply].zobrist_key ^= zobrist::pieces[active_player][nPawn][m.to];
 			gamestate[current_ply].zobrist_key ^= zobrist::pieces[active_player][m.promote_piece_to][m.to];
 			//Remove the promoted pawn from the pawn key:
@@ -145,8 +145,8 @@ void CHESSBOARD::MakeMove(MOVE m) {
 			gamestate[current_ply].zobrist_key ^= zobrist::castling[active_player][QUEEN_SIDE];
 		}
 		//Was this a Castle?	
-		if(mask::king_spawn[active_player] & (1i64 << m.from)) {
-			if((mask::kCastle[active_player] & (1i64 << m.to)) ) {
+		if(mask::king_spawn[active_player] & (((bitboard)1) << m.from)) {
+			if((mask::kCastle[active_player] & (((bitboard)1) << m.to)) ) {
 				//king side castle! So move the rook.
 				bitboard mask = ( mask::kBishop_spawn[active_player] | mask::kRook_spawn[active_player] );
 				board[bitscan_msb(mask::kBishop_spawn[active_player])] = nRook;
@@ -157,7 +157,7 @@ void CHESSBOARD::MakeMove(MOVE m) {
 				gamestate[current_ply].zobrist_key ^= zobrist::pieces[active_player][nRook][bitscan_lsb(mask)];
 				gamestate[current_ply].zobrist_key ^= zobrist::pieces[active_player][nRook][bitscan_msb(mask)];
 			}
-			else if(mask::qCastle[active_player] & (1i64 << m.to)) {
+			else if(mask::qCastle[active_player] & (((bitboard)1) << m.to)) {
 				//queen side castle! So move the rook.
 				bitboard mask = ( mask::queen_spawn[active_player] | mask::qRook_spawn[active_player]  );
 				board[bitscan_msb(mask::queen_spawn[active_player])] = nRook;
@@ -246,7 +246,7 @@ void CHESSBOARD::unMakeMove(MOVE m) {
 	board[m.to] = m.captured_piece; //0 for no capture anyways.
 
 	//Adjust the bitboard:
-	bitboard mask = ((1i64 << m.to) | (1i64 << m.from));
+	bitboard mask = ((((bitboard)1) << m.to) | (((bitboard)1) << m.from));
 	pieceBB[active_player][m.active_piece_id] ^= mask;
 	occupiedBB[active_player] ^= mask;
 	
@@ -274,8 +274,8 @@ void CHESSBOARD::unMakeMove(MOVE m) {
 	//Undo a capture:
 	else if(m.captured_piece != 0) {
 		//Only need to adjust the bitboards:
-		pieceBB[!active_player][m.captured_piece] ^= (1i64 << m.to);
-		occupiedBB[!active_player] ^= (1i64 << m.to);
+		pieceBB[!active_player][m.captured_piece] ^= (((bitboard)1) << m.to);
+		occupiedBB[!active_player] ^= (((bitboard)1) << m.to);
 
 		//Adjust material score:
 		material_score[!active_player] += nPieceValue[m.captured_piece];
@@ -283,8 +283,8 @@ void CHESSBOARD::unMakeMove(MOVE m) {
 	//Undo Pawn promotion:
 	if(m.promote_piece_to != 0) {
 		//Only need to adjust the bitboards:
-		pieceBB[active_player][nPawn] ^= (1i64 << m.to); //undo the mask done above.
-		pieceBB[active_player][m.promote_piece_to] ^= (1i64 << m.to);
+		pieceBB[active_player][nPawn] ^= (((bitboard)1) << m.to); //undo the mask done above.
+		pieceBB[active_player][m.promote_piece_to] ^= (((bitboard)1) << m.to);
 		//Adjust material score:
 		material_score[active_player] = material_score[active_player] - nPieceValue[m.promote_piece_to] + nPieceValue[nPawn];
 	}
@@ -295,14 +295,14 @@ void CHESSBOARD::unMakeMove(MOVE m) {
 			if(m.to == g1) {
 				board[h1] = nRook;
 				board[f1] = 0;
-				mask = (1i64 << h1) | (1i64 << f1);
+				mask = (((bitboard)1) << h1) | (((bitboard)1) << f1);
 				pieceBB[WHITE][nRook] ^= mask;
 				occupiedBB[WHITE] ^= mask;
 			}
 			else if(m.to == c1) {
 				board[a1] = nRook;
 				board[d1] = 0;
-				mask = (1i64 << a1) | (1i64 << d1);
+				mask = (((bitboard)1) << a1) | (((bitboard)1) << d1);
 				pieceBB[WHITE][nRook] ^= mask;
 				occupiedBB[WHITE] ^= mask;
 			}
@@ -311,14 +311,14 @@ void CHESSBOARD::unMakeMove(MOVE m) {
 			if(m.to == g8) {
 				board[h8] = nRook;
 				board[f8] = 0;
-				mask = (1i64 << h8) | (1i64 << f8);
+				mask = (((bitboard)1) << h8) | (((bitboard)1) << f8);
 				pieceBB[BLACK][nRook] ^= mask;
 				occupiedBB[BLACK] ^= mask;
 			}
 			else if(m.to == c8) {
 				board[a8] = nRook;
 				board[d8] = 0;
-				mask = (1i64 << a8) | (1i64 << d8);
+				mask = (((bitboard)1) << a8) | (((bitboard)1) << d8);
 				pieceBB[BLACK][nRook] ^= mask;
 				occupiedBB[BLACK] ^= mask;
 			}
@@ -373,14 +373,14 @@ void CHESSBOARD::qMakeMove(MOVE m) {
 	board[m.from] = 0;
 
 	//Adjust the bitboard:
-	bitboard mask = ((1i64 << m.to) | (1i64 << m.from));
+	bitboard mask = ((((bitboard)1) << m.to) | (((bitboard)1) << m.from));
 	pieceBB[active_player][m.active_piece_id] ^= mask;
 	occupiedBB[active_player] ^= mask;
 		
 	if (m.captured_piece != 0) {
 		//adjust BBs for a capture occuring.
-		pieceBB[!active_player][m.captured_piece] ^= (1i64 << m.to);
-		occupiedBB[!active_player] ^= (1i64 << m.to);
+		pieceBB[!active_player][m.captured_piece] ^= (((bitboard)1) << m.to);
+		occupiedBB[!active_player] ^= (((bitboard)1) << m.to);
 
 		//Adjust material score:
 		material_score[!active_player] -= nPieceValue[m.captured_piece];
@@ -411,8 +411,8 @@ void CHESSBOARD::qMakeMove(MOVE m) {
 		//Check for pawn promotion:
 		else if (m.promote_piece_to != 0 ) {
 			board[m.to] = m.promote_piece_to;
-			pieceBB[active_player][nPawn] ^= (1i64 << m.to);
-			pieceBB[active_player][m.promote_piece_to] ^= (1i64 << m.to);
+			pieceBB[active_player][nPawn] ^= (((bitboard)1) << m.to);
+			pieceBB[active_player][m.promote_piece_to] ^= (((bitboard)1) << m.to);
 			gamestate[current_ply].zobrist_key ^= zobrist::pieces[active_player][nPawn][m.to];
 			gamestate[current_ply].zobrist_key ^= zobrist::pieces[active_player][m.promote_piece_to][m.to];
 
@@ -443,7 +443,7 @@ void CHESSBOARD::qUnMakeMove(MOVE m) {
 	board[m.to] = m.captured_piece; //0 for no capture anyways.
 
 	//Adjust the bitboard:
-	bitboard mask = ((1i64 << m.to) | (1i64 << m.from));
+	bitboard mask = ((((bitboard)1) << m.to) | (((bitboard)1) << m.from));
 	pieceBB[active_player][m.active_piece_id] ^= mask;
 	occupiedBB[active_player] ^= mask;
 	
@@ -468,8 +468,8 @@ void CHESSBOARD::qUnMakeMove(MOVE m) {
 	//Undo a capture:
 	else if(m.captured_piece != 0) {
 		//Only need to adjust the bitboards:
-		pieceBB[!active_player][m.captured_piece] ^= (1i64 << m.to);
-		occupiedBB[!active_player] ^= (1i64 << m.to);
+		pieceBB[!active_player][m.captured_piece] ^= (((bitboard)1) << m.to);
+		occupiedBB[!active_player] ^= (((bitboard)1) << m.to);
 
 		//Adjust material score:
 		material_score[!active_player] += nPieceValue[m.captured_piece];
@@ -478,8 +478,8 @@ void CHESSBOARD::qUnMakeMove(MOVE m) {
 	//Undo Pawn promotion:
 	if(m.promote_piece_to != 0) {
 		//Only need to adjust the bitboards:
-		pieceBB[active_player][nPawn] ^= (1i64 << m.to); //undo the mask done above.
-		pieceBB[active_player][m.promote_piece_to] ^= (1i64 << m.to);
+		pieceBB[active_player][nPawn] ^= (((bitboard)1) << m.to); //undo the mask done above.
+		pieceBB[active_player][m.promote_piece_to] ^= (((bitboard)1) << m.to);
 		//Adjust material score:
 		if(active_player == WHITE)
 			material_score -= (nPieceValue[m.promote_piece_to] - nPieceValue[nPawn]);

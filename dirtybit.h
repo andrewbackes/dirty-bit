@@ -6,12 +6,14 @@
 
 typedef unsigned char BYTE;
 
+#include "parameters.h"
 #include "macros.h"
 #include "bitboards.h"
 #include "precompute.h"
 #include "move.h"
 #include "hash.h"
 #include "board.h"
+#include "engine.h"
 #include "movegen.h"
 #include "perft.h"
 #include "SEE.h"
@@ -21,4 +23,4 @@ typedef unsigned char BYTE;
 
 #include "utilities.h"
 #include "uci.h"
-#include "book.h"
+//#include "book.h"

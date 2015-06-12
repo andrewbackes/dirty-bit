@@ -1,6 +1,201 @@
 
+void uci_search(CHESSBOARD * game, int depth) {
+	//Specific depth search.
+	
+	SEARCH search(depth, game, &hashtable, INFTY);
+	search.start();
+
+	//Print the UCI info:
+	std::cout	<< "info depth " << search.getDepth() 
+				<< " nodes " << search.getNodes() 
+				<< " score cp " << search.getScore(); 
+		//Print Mate in X:
+	if (search.getScore() >= MATE - 1000)
+		cout << " mate " << (MATE - search.getScore() + 1) / 2;
+	else if (search.getScore() <= -MATE + 1000)
+		cout << " mate -" << (MATE + search.getScore()) / 2;
+	std::cout << " time " << search.getRunTime() << 
+			" nps " << search.getNPS() << 
+			" pv " ;
+	//Print the PV:
+	vector<MOVE> pv = search.getPV();
+	for(int i=0; i < pv.size(); i++) {
+		if( pv.at(i).from != 64 ) {
+			pv.at(i).print();
+		}
+		else
+			break;
+	}
+	//Finally print the move chosen:
+	cout << "\nbestmove ";
+	search.getBestMove().print();
+	cout << "\n";
+	
+}
 
 
+void uci_iterativeDeepening(CHESSBOARD * game, int depth) {
+	
+	long start_time = clock()/(CLOCKS_PER_SEC/1000);
+	
+	MOVE best_move; 
+	int best_score = -INFTY;
+
+	int alpha_window = -INFTY;
+	int beta_window = INFTY;
+	int window_range = ASPIRATION_WINDOW;
+
+	int d=1;
+	
+	previous_score = 0;
+	while(d <= depth)
+	{
+		SEARCH search(d, game, &hashtable, INFTY);
+		
+		//Aspiration window:
+		string fFailed = "";
+		bool fFailedLow = false;
+		bool fFailedHigh = false;
+		search.start(alpha_window, beta_window);
+		if(search.getScore() <= alpha_window) {
+			//failed low:
+			fFailedLow = true;
+			alpha_window = -INFTY;
+			fFailed = " lowerbound ";
+		}
+		else if(search.getScore() >= beta_window) {
+			//failed high:
+			fFailedHigh = true;
+			beta_window = INFTY;
+			fFailed = " upperbound ";
+		}
+			
+		//Print the UCI info:
+		std::cout	<< "info depth " << search.getDepth() 
+					<< " seldepth " << search.getSelDepth() //search.getDepth() + search.getQDepth()
+					<< " nodes " << search.getNodes() 
+					<< " score cp " << search.getScore(); 
+		//Print Mate in X:
+		if (search.getScore() >= MATE - 1000)
+			cout << " mate " << (MATE - search.getScore() + 1) / 2;
+		else if (search.getScore() <= -MATE + 1000)
+			cout << " mate " << (MATE + search.getScore()) / 2;
+		cout << fFailed  <<
+				" time " << search.getRunTime() << 
+				" nps "  << search.getNPS() << 
+				" pv " ;
+		//Print the PV:
+		vector<MOVE> pv = search.getPV();
+		for(int i=0; i < pv.size(); i++) {
+			pv.at(i).print();
+		}
+		cout << endl;
+		
+		//Adjust the aspiration window:
+		if(!fFailedLow && !fFailedHigh) {
+			d++;
+			best_move = search.getBestMove();
+			best_score = search.getScore();
+			alpha_window = best_score - window_range;
+			beta_window = best_score +  window_range;
+			previous_score = search.getScore();
+		}
+
+	}
+	cout << "total time: " << (clock()/(CLOCKS_PER_SEC/1000)) - start_time << endl;
+	//Finally print the move chosen:
+	cout << "bestmove ";
+	best_move.print();
+	cout << "\n";
+}
+
+/*
+bool fexists(string filename) {
+	//Returns true if file exists.
+	ifstream ifile(filename);
+	return ( (bool) ifile );
+}
+*/
+
+void benchmark(CHESSBOARD b, int depth, string label) {
+/*
+	//Filename by number:
+	string filename;
+	for(int i = 1; i <=1000; i++) {
+		ostringstream convert;
+		convert << i;
+
+		filename = "benchmark_";
+		filename.append(convert.str());
+		filename.append(".txt");
+		if(! fexists(filename) )
+			break;
+	}
+
+	//Create the file.
+	ofstream file_out;
+	file_out.open(filename);
+	file_out << label << endl;
+	file_out.close();
+	
+	while(true) {
+		file_out.open(filename, ios::out|ios::app); //append the file.
+
+		SEARCH search = SEARCH(depth,&b,&hashtable);
+		search.start();
+
+		if(b.getActivePlayer() == WHITE) {
+			cout << "White moves ";
+			file_out << "White moves ";}
+		else {
+			cout << "Black moves ";
+			file_out << "Black moves "; }
+		search.getBestMove().print();
+		cout << endl;
+		file_out << index_to_alg(search.getBestMove().from) << index_to_alg(search.getBestMove().to) << " ";
+		
+		b.MakeMove(search.getBestMove());
+		int score = -evaluate(&b);
+	
+		//console:
+		cout << "--> info depth " << search.getDepth() << " nodes " << search.getNodes() << " score cp " << score << " time " << search.getRunTime() << " nps " << search.getNPS() << " pv " ;
+		//search.getBestMove().print();		
+		/*
+		for(int i=0; i < depth; i++) {
+			if( search.pv[i].from == 64 ) {
+				cout << "(HT) ";
+				break;
+			}
+			else
+				search.pv[i].print(); 
+		}
+		*/
+	/*
+		cout << endl << endl;
+		
+		//file:
+		file_out << "--> info depth " << search.getDepth() << " nodes " << left << setw(10) << search.getNodes() << "score cp " << setw(10) << score << "time " << setw(10) << search.getRunTime() << "nps " << setw(10) << search.getNPS() << "pv " ;
+		//file_out << index_to_alg(search.getBestMove().from) << index_to_alg(search.getBestMove().to) << " ";
+		/*
+		for(int i=0; i < depth; i++) {
+			if( search.pv[i].from == 64 ) {
+				file_out << "(HT) ";
+				break;
+			}
+			else
+				file_out << index_to_alg(search.pv[i].from) << index_to_alg(search.pv[i].to) << " ";
+		}
+		*/
+	/*
+		file_out << endl;
+
+		file_out.close();
+
+		if(search.getBestMove().from == 64)
+			break;
+	}
+*/
+};
 
 
 //------------------------------------------------------------------------------------------------------------

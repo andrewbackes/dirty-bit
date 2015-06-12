@@ -88,30 +88,30 @@ void precompute::rays() {
 			if ((source - dest) % 8 == 0) {
 				if (source - dest > 0) {
 					//down
-					for (int sq = source - 8; sq >= dest; sq = sq - 8) mask |= (1i64 << sq); }
+					for (int sq = source - 8; sq >= dest; sq = sq - 8) mask |= (((bitboard)1) << sq); }
 				else {
 					//up
-					for (int sq = source + 8; sq <= dest; sq = sq + 8) mask |= (1i64 << sq); }
+					for (int sq = source + 8; sq <= dest; sq = sq + 8) mask |= (((bitboard)1) << sq); }
 			}
 
 			// Diagonal left
 			else if ((source - dest) % 9 == 0) {
 				// NW
 				if ( /*(source%7 != 0) && */(dest > source) ) {
-					for (int sq = source + 9; sq <= dest; sq = sq + 9) mask |= (1i64 << sq); }
+					for (int sq = source + 9; sq <= dest; sq = sq + 9) mask |= (((bitboard)1) << sq); }
 				// SE
 				if ( /*(source%8 != 0) && */(source > dest) ) {
-					for (int sq = source - 9; sq >= dest; sq = sq - 9) mask |= (1i64 << sq); }
+					for (int sq = source - 9; sq >= dest; sq = sq - 9) mask |= (((bitboard)1) << sq); }
 			}
 			
 			// Diagonal right
 			else if ((source - dest) % 7 == 0) {
 				// NE
 				if ( /*(source%8 != 0) && */(dest > source) ) {
-					for (int sq = source + 7; sq <= dest; sq = sq + 7) mask |= (1i64 << sq); }
+					for (int sq = source + 7; sq <= dest; sq = sq + 7) mask |= (((bitboard)1) << sq); }
 				// SW
 				if ( /*(source%7 != 0) && */(source > dest) ) {
-					for (int sq = source - 7; sq >= dest; sq = sq - 7) mask |= (1i64 << sq); }
+					for (int sq = source - 7; sq >= dest; sq = sq - 7) mask |= (((bitboard)1) << sq); }
 			}
 			// Possible Horizontal
 			else {
@@ -120,7 +120,7 @@ void precompute::rays() {
 					//check the distance to the right side of the board.
 					int dist = source % 8;
 					if (source - dest <= dist) {
-						for (int sq = source - 1; sq >= dest; sq--) mask |= (1i64 << sq);
+						for (int sq = source - 1; sq >= dest; sq--) mask |= (((bitboard)1) << sq);
 					}
 				}
 				else {
@@ -128,7 +128,7 @@ void precompute::rays() {
 					//check the distance to the left
 					int dist = 7 - (source % 8);
 					if (dest - source <= dist) {
-						for (int sq = source + 1; sq <= dest; sq++) mask |= (1i64 << sq);
+						for (int sq = source + 1; sq <= dest; sq++) mask |= (((bitboard)1) << sq);
 					}
 				}
 			}
@@ -143,17 +143,17 @@ void precompute::rule_of_the_squares() {
 	//WHITE
 	for (int sq = 0; sq < 64; sq++) {
 		int dist = 8 - RankOf(sq)+1;
-		bitboard beam = (1i64 << sq) | mask::north[sq];
+		bitboard beam = (((bitboard)1) << sq) | mask::north[sq];
 		
 		bitboard mask = beam;
 		//go left:
 		for (int j = 0; j < dist; j++) {
-			mask |= ((1i64 << (sq+j)) | mask::north[sq+j]);
+			mask |= ((((bitboard)1) << (sq+j)) | mask::north[sq+j]);
 			if (FileOf(sq) + j == 7) break;
 		}
 		//go right:
 		for (int j = 0; j < dist; j++) {
-			mask |= ((1i64 << (sq - j)) | mask::north[sq - j]);
+			mask |= ((((bitboard)1) << (sq - j)) | mask::north[sq - j]);
 			if (FileOf(sq) - j == 0) break;
 		}
 		mask::rule_of_the_square[WHITE][sq] = mask;
@@ -161,17 +161,17 @@ void precompute::rule_of_the_squares() {
 	//BLACK
 	for (int sq = 0; sq < 64; sq++) {
 		int dist = RankOf(sq);
-		bitboard beam = (1i64 << sq) | mask::south[sq];
+		bitboard beam = (((bitboard)1) << sq) | mask::south[sq];
 
 		bitboard mask = beam;
 		//go left:
 		for (int j = 0; j < dist; j++) {
-			mask |= ((1i64 << (sq + j)) | mask::south[sq + j]);
+			mask |= ((((bitboard)1) << (sq + j)) | mask::south[sq + j]);
 			if (FileOf(sq) + j == 7) break;
 		}
 		//go right:
 		for (int j = 0; j < dist; j++) {
-			mask |= ((1i64 << (sq - j)) | mask::south[sq - j]);
+			mask |= ((((bitboard)1) << (sq - j)) | mask::south[sq - j]);
 			if (FileOf(sq) - j == 0) break;
 		}
 		mask::rule_of_the_square[BLACK][sq] = mask;
@@ -180,38 +180,38 @@ void precompute::rule_of_the_squares() {
 }
 
 void precompute::castle_areas() {
-	bitboard t = (1i64 << h1) | (1i64 << g1) | (1i64 << f1);
+	bitboard t = (((bitboard)1) << h1) | (((bitboard)1) << g1) | (((bitboard)1) << f1);
 	std::cout << "mask::short_castle_area[WHITE] = " << t << std::endl;
-	t = (1i64 << h8) | (1i64 << g8) | (1i64 << f8);
+	t = (((bitboard)1) << h8) | (((bitboard)1) << g8) | (((bitboard)1) << f8);
 	std::cout << "mask::short_castle_area[BLACK] = " << t << std::endl;
-	t = (1i64 << a1) | (1i64 << b1) | (1i64 << c1);
+	t = (((bitboard)1) << a1) | (((bitboard)1) << b1) | (((bitboard)1) << c1);
 	std::cout << "mask::long_castle_area[WHITE] = " << t << std::endl;
-	t = (1i64 << a8) | (1i64 << b8) | (1i64 << c8);
+	t = (((bitboard)1) << a8) | (((bitboard)1) << b8) | (((bitboard)1) << c8);
 	std::cout << "mask::long_castle_area[BLACK] = " << t << std::endl;
 
-	bitboard w = (1i64 << e1) | (1i64 << e2) | (1i64 << d1) | (1i64 << d2);
-	bitboard b = (1i64 << e8) | (1i64 << e7) | (1i64 << d8) | (1i64 << d7);
+	bitboard w = (((bitboard)1) << e1) | (((bitboard)1) << e2) | (((bitboard)1) << d1) | (((bitboard)1) << d2);
+	bitboard b = (((bitboard)1) << e8) | (((bitboard)1) << e7) | (((bitboard)1) << d8) | (((bitboard)1) << d7);
 	std::cout << "mask:between_castle_area[] = {" << w << " , " << b << " };\n";
 	
 }
 void precompute::castle_pawns() {
 	bitboard t = 0;
 	std::cout << "mask::short_castle_pawns[]={ ";
-	t = (1i64 << h2) | (1i64 << g2) | (1i64 << f2);
+	t = (((bitboard)1) << h2) | (((bitboard)1) << g2) | (((bitboard)1) << f2);
 	std::cout << t << " , ";
-	t = (1i64 << h7) | (1i64 << g7) | (1i64 << f7);
+	t = (((bitboard)1) << h7) | (((bitboard)1) << g7) | (((bitboard)1) << f7);
 	std::cout << t << " };" << std::endl;
 
 	std::cout << "mask::long_castle_pawns[]={ ";
-	t = (1i64 << a2) | (1i64 << b2) | (1i64 << c2);
+	t = (((bitboard)1) << a2) | (((bitboard)1) << b2) | (((bitboard)1) << c2);
 	std::cout << t << " , ";
-	t = (1i64 << a7) | (1i64 << b7) | (1i64 << c7);
+	t = (((bitboard)1) << a7) | (((bitboard)1) << b7) | (((bitboard)1) << c7);
 	std::cout << t << " };" << std::endl;
 
 	std::cout << "mask::mid_castle_pawns[]={ ";
-	t = (1i64 << d2) | (1i64 << e2) | (1i64 << f2);
+	t = (((bitboard)1) << d2) | (((bitboard)1) << e2) | (((bitboard)1) << f2);
 	std::cout << t << " , ";
-	t = (1i64 << d7) | (1i64 << e7) | (1i64 << f7);
+	t = (((bitboard)1) << d7) | (((bitboard)1) << e7) | (((bitboard)1) << f7);
 	std::cout << t << " };" << std::endl;
 
 }
@@ -352,15 +352,15 @@ for(int r = 0; r <= 7; r++){
 for(int j = 0; j <= 7; j++){
 rook_masks[(8*j) + r] = 0;
 for(int k = 1; k <= 6; k++){
-if(k != r) rook_masks[(8*j) + r] += (1i64 << ((8*j) + k));  // Horizontal
-if(k != j) rook_masks[(8*j) + r] += (1i64 << ((8*k) + r));  // Vertical
+if(k != r) rook_masks[(8*j) + r] += (((bitboard)1) << ((8*j) + k));  // Horizontal
+if(k != j) rook_masks[(8*j) + r] += (((bitboard)1) << ((8*k) + r));  // Vertical
 }
 
 bishop_masks[(8*j) + r] = 0;
-for(int k = r+1, l=j+1; max(k,l) <= 6; k++, l++) bishop_masks[(8*j)+r]+=(1i64<<((8*l)+k));        // Up, left
-for(int k = r+1, l=j-1; (k <= 6) & (l >= 1); k++, l--) bishop_masks[(8*j)+r]+=(1i64<<((8*l)+k));  // Down, left
-for(int k = r-1, l=j+1; (k >= 1) & (l <= 6); k--, l++) bishop_masks[(8*j)+r]+=(1i64<<((8*l)+k));  // Up, right
-for(int k = r-1, l=j-1; min(k, l) >= 1; k--, l--) bishop_masks[(8*j)+r]+=(1i64<<((8*l)+k));       // Down, right
+for(int k = r+1, l=j+1; max(k,l) <= 6; k++, l++) bishop_masks[(8*j)+r]+=(((bitboard)1)<<((8*l)+k));        // Up, left
+for(int k = r+1, l=j-1; (k <= 6) & (l >= 1); k++, l--) bishop_masks[(8*j)+r]+=(((bitboard)1)<<((8*l)+k));  // Down, left
+for(int k = r-1, l=j+1; (k >= 1) & (l <= 6); k--, l++) bishop_masks[(8*j)+r]+=(((bitboard)1)<<((8*l)+k));  // Up, right
+for(int k = r-1, l=j-1; min(k, l) >= 1; k--, l--) bishop_masks[(8*j)+r]+=(((bitboard)1)<<((8*l)+k));       // Down, right
 
 
 }
