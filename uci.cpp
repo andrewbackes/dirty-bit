@@ -19,7 +19,8 @@
 #include "search.h"
 #include "movegen.h"
 #include "book.h"
-
+#include "SEE.h"
+#include "perft.h"
 
 using namespace std;
 
@@ -28,12 +29,13 @@ int previous_score;
 long hashetable_size; //in mb
 HASHTABLE hashtable;
 
+/*
 bool fexists(string filename) {
 	//Returns true if file exists.
 	ifstream ifile(filename);
 	return ( (bool) ifile );
 }
-
+*/
 
 void benchmark(CHESSBOARD b, int depth, string label) {
 /*
@@ -116,6 +118,31 @@ void benchmark(CHESSBOARD b, int depth, string label) {
 };
 
 void printMoves(CHESSBOARD * b) {
+	MOVELIST moves;
+	moves.linkGame(b);
+	bool toMove = b->getActivePlayer();
+	//unsigned char old_phase = 0;
+	//int counter = 0;
+	//if(moves.hash_suggestion.from == 64) old_phase = 1;
+	while(moves.NextMove()) {
+			
+		b->MakeMove(*moves.move());
+		if(!b->isInCheck(toMove)) {
+			//if(counter == 0 || (moves.phase() > 1 && old_phase == 0) )
+			//	cout << "Movegen Phase " << (int)old_phase << ": ";
+			moves.move()->print();
+			//counter++;
+			//if(old_phase != moves.phase()) {
+			//	cout << endl;
+			//	old_phase = moves.phase();
+			//	counter =0;
+			//}
+
+		}
+		b->unMakeMove(*moves.move());
+	}
+	cout << endl;
+	/*
 	vector<MOVE> move_list = MoveGen(b);
 	MoveSort(move_list);
 
@@ -155,6 +182,8 @@ void printMoves(CHESSBOARD * b) {
 }
 
 void printCaptures(CHESSBOARD * b) {
+	
+	/*
 	vector<MOVE> capture_list = CaptureGen(b);	
 	MoveSort(capture_list);
 	cout << "Captures: \n";
@@ -164,6 +193,23 @@ void printCaptures(CHESSBOARD * b) {
 		//cout << "(" << capture_list.at(i).static_value << "). ";
 	}		
 	cout << endl;
+	*/
+}
+
+void printSEE(CHESSBOARD * b) {
+	MOVELIST cap_list;
+	cap_list.reset();
+	CaptureGen(b,&cap_list);
+	for(int i = 0; i < cap_list.capture_size(); i++) {
+		cap_list.capture_at(i).print();
+		cout << " SEE1: ";
+		cout << SEE1(b,cap_list.capture_at(i));
+		cout << ". SEE2: ";
+		cout << SEE2(b,cap_list.capture_at(i));
+		cout << ". SEE3: ";
+		cout << SEE3(b,cap_list.capture_at(i));
+		cout << endl;
+	}
 }
 
 void uci_setoption(string cmd_input) {
@@ -193,21 +239,23 @@ void uci_setoption(string cmd_input) {
 
 }
 
-void uci_go(CHESSBOARD * game, string go_string, BOOK * book, string move_history) {
+int uci_go(CHESSBOARD * game, string go_string, BOOK * book, string move_history) {
 // Uses Iterative Deepening to pick a best move. 
 // Then prints it out in UCI format.
 
 //		TODO:	- Change the time allocation to something like: time_left / (n - kx/(x^2  +400)), x moves so far, k the fraction 
 //				  --> see graph: http://chessprogramming.wikispaces.com/Time+Management
-//				- Add aspiration windows (and pvs fail soft).
+//						{(1,1),(2,1),(3,1),(4,1),(5,1),(6,1),(7,1),(8,1),(9,2),(10,2),(11,3),(12,3),(13,4),(14,5),(15,6),(16,9),(17,12),(18,16),(19,16),(20,15),(21,14),(22,13),(23,12), (24,11), (25,9),(26,5),(27,4),(28,4),(29,4),(30,3),(31,3),(32,3),(33,3),(34,3),(35,3),(36,3),(37,2),(38,2),(39,2),(40,2),(41,2),(42,2),(43,2),(44,2),(45,1),(46,1),(47,1),(48,1),(49,1),(50,1),(51,1),(52,1),(53,1),(54,1),(55,1),(56,1)}
+
 
 	long start_time = clock()/(CLOCKS_PER_SEC/1000);
 	int depth_cutoff = 100;
 	long time_remaining[2] = {300000,300000};
 	int time_increment[2] = {0,0};
-	int moves_till_time_control = 35;
+	int moves_till_time_control = 30; //first value used was 35
 	int move_num = min( game->getMoveCount(), 10 ); //TODO: change move count to moves out of the book.
 	double time_factor = 2 -  move_num / 10;
+	bool ponder = false;
 	
 	//30 second default time for moves:
 	//time_remaining[WHITE] =  (long) floor((30000 * moves_till_time_control) / time_factor);
@@ -219,7 +267,12 @@ void uci_go(CHESSBOARD * game, string go_string, BOOK * book, string move_histor
 	string value;
 	command_stream >> command; //this should say "go"
 	while( command_stream >> command ) {
-		command_stream >> value;
+		if(command == "ponder") {
+			ponder = true;
+		} else {
+			command_stream >> value;
+		}
+
 		if(command == "wtime"){
 			time_remaining[WHITE] = str_to_int(value);
 		}
@@ -263,6 +316,7 @@ void uci_go(CHESSBOARD * game, string go_string, BOOK * book, string move_histor
 
 	//Iterative Deepening:
 	MOVE best_move;
+	MOVE ponder_move;
 	short best_score;
 	
 	int alpha_window = -INFINITY;
@@ -271,30 +325,42 @@ void uci_go(CHESSBOARD * game, string go_string, BOOK * book, string move_histor
 	
 	int fail_high_count = 0;
 	int fail_low_count = 0;
+	bool fQuitOnNext = false;
 
 	int depth = 1;
-	int old_node_count = 1;
-	double branch_factor = 3.0;
+	//int old_node_count = 1;
+	//double branch_factor = 3.0;
+	double * EBF = new double[depth_cutoff+1];
+	double average_EBF = DEFAULT_EBF;
 	int * node_count = new int[depth_cutoff+1];
-	long * nps = new long[depth_cutoff+1];
-	node_count[0] = 1;
+	//long * nps = new long[depth_cutoff+1];
+	long running_nps = DEFAULT_NPS;
+	long running_node_count = 0;
+	long previous_node_count = 0;
+
+	//node_count[0] = 1;
 	previous_score = 0;
-	
+	/*
+	cout << "--- Before Search: ---\n";
+	printMoves(game);
+	cout << "--- --- Search --- ---\n";
+	*/
 	while( depth <= depth_cutoff ) {
-		SEARCH search(depth, game, &hashtable, time_left);
+		vector<MOVE> pv;
+		bool fFailHigh = false;
+		bool fFailLow = false;
+		SEARCH search(depth, game, &hashtable, (long)floor(time_left * TIME_WIGGLE_ROOM));
 		//Aspiration window:
 		string fFailed = "";
-		bool fFailedLow = false;
-		bool fFailedHigh = false;
 		#ifdef DEBUG_TIME
-			cout << "\tNext window: [" << alpha_window <<", " << beta_window << "]" << endl;
+			cout << "Next window: [" << alpha_window <<", " << beta_window << "]" << endl;
 		#endif
 		search.start(alpha_window, beta_window);
 
 		if(search.getScore() <= alpha_window) {
 			//failed low:
-			fFailedLow = true;
 			fail_low_count++;
+			fFailLow = true;
 			if(fail_low_count < 2) {
 				alpha_window = alpha_window - A_LOT;
 			}
@@ -304,12 +370,11 @@ void uci_go(CHESSBOARD * game, string go_string, BOOK * book, string move_histor
 			//alpha_window = -INFINITY;
 			//beta_window = search.getScore() + A_LITTLE;
 			fFailed = " lowerbound ";
-			
 		}
 		else if(search.getScore() >= beta_window) {
 			//failed high:
-			fFailedHigh = true;
 			fail_high_count++;
+			fFailHigh = true;
 			//beta_window = INFINITY;
 			if(fail_high_count < 2) {
 				beta_window = beta_window + A_LOT;
@@ -319,16 +384,17 @@ void uci_go(CHESSBOARD * game, string go_string, BOOK * book, string move_histor
 			}
 			//alpha_window = search.getScore() - A_LITTLE;
 			fFailed = " upperbound ";
-			
 		}
 		else {
+			previous_node_count = search.getNodes();
 			node_count[depth] = search.getNodes();
-			nps[depth] = search.getNPS(); }
+		}
+		running_node_count += search.getNodes();
 		
 		if(!search.TimedOut()) {
 			//Print the UCI info:
 			std::cout	<< "info depth " << search.getDepth() 
-						<< " seldepth " << search.getDepth() + search.getQDepth()
+						<< " seldepth " << search.getSelDepth() //search.getDepth() + search.getQDepth()
 						<< " nodes " << search.getNodes() 
 						<< " score";
 			//Print Mate in X:
@@ -343,7 +409,7 @@ void uci_go(CHESSBOARD * game, string go_string, BOOK * book, string move_histor
 					" nps " << search.getNPS() << 
 					" pv " ;
 			//Print the PV:
-			vector<MOVE> pv = search.getPV();
+			pv = search.getPV();
 			for(int i=0; i < pv.size(); i++) {
 				if( pv.at(i).from != 64 ) {
 					pv.at(i).print();
@@ -351,11 +417,15 @@ void uci_go(CHESSBOARD * game, string go_string, BOOK * book, string move_histor
 				else
 					break;
 			}
-			std::cout << endl;
+			cout << endl;
 			//Save the results if it didnt time out or fail
-			if(!fFailedHigh && !fFailedLow) {
+			if(!fFailHigh && !fFailLow) {
 				best_move = search.getBestMove(); 
 				best_score = search.getScore();
+				if(pv[1].from != 64) 
+					ponder_move = pv[1];
+				if(fQuitOnNext)
+					break;
 			}
 		}
 		else {
@@ -363,43 +433,41 @@ void uci_go(CHESSBOARD * game, string go_string, BOOK * book, string move_histor
 				cout << "\tSearch timed out." << endl;
 			#endif
 		}					
-
-		/*
-		//Calculate the estimated branch factor:
-		if( depth > 2) {
-			branch_factor = sqrt( (double)(node_count[depth] / node_count[depth -2]));
-			if (branch_factor > 15)
-				branch_factor = 4; //in case nodes = 0 from hash table hits.
-			//cout << "Estimated Branching factor: " << branch_factor << endl;
-		}
-		*/
-
+		
 		time_lapsed = clock()/(CLOCKS_PER_SEC/1000) - start_time;
-		//If there isnt enough time to do another iteration, exit.
-		long time_needed = (long) ceil( ( (branch_factor * (double)node_count[depth] ) / (double)nps[depth] ) * 1000 );
-		time_needed = (time_needed > 0) ? time_needed : 0;
+		time_lapsed = (time_lapsed>0) ? time_lapsed : 1;
+		running_nps = (long)floor((double)running_node_count / ((double)time_lapsed/1000));
+		running_nps = (running_nps>0)? running_nps : DEFAULT_NPS;
+
+		long time_needed = (long) ceil( ( (average_EBF * (double)previous_node_count ) / (double)running_nps) * 1000 );
+		time_needed = (time_needed > 0) ? time_needed : 1;
 		#ifdef DEBUG_TIME
-			cout << "\tEstimated time needed: " << time_needed << "/" << time_allotted - time_lapsed << endl;
+			cout << "\tEstimated time needed: " << time_needed << "/" << time_allotted - time_lapsed << ". ";
 		#endif
 		time_left = time_allotted - time_lapsed;
 
 		if( time_lapsed + time_needed >= time_allotted ) {
 			//Out of time but we have a good best move.
-			if(fail_low_count==0 && fail_high_count ==0)
+			if(!fFailHigh && !fFailLow)
 			{
 				#ifdef DEBUG_TIME
-					cout << "\tNot enough time to search deeper. But did not fail high or low." << endl;
+					cout << "\n\tNot enough time to search deeper. But did not fail high or low." << endl;
 				#endif
 				break;
 			}
 			//Out of time but the last search was a fail.
 			else {
-				if(time_left/2 > time_needed) {
+				if(time_remaining[game->getActivePlayer()]/5 > time_needed) {
 					alpha_window = -INFINITY;
 					beta_window = INFINITY;
-					time_allotted += time_needed;
+					//alpha_window -= A_LOT;
+					//beta_window += A_LOT;
+					//time_allotted = time_remaining[game->getActivePlayer()]/5;
+					time_left = time_remaining[game->getActivePlayer()]/5;
+					fQuitOnNext = true;
 					#ifdef DEBUG_TIME
-						cout << "\tTime change. Allotted: " << time_allotted << endl;
+						//cout << "\tTime change. Allotted: " << time_allotted << endl;
+						cout << "\tForcing one more search.\n";
 					#endif
 				}
 				else {
@@ -412,10 +480,11 @@ void uci_go(CHESSBOARD * game, string go_string, BOOK * book, string move_histor
 		}
 
 		//Adjust the aspiration window:
-		if(!fFailedLow && !fFailedHigh) {
+		if(!fFailHigh && !fFailLow) {
 			depth++;
 			alpha_window = best_score - window_range;
 			beta_window = best_score +  window_range;
+			
 			/*
 			if( search.getScore() - previous_score < 100 && search.getScore() - previous_score > -100 ) {
 				alpha_window = previous_score - window_range;
@@ -428,15 +497,30 @@ void uci_go(CHESSBOARD * game, string go_string, BOOK * book, string move_histor
 			*/
 			fail_low_count = 0;
 			fail_high_count = 0;
+			fQuitOnNext = false;
 			previous_score = search.getScore();
 		}
 	}
-	std::cout << "\tTime Lapsed: " << time_lapsed << "/" << time_allotted << endl;
-	
+	cout << "\tTime Lapsed: " << time_lapsed << "/" << time_allotted << endl;
+	#ifdef DEBUG_TIME
+	cout << "\tNode Count:  " << running_node_count << endl; 
+	cout << "\tRunning NPS: " << running_nps << endl; 
+	#endif
 	//Finally print the move chosen:
 	std::cout << "bestmove ";
 	best_move.print();
-	std::cout << "\n";
+	if(ENABLE_PONDERING && ponder_move.from != 64) {
+		cout << "ponder ";
+		ponder_move.print();
+	}
+	std::cout << endl;
+	
+	/*
+	cout << "--- After Search: ---\n";
+	printMoves(game);
+	cout << "--- --- --- --- --- ---\n";
+	*/
+	return depth;
 
 }
 
@@ -512,7 +596,7 @@ void uci_iterativeDeepening(CHESSBOARD * game, int depth) {
 			
 		//Print the UCI info:
 		std::cout	<< "info depth " << search.getDepth() 
-					<< " seldepth " << search.getDepth() + search.getQDepth()
+					<< " seldepth " << search.getSelDepth() //search.getDepth() + search.getQDepth()
 					<< " nodes " << search.getNodes() 
 					<< " score cp " << search.getScore(); 
 		//Print Mate in X:
@@ -613,18 +697,40 @@ string uci_position(CHESSBOARD * b, string cmd_input) {
 
 void uci_test(CHESSBOARD * game) {
 	BOOK b;
+	TIMER t1;
+
+	t1.start();
 	cout << "STARTING POSITION:\n";
 	game->newgame();
-	uci_go(game,"", &b, "");
+	int d1 = uci_go(game,"", &b, "");
+	t1.end();
+	TIMER t2;
+	
+	t2.start();
 	cout << "\n \nGAME OF THE CENTURY QUEEN SACRIFICE:\n";
 	game->position("r3r1k1/pp3pbp/1qp3p1/2B5/2BP2b1/Q1n2N2/P4PPP/3R1K1R b - - 3 17");
-	uci_go(game,"", &b, "");
+	int d2 = uci_go(game,"", &b, "");
+	t2.end();
+	
+	TIMER t3;
+	t3.start();
 	cout << "\n \nGAME OF THE CENTURY (MATE IN 15?):\n";
 	game->position("4r1k1/1p3pbp/1Qp3p1/8/r1b5/2n2N2/P4PPP/3R2KR b - - 0 25");
-	uci_go(game,"", &b, "");
+	int d3 = uci_go(game,"", &b, "");
+	t3.end();
+	
+	TIMER t4;
+	t4.start();
 	cout << "\n\nRETI ENDGAME POSITION:\n";
 	game->position("7K/8/k1P5/7p/8/8/8/8 w - -");
-	uci_go(game,"", &b, "");
+	int d4 = uci_go(game,"", &b, "");
+	t4.end();
+	cout << "Position               Depth\tTime" << endl;
+	cout << "-------------------------------------------------\n";
+	cout << "Start   		" << d1 << "\t" << t1.time()/1000.0 << endl;
+	cout << "Midgame 1		" << d2 << "\t" << t2.time()/1000.0 << endl;
+	cout << "Midgame 2		" << d3 << "\t" << t3.time()/1000.0 << endl;
+	cout << "King-Pawn		" << d4 << "\t" << t4.time()/1000.0 << endl;
 }
 
 void uci_move(CHESSBOARD * b, string cmd_input) {
@@ -689,7 +795,9 @@ void uci_unmove(CHESSBOARD * b, string cmd_input) {
 		0,
 		promote_piece_id					));
 }
+
 void uci_perftsuite() {
+	
 	cout << "Perft Suite:\n";
 	string filename = "perftsuite_results.txt";
 	ofstream file_out;
@@ -745,8 +853,8 @@ void uci_perftsuite() {
 
 	file_in.close();
 	file_out.close();
+	
 }
-
 
 int UCI_loop()
 {	
@@ -754,20 +862,56 @@ int UCI_loop()
 	string cmd_input;
 	
 	//Start initializing the engine:
-	cout << "id name " << ID_NAME << "\n";
+	cout << "id name " << ID_NAME << " v" << ID_VERSION << "\n";
 	cout << "id author " << ID_AUTHOR << "\n";
+	//cout << "option name Ponder type check default " << ENABLE_PONDERING << "\n";
+	//cout << "option name OwnBook type check default true\n";
+	//cout << "option name Hash type spin default " << HASH_TABLE_SIZE << " min 1000 max 1000\n";
 	
 	int depth = 12;
-	hashetable_size = 1000; //in mb
+	hashetable_size = HASH_TABLE_SIZE; //in mb
 	
 	CHESSBOARD active_game; //will store the active game to search.
 	string active_game_history = "";
 	uci_newgame(&active_game,&hashtable);
-
 	BOOK active_book;
+
 	//active_book.load();
-		
 	cout << "uciok\n";
+	//uci_position(&active_game, "position startpos moves b1c3 g8f6 e2e4 e7e5 g1f3 b8c6 f1c4 f6e4 c3e4 d7d5 c4d3 d5e4 d3e4 f8d6 e1g1 c8g4 f1e1 e8g8 h2h3 g4f3 e4f3 a8b8 c2c3 d8f6 d2d3 d6c5 c1d2 a7a6 d1c2 f8e8 e1e2 c5b6 a1e1 e8e6 f3e4 h7h6 d2c1 c6e7 b2b4 e7g6 e4g6 f7g6 e2e4 b8e8 e1e2 g6g5 c2b3 g8h7 c1a3 f6f5 d3d4 c7c6 f2f3 f5f6 e2e1 h7h8 g1h1 b6c7 e1e2 f6f7 a3c1 f7f5 e2e1 c7d6 f3f4 g5f4 c1f4 e6e7 d4e5 d6e5 b3d1 h8g8 f4h2 e5f6 e4e7 e8e7 d1d8 g8f7 e1e7 f6e7 d8c7 f5f1 h2g1 f1e1 c7d7 e1c3 d7b7 c3b4 b7c6 b4d6 c6c4 d6e6 c4a4 e7f6 a4a5 e6c4 a5a3 f7g6 a3g3 g6f5 a2a3 f6e5 g3f2 f5e6 f2f8 c4d3 a3a4 d3d6 f8f3 d6d5 f3e2 d5c6 e2d1 c6c3 d1b1 c3c4 b1g6 e6e7 g6h5 c4c3 h5h4 e7e6 h4g4 e6f6 g4e2 a6a5 e2f1 f6e6 f1f8 c3e1 f8f3 e6d6 f3f7 e5f6 f7f8 d6d7 f8a8 f6c3 a8b7 d7e6 b7c7 e1c1 c7c8 e6e7 c8b7 e7d8 b7a8 d8c7 a8a7 c7c6 a7b8 c1a1 b8d8 a1e1 d8c8 c6d6 c8f8 d6d7 f8f4 c3f6 f4c4 f6e5 c4f7 d7d8 f7f8 d8d7 f8f5 d7e7 f5d3 e1b4 d3e2 e7e6 e2c2 e5f6 c2d1 b4c3 d1h5 f6e5 h5e8 e6d5 e8d7 d5e4 d7d8 e5f6 d8d1 e4f5 d1g4 f5e5 g4d7");
+	
+	//uci_position(&active_game, "position fen r1bqkbnr/ppp1pppQ/2n5/8/4p3/3B4/PPPP1PPP/RNB1K1NR b KQkq - 0 1");
+
+	//SEE test 2 (involving xray of pawns or not):
+	//uci_position(&active_game, "position fen r1bqkb1r/pppp1ppp/2n2B2/4p3/3P4/N7/PPP1PPPP/R2QKBNR b KQkq - 0 4");
+	
+	//bitboard attackers;
+	//findAttackingSquares(attackers, &active_game, 20);
+	//bitprint(attackers);
+
+	//SEE test:
+	//uci_position(&active_game, "position fen 1k1r3q/1ppn3p/p4b2/4p3/8/P2N2P1/1PP1R1BP/2K1Q3 w - -");
+	
+	//uci_position(&active_game,"position fen 6K1/5rp1/1b1r3p/5P2/pP1p2P1/P5kP/1BP5/N2Rn2q b - - 0 1");
+	//uci_position(&active_game,"position fen 5rk1/6p1/1b1r3p/5P2/pPnp2P1/P5KP/1BP5/N2R3Q w - - 0 1");
+	
+	//Illegal Move (cannot take black king):
+	//uci_position(&active_game,"position startpos moves b1c3 e7e5 g1f3 d7d5 f3e5 d5d4 c3b1 f8d6 e5f3 c7c5 e2e4 c8g4 f1e2 g4f3 e2f3 b8c6 d2d3 g8e7 b1d2 c6e5 f3e2 f7f5 e1g1 e8g8 f2f4 e5c6 d2b3 c5c4 d3c4 f5e4 e2g4 e7f5 d1e2 d8e7 c4c5 d6c7 c1d2 f8f6 a1d1 a8d8 a2a3 h7h6 e2c4 e7f7 g4e2 f7c4 e2c4 g8f8 d1e1 e4e3 d2c1 a7a5 c4b5 c6a7 b5d3 a5a4 b3a1 a7c6 b2b4 b7b6 g2g4 f5h4 c5b6 c7b6 c1b2 c6e7 h2h3 h4g6 f4f5 g6e5 d3e2 e7d5 g1g2 d8c8 e2a6 c8a8 a6b5 f8g8 e1d1 e3e2 b5e2 d5e3 g2g3 e3f1 e2f1 f6d6 f1g2 a8f8 g2h1 e5c4");
+
+	//Should not take with King:
+	//uci_position(&active_game,"position startpos moves b1c3 e7e5 g1f3 d7d5 f3e5 d5d4 c3b1 g8f6 e2e3 f8c5 b1a3 c8e6 a3b5 b8c6 e5c6 b7c6 b5d4 c5d4 e3d4 d8d4 d2d3 f6g4 d1f3 e8g8 f1e2 d4b4 e1f1 b4c5 e2d1 c5b6 f3g3 g4f6 b2b3 f6e4 g3f4 e4c3 d1f3 c3d5 f4e5 a8e8 e5g3 b6d4 a1b1 d4c5 c1b2 d5c3 a2a3 a7a5 b1e1 e6d5 e1e5 g7g6 h2h4 c3e2 e5e2 e8e2");
+	
+	//Illegal Move:
+	//uci_position(&active_game,"position startpos moves e2e4 e7e5 g1f3 b8c6 f1b5 g8f6 d2d3 f8d6 c1g5 a7a6 b5a4 b7b5 a4b3 c6a5 d3d4 a5b3 a2b3 d8e7 b1c3 c8b7 d4e5 d6e5 f3e5 e7e5 f2f4 e5c5 d1d3 h8g8 e1c1 d7d6 g5f6 g7f6 c3d5 g8g2 b3b4 c5c6 d1g1 g2g6 f4f5 g6g1 h1g1 e8d7 g1g7 a8f8 d5f6 d7e7 f6h7 c6e4 f5f6");
+
+	//Moves Bishop into corner again, then makes an illegal move:
+	//uci_position(&active_game,"position fen 4rk1r/2R2R1p/p4p2/8/Np3P2/1P6/1PP4P/2K4b b - - 0 23");
+	
+	//Sacrafices bishop for no reason:
+	//uci_position(&active_game, "position startpos moves e2e4 e7e5 g1f3 b8c6 f1b5 g8f6 b1c3 a7a6 b5c6 d7c6 f3e5 f6e4 c3e4 d8d4 d1e2 d4e5 d2d4 e5e7 e1g1 c8f5 f1e1 e8c8 c1g5 f7f6 e2f3 e7d7 e4f6 g7f6 g5f6 h8g8 f6d8 c8d8 e1e2 d7d5 g1h1 d5f3 g2f3 d8d7 a1g1 f8g7 g1g3 f5g6 h1g1 c6c5 d4c5 g7b2 f3f4 g8b8 g3f3 d7c6 f4f5 g6f7 e2e7 f7a2 e7h7 a2d5 f3g3 b2e5 h7h6 c6c5 g3a3 b8g8 h6g6 g8f8 a3a5 b7b5 a5a6 f8f5 c2c4");
+	
+	//uci_position(&active_game, "position fen r1bqk1nr/pppp1ppp/2n5/2b1p3/3PP3/2P2N2/PP3PPP/RNBQKB1R b KQkq d3 0 4");
+	//uci_position(&active_game, "position fen rnbqkb1r/ppp2ppp/5n2/3pp1B1/3PP3/5N2/PPP2PPP/RN1QKB1R b KQkq - 1 4");
 	//uci_position(&active_game, "position startpos moves e2e4 e7e5 g1f3 b8c6 f1b5 a7a6 b5c6 d7c6 f3e5 d8d4 e5f3 d4e4 e1f1 c8g4 d2d4 g4f3 g2f3 e4d4 d1d4");
 	//uci_position(&active_game, "position startpos moves e2e4 e7e5 g1f3 g8f6 d2d4 f6e4 d4e5 d7d5");
 	//uci_position(&active_game, "position startpos moves g1f3 d7d5 e2e3 e7e6 c2c4 g8f6 f1e2 b8c6 d1a4 c8d7 c4d5 e6d5 b1c3 f8b4 a4b3 b4c3 d2c3 a8b8 b3a3");
@@ -822,16 +966,23 @@ int UCI_loop()
 		else if(command == "captures" || command == "movegencaptures") {
 			printCaptures(&active_game);
 		}
+		else if(command == "SEE" || command == "see") {
+			printSEE(&active_game);
+		}
 		else if(command == "divide") {
+			
 			command_stream >> command;
 			PERFT p;
 			p.Divide(&active_game, str_to_int(command));
+			
 		}
 		else if(command == "perft") {
+			
 			command_stream >> command;
 			PERFT p;
 			p.go(&active_game,str_to_int(command));
 			//cout << "Nodes: " << Perft(&active_game, str_to_int(command)) << endl;
+			
 		}
 		else if(command == "perftsuite") {
 			uci_perftsuite();
@@ -840,19 +991,20 @@ int UCI_loop()
 			uci_test(&active_game);
 		}
 		else if(command == "eval") {
-			cout << "Relative Evaluation: " << relative_eval(&active_game) << endl;
+			
+			bool toMove = active_game.getActivePlayer();
+			short phase_gauge = ((active_game.getMaterialValue(toMove) > active_game.getMaterialValue(!toMove)) ? active_game.getMaterialValue(toMove) : active_game.getMaterialValue(!toMove)) - 9900; //This will range from 0 to 4055
+			phase_gauge = (phase_gauge < 1300 ) ? 0 : phase_gauge - 1300; //This will range from 0 to 2775
+			cout << "Relative Evaluation: "  << relative_eval(&active_game) << endl;
+			cout << "Phase Gauge:         " << phase_gauge << endl;
+			cout << "Formula:             " << "opening_bonus*(" << ((double)phase_gauge)/2775 <<") + endgame_bonus*(" << (double)1 - ((double)phase_gauge)/2775 << ")\n";
+			cout << "Formula 2:           ";
 		}
 		else if(command == "id" || command == "i" ) {
 			uci_iterativeDeepening(&active_game, depth);
 		}
 		else if(command == "s" || command == "search") {
 			uci_search(&active_game,depth);
-		}
-		else if(command == "nega" || command == "negamax") {
-			cout << "Negamax score: " << NegaMax(depth, &active_game) << endl;
-			active_game.print();
-			active_game.print_bb();
-			active_game.print_mailbox();
 		}
 		else if(command == "echo") {
 			while(command_stream >> command) {
@@ -868,6 +1020,11 @@ int UCI_loop()
 			cout << "Zobrist Key: " << active_game.generateKey() << endl; }
 		else if(command == "check") {
 			cout << active_game.isInCheck() << endl; }
+		else if(command == "attacked") {
+			for (int i=0; i < 64;i++)
+				if(active_game.getOccupiedBB(active_game.getActivePlayer()) & (1i64<<i))
+					cout << i << ":" << (active_game.isAttacked(active_game.getActivePlayer(), i)) << ". ";
+		}
 		else if(command == "skip") {
 			active_game.NullMove(); }
 		else if( command == "move") {

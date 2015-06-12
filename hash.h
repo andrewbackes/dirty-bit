@@ -4,18 +4,15 @@
 #include "move.h"
 #include "bitboards.h"
 
-//Hash Flags:
-const unsigned char HASH_EXACT = 2;
-const unsigned char HASH_ALPHA = 0;		//flag to indicate the value is at most this
-const unsigned char HASH_BETA = 1;		//flag to indicate the value is at least this
-const int HASH_UNKNOWN = 1073741823; // floor(INFINITY / 2)
+#include "parameters.h"
+
  
 struct HASH {
-	//27 bytes ... 32 with padding?
-	MOVE best_move;
-	unsigned char depth;
+	//24 bytes
 	bitboard key;
+	MOVE best_move;
 	int value; 
+	unsigned char depth;
 	unsigned char flags;
 } ;
 
@@ -26,7 +23,8 @@ public:
 	void RecordHash(bitboard key, unsigned char depth, int val, unsigned char hashflag, MOVE * hashed_move);
 	void RecordHash(bitboard key, unsigned char depth, int val, unsigned char hashflag);
 
-	MOVE getHashMove(bitboard key, int depth);
+	int getHashScore(bitboard key);
+	MOVE getHashMove(bitboard key);
 
 	long long getSize() {return size;}
 	long long getBytes() {return bytes; }
@@ -34,9 +32,19 @@ public:
 	void initialize(long long megabytes);
 	void reinitialize(long long megabytes);
 
+	/*
+	long long empty_saves =0;
+	long long non_empty_saves=0;
+	void printStats(){
+		std::cout << "Empty Saves:     \t" << empty_saves << std::endl;
+		std::cout << "Non-Empty Saves: \t" << non_empty_saves << std::endl;
+	}
+	*/
+
 	HASHTABLE() {};
 	HASHTABLE(long long megabytes) { initialize(megabytes); }
 	~HASHTABLE() {delete table;}
+
 
 private:
 	HASH * table;

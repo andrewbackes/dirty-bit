@@ -42,18 +42,32 @@ int HASHTABLE::SearchHash(bitboard key, unsigned char depth, int alpha, int beta
 	return HASH_UNKNOWN;
 }
 
-MOVE HASHTABLE::getHashMove(bitboard key, int depth) {
+int HASHTABLE::getHashScore(bitboard key) {
 	HASH * pEntry = &table[key % size];
 	if( pEntry->key == key) {
-		if(pEntry->depth >= depth) {
+		return pEntry->value;
+	}
+	return HASH_UNKNOWN;
+}
+
+MOVE HASHTABLE::getHashMove(bitboard key) {
+	HASH * pEntry = &table[key % size];
+	if( pEntry->key == key) {
+		//if(pEntry->depth >= depth) {
 			return pEntry->best_move;
-		}
+		//}
 	}
 	return NO_MOVE;
 }
+
 void HASHTABLE::RecordHash(bitboard key, unsigned char depth, int val, unsigned char hashflag, MOVE * hashed_move) {
-	//Simple always replace scheme.
 	//TODO:		-change to scheme to replace if same depth or deeper.
+	/*
+	if(hashed_move->from == 64)
+		empty_saves++;
+	else
+		non_empty_saves++;
+	*/
 	HASH * pEntry = &table[key % size];
 	if( hashflag >= pEntry->flags) {
 		pEntry->key = key;
@@ -72,5 +86,6 @@ void HASHTABLE::RecordHash(bitboard key, unsigned char depth, int val, unsigned 
 		pEntry->value = val;
 		pEntry->flags = hashflag;
 		pEntry->depth = depth;
+		pEntry->best_move.from = 64;
 	}
 }

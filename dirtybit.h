@@ -4,14 +4,17 @@
 //
 //
 
-
+#include "macros.h"
 #include "bitboards.h"
-#include "utilities.h"
 #include "move.h"
 #include "hash.h"
 #include "board.h"
 #include "movegen.h"
-#include "evaluate.h"
+#include "perft.h"
+#include "SEE.h"
+#include "nextmove.h"
 #include "search.h"
+#include "evaluate.h"
+#include "utilities.h"
 #include "uci.h"
 #include "book.h"

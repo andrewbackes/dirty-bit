@@ -16,12 +16,8 @@ void MOVE::print(bool verbose) {
 	}
 }
 
-void MOVE::setStaticValue(){
-	if( captured_piece != 0 ) {
-		static_value += nPieceValue[captured_piece];
-	}
-	//From the piece board values:
-	static_value += nSquareValue[color][active_piece_id][to] - nSquareValue[color][active_piece_id][from];
-	
+bool equal(MOVE a, MOVE b) {
+	if(a.from != b.from || a.to != b.to)
+		return false;
+	return true;
 }
-

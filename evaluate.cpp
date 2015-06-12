@@ -42,6 +42,40 @@ int evaluate(CHESSBOARD * b) {
 	return score;
 }
 
+void PawnEval(CHESSBOARD *b, short &score, short &opening_bonus, short &endgame_bonus) {
+	bool toMove = b->getActivePlayer();
+	//	TODO:	-doubled
+	//			-isolated (on open/closed files) 
+	//			-backward (open/closed)
+	//			-passed and candidate passed pawn
+
+
+	bitboard pieceDB = b->getPieceBB(toMove,nPawn);
+	while(pieceDB) {
+		int square = bitscan_msb(pieceDB);
+		//Square value:
+		score += nSquareValue[toMove][nPawn][square];
+		//Passed pawn bonus:
+		if(b->getPieceBB(!toMove,nPawn) & mask::passed_pawn[toMove][square])
+			score+=PASSED_PAWN_VALUE;
+		
+		//Turn off the bit:
+		pieceDB ^= (1i64 << square);
+	}
+	pieceDB = b->getPieceBB(!toMove,nPawn);
+	while(pieceDB) {
+		int square = bitscan_msb(pieceDB);
+		//Square value:
+		score -= nSquareValue[!toMove][nPawn][square];
+		//Passed pawn bonus:
+		if(b->getPieceBB(toMove,nPawn) & mask::passed_pawn[!toMove][square])
+			score-=PASSED_PAWN_VALUE;
+
+		//Turn off the bit:
+		pieceDB ^= (1i64 << square);
+	}
+
+}
 
 int relative_eval(CHESSBOARD * b, int alpha, int beta) {
 //Returns game evaluation with respect to the player to move.
@@ -52,7 +86,7 @@ int relative_eval(CHESSBOARD * b, int alpha, int beta) {
 	//			-King defense. 
 
 	bool toMove = b->getActivePlayer();
-	int score = 0;
+	short score = 0;
 
 //Material score:
 	score += b->getMaterialValue(toMove) - b->getMaterialValue(!toMove);
@@ -61,56 +95,43 @@ int relative_eval(CHESSBOARD * b, int alpha, int beta) {
 	//	return score;
 
 //Phase:
-	//short endgame_bonus = 0;
+	short endgame_bonus = 0;
 	short opening_bonus = 0;
-	//bool endgame = false;
-	//if((b->getMaterialValue(toMove) <= ENDGAME) && (b->getMaterialValue(!toMove) <= ENDGAME))
-	//	endgame = true;
+
 	
+	unsigned char square;
 	/*******************************************************************************
 		Pawns:
 	*******************************************************************************/
-	//	TODO:	- Add double/triple pawn penalty.
-	//			- Add bonus for passed pawn.
-	bitboard pieceDB = b->getPieceBB(toMove,nPawn);
-	while(pieceDB) {
-		int square = bitscan_msb(pieceDB);
-		score += nSquareValue[toMove][nPawn][square];
-		pieceDB ^= (1i64 << square);
-	}
-	pieceDB = b->getPieceBB(!toMove,nPawn);
-	while(pieceDB) {
-		int square = bitscan_msb(pieceDB);
-		score -= nSquareValue[!toMove][nPawn][square];
-		pieceDB ^= (1i64 << square);
-	}
+
+	PawnEval(b, score, opening_bonus, endgame_bonus);
 
 	/*******************************************************************************
 		Knights:
 	*******************************************************************************/
-	pieceDB = b->getPieceBB(toMove,nKnight);
+	bitboard pieceDB = b->getPieceBB(toMove,nKnight);
 	while(pieceDB) {
-		int square = bitscan_msb(pieceDB);
+		square = bitscan_msb(pieceDB);
 		score += nSquareValue[toMove][nKnight][square];
 /*		
 		//1 point for each controlled square:
 		score += bitcnt(mask::knight_moves[square] & ~b->getPieceBB(toMove,nKnight));
 */	
 		//Reduce value in late game:
-		//endgame_bonus-= 10;
+		endgame_bonus-= KNIGHT_LATE_PENALTY;
 		
 		pieceDB ^= (1i64 << square);
 	}
 	pieceDB = b->getPieceBB(!toMove,nKnight);
 	while(pieceDB) {
-		int square = bitscan_msb(pieceDB);
+		square = bitscan_msb(pieceDB);
 		score -= nSquareValue[!toMove][nKnight][square];
 /*		
 		//1 point for each controlled square:
 		score -= bitcnt(mask::knight_moves[square] & ~b->getPieceBB(!toMove,nKnight));
 */		
 		//Reduce value in late game:
-		//endgame_bonus+= 10;
+		endgame_bonus+= KNIGHT_LATE_PENALTY;
 		
 		pieceDB ^= (1i64 << square);
 	}
@@ -121,84 +142,29 @@ int relative_eval(CHESSBOARD * b, int alpha, int beta) {
 	//	TODO:	-Inclease value in late game
 	//			-Penalize "bad" bishops.
 	pieceDB = b->getPieceBB(toMove,nBishop);
-	//bool two_bishops = false;
+	bool two_bishops = false;
 	while(pieceDB) {
-		int square = bitscan_msb(pieceDB);
+		square = bitscan_msb(pieceDB);
 		score += nSquareValue[toMove][nBishop][square];
-/*		
-		//X-ray mobility bonus. stops at enemy piece or own pawn.
-		
-		//NW
-		bitboard mobility = mask::nw[square] & (b->getOccupiedBB(!toMove) | b->getPieceBB(toMove,nPawn));
-		short blocker = bitscan_lsb(mobility);
-		mobility ^= mask::nw[blocker];
-		mobility &= ~b->getPieceBB(toMove,nPawn);
-		score += bitcnt(mobility);
-		//NE
-		mobility = mask::ne[square] & (b->getOccupiedBB(!toMove) | b->getPieceBB(toMove,nPawn));
-		blocker = bitscan_lsb(mobility);
-		mobility ^= mask::ne[blocker];
-		mobility &= ~b->getPieceBB(toMove,nPawn);
-		score += bitcnt(mobility);
-		//SW
-		mobility = mask::sw[square] & (b->getOccupiedBB(!toMove) | b->getPieceBB(toMove,nPawn));
-		blocker = bitscan_msb(mobility);
-		mobility ^= mask::sw[blocker];
-		mobility &= ~b->getPieceBB(toMove,nPawn);
-		score += bitcnt(mobility);
-		//SE
-		mobility = mask::se[square] & (b->getOccupiedBB(!toMove) | b->getPieceBB(toMove,nPawn));
-		blocker = bitscan_msb(mobility);
-		mobility ^= mask::se[blocker];
-		mobility &= ~b->getPieceBB(toMove,nPawn);
-		score += bitcnt(mobility);
-*/		
+
 		//Endgame bonus for two bishops:
-		//if(two_bishops)
-		//	endgame_bonus += 75;
+		if(two_bishops)
+			endgame_bonus += BISHOP_PAIR_LATE_BONUS;
 		
 		pieceDB ^= (1i64 << square);
-		//two_bishops = true;
+		two_bishops = true;
 	}
-	//two_bishops = false;
+	two_bishops = false;
 	pieceDB = b->getPieceBB(!toMove,nBishop);
 	while(pieceDB) {
-		int square = bitscan_msb(pieceDB);
+		square = bitscan_msb(pieceDB);
 		score -= nSquareValue[!toMove][nBishop][square];
-/*
-		//X-ray mobility bonus. stops at enemy piece or own pawn.
-		
-		//NW
-		bitboard mobility = mask::nw[square] & (b->getOccupiedBB(toMove) | b->getPieceBB(!toMove,nPawn));
-		short blocker = bitscan_lsb(mobility);
-		mobility ^= mask::nw[blocker];
-		mobility &= ~b->getPieceBB(!toMove,nPawn);
-		score -= bitcnt(mobility);
-		//NE
-		mobility = mask::ne[square] & (b->getOccupiedBB(toMove) | b->getPieceBB(!toMove,nPawn));
-		blocker = bitscan_lsb(mobility);
-		mobility ^= mask::ne[blocker];
-		mobility &= ~b->getPieceBB(!toMove,nPawn);
-		score -= bitcnt(mobility);
-		//SW
-		mobility = mask::sw[square] & (b->getOccupiedBB(toMove) | b->getPieceBB(!toMove,nPawn));
-		blocker = bitscan_msb(mobility);
-		mobility ^= mask::sw[blocker];
-		mobility &= ~b->getPieceBB(!toMove,nPawn);
-		score -= bitcnt(mobility);
-		//SE
-		mobility = mask::se[square] & (b->getOccupiedBB(toMove) | b->getPieceBB(!toMove,nPawn));
-		blocker = bitscan_msb(mobility);
-		mobility ^= mask::se[blocker];
-		mobility &= ~b->getPieceBB(!toMove,nPawn);
-		score -= bitcnt(mobility);
-*/
 		//Endgame bonus for two bishops:
-		//if(two_bishops)
-		//	endgame_bonus -= 75;
+		if(two_bishops)
+			endgame_bonus -= BISHOP_PAIR_LATE_BONUS;
 		
 		pieceDB ^= (1i64 << square);
-		//two_bishops = true;
+		two_bishops = true;
 	}
 
 	/*******************************************************************************
@@ -207,74 +173,7 @@ int relative_eval(CHESSBOARD * b, int alpha, int beta) {
 	//	TODO:	-make an open file bonus that is a function of number of pawns.
 	//			-bonus for rooks not moving until a castle in early game.
 
-/*
-	pieceDB = b->getPieceBB(toMove,nRook);
-	while(pieceDB) {
-		short square = bitscan_lsb(pieceDB);
 
-		//X-ray mobility bonus, with double verticle bonus.
-
-		//North (2x bonus)
-		bitboard mobility = mask::north[square] & (b->getOccupiedBB(!toMove) | b->getPieceBB(toMove,nPawn));
-		short blocker = bitscan_lsb(mobility);
-		mobility ^= mask::north[blocker];
-		mobility &= ~b->getPieceBB(toMove,nPawn);
-		score += 2 * bitcnt(mobility);
-		//South (2x bonus)
-		mobility = mask::south[square] & (b->getOccupiedBB(!toMove) | b->getPieceBB(toMove,nPawn));
-		blocker = bitscan_msb(mobility);
-		mobility ^= mask::south[blocker];
-		mobility &= ~b->getPieceBB(toMove,nPawn);
-		score += 2 * bitcnt(mobility);
-		//East
-		mobility = mask::east[square] & (b->getOccupiedBB(!toMove) | b->getPieceBB(toMove,nPawn));
-		blocker = bitscan_lsb(mobility);
-		mobility ^= mask::east[blocker];
-		mobility &= ~b->getPieceBB(toMove,nPawn);
-		score += bitcnt(mobility);
-		//West
-		mobility = mask::west[square] & (b->getOccupiedBB(!toMove) | b->getPieceBB(toMove,nPawn));
-		blocker = bitscan_lsb(mobility);
-		mobility ^= mask::west[blocker];
-		mobility &= ~b->getPieceBB(toMove,nPawn);
-		score += bitcnt(mobility);
-
-		pieceDB ^= (1i64 << square);
-	}
-	pieceDB = b->getPieceBB(!toMove,nRook);
-	while(pieceDB) {
-		short square = bitscan_lsb(pieceDB);
-
-		//X-ray mobility bonus, with double verticle bonus.
-
-		//North (2x bonus)
-		bitboard mobility = mask::north[square] & (b->getOccupiedBB(toMove) | b->getPieceBB(!toMove,nPawn));
-		short blocker = bitscan_lsb(mobility);
-		mobility ^= mask::north[blocker];
-		mobility &= ~b->getPieceBB(!toMove,nPawn);
-		score -= 2 * bitcnt(mobility);
-		//South (2x bonus)
-		mobility = mask::south[square] & (b->getOccupiedBB(toMove) | b->getPieceBB(!toMove,nPawn));
-		blocker = bitscan_msb(mobility);
-		mobility ^= mask::south[blocker];
-		mobility &= ~b->getPieceBB(!toMove,nPawn);
-		score -= 2 * bitcnt(mobility);
-		//East
-		mobility = mask::east[square] & (b->getOccupiedBB(toMove) | b->getPieceBB(!toMove,nPawn));
-		blocker = bitscan_lsb(mobility);
-		mobility ^= mask::east[blocker];
-		mobility &= ~b->getPieceBB(!toMove,nPawn);
-		score -= bitcnt(mobility);
-		//West
-		mobility = mask::west[square] & (b->getOccupiedBB(toMove) | b->getPieceBB(!toMove,nPawn));
-		blocker = bitscan_lsb(mobility);
-		mobility ^= mask::west[blocker];
-		mobility &= ~b->getPieceBB(!toMove,nPawn);
-		score -= bitcnt(mobility);
-
-		pieceDB ^= (1i64 << square);
-	}
-*/
 
 	/*******************************************************************************
 		Queens:
@@ -286,47 +185,31 @@ int relative_eval(CHESSBOARD * b, int alpha, int beta) {
 	*******************************************************************************/
 	// TODO:	-protected by fortress in early game.
 	
-	pieceDB = b->getPieceBB(toMove,nKing);
-	unsigned char square = bitscan_msb(pieceDB);
-	score += nSquareValue[toMove][nKing][square];
-	//opening_bonus += nSquareValue[toMove][nKing][square];
-	//Possible endgame piece square tables:
-	//endgame_bonus += nEndgameKingValue[toMove][square];
+	square = bitscan_msb(b->getPieceBB(toMove,nKing));
+	opening_bonus += nSquareValue[toMove][nKing][square];
+	endgame_bonus += nEndgameKingValue[toMove][square];
 	
-	pieceDB = b->getPieceBB(!toMove,nKing);
-	square = bitscan_msb(pieceDB);
-	score -= nSquareValue[toMove][nKing][square];
-	//opening_bonus -= nSquareValue[!toMove][nKing][square];
-	//Possible endgame piece square tables:
-	//endgame_bonus -= nEndgameKingValue[!toMove][square];
+	square = bitscan_msb(b->getPieceBB(!toMove,nKing));
+	opening_bonus -= nSquareValue[!toMove][nKing][square];
+	endgame_bonus -= nEndgameKingValue[!toMove][square];
 
 
 	/*******************************************************************************
 		Tapered Eval:
 	*******************************************************************************/
-	// TODO: taper!
+	//13955 - 9900 = 4055
+	//Endgame is at 1300 points. 4055 - 1300 = 2755
+	// m-9900-1300. when m=0 it is endgame. when m=2755 it is opening
+	// opening(m) +ending(2775 - m)
 	
-	//if(endgame)
-	//	score+=endgame_bonus;
-	//else
-	//	score+=opening_bonus;
+	short phase_gauge = ((b->getMaterialValue(toMove) > b->getMaterialValue(!toMove)) ? b->getMaterialValue(toMove) : b->getMaterialValue(!toMove)) - 9900; //This will range from 0 to 4055
+	phase_gauge = (phase_gauge < 1300 ) ? 0 : phase_gauge - 1300; //This will range from 0 to 2755
 
-	/*
-	if(score != (b->getMaterialValue(toMove) + b->getPositionValue(toMove) - b->getMaterialValue(!toMove) - b->getPositionValue(!toMove)) ) {
-		cout << "eval scores dont match!\n";
-	}
-	*/
+	score+= ((opening_bonus*( ((100000*phase_gauge)/2775 )) + (endgame_bonus*((100000) - ((100000*phase_gauge)/2775)))))/100000;
+	
 
 	//Side to move Bonus:
-	//score -= 11;
-	/*
-	int difference = abs(score - previous_score);
-	if(difference < 100) {
-		if(difference > 0) {
-			score -= (difference/2 - 1);
-		}
-	}
-	*/
+	score -= SIDE_TO_MOVE_BONUS;
 	return score;
 }
 

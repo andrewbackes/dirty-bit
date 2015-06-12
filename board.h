@@ -18,6 +18,8 @@
 
 #include "bitboards.h"
 #include "move.h"
+
+#include "parameters.h"
 /*
 const short nPawn = 1;
 const short nKnight = 2;
@@ -34,21 +36,6 @@ const short KING_SIDE = 0;
 const short QUEEN_SIDE = 1;
 
 */
-
-#define nPawn 1
-#define nKnight 2
-#define nKing 3
-#define nBishop 5
-#define nRook 6
-#define nQueen 7
-
-#define WHITE 0
-#define BLACK 1
-#define BOTH 2
-
-#define KING_SIDE 0
-#define QUEEN_SIDE 1
-
 
 class GAMESTATE {
 public:
@@ -103,8 +90,8 @@ public:
 	bool		isInCheck();
 	bool		NewisInCheck(bool player);
 	bool		NewisInCheck();
-	bool		isAttacked(bool player, short square_index);
-	bool		isAttacked(short square_index);
+	bool		isAttacked(bool player, unsigned char square_index);
+	bool		isAttacked(unsigned char square_index);
 
 	bool		checkThreeFold();
 			
@@ -122,6 +109,12 @@ public:
 	void		qUnMakeMove(MOVE m);
 	void		NullMove();
 	void		unNullMove();
+
+	void		quickCapture(CAPTURER attacker);
+	void		quickCapture(MOVE attacker) {quickCapture(CAPTURER(attacker));}
+
+	void		quickUnCapture(CAPTURER attacker);
+	void		quickUnCapture(MOVE attacker) {quickUnCapture(CAPTURER(attacker));}
 
 	void		print();
 	void		print_mailbox() ;
@@ -143,5 +136,11 @@ private:
 	short		current_ply;
 	bool		active_player;
 };
+
+inline unsigned char getMostAdvanced(bool toMove, bitboard * pieceDB) {
+	return (toMove==WHITE)? bitscan_msb(*pieceDB) : bitscan_lsb(*pieceDB); }
+
+inline unsigned char getLeastAdvanced(bool toMove, bitboard * pieceDB) {
+	return (toMove==BLACK)? bitscan_msb(*pieceDB) : bitscan_lsb(*pieceDB); }
 
 #endif

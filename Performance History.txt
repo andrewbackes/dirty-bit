@@ -1,0 +1,204 @@
+
+Benchmark from root, depth 1-12:
+
+Insertion sort:
+	8.6s,	2.15m NPS
+
+captureGen then nonCaptureGen:
+	8.039s, 2.41m NPS
+
+Changed the order of move generation:
+	7.042s, 2.39m NPS
+
+Prior to incremental position scoring:
+	6.192s, 2.67m NPS
+
+score-=11 uci_test():
+	d13 11.3s, d12 10.5s, d12 8.874s, d28 14.354s
+
+score=-11 fail hard:
+	d13 11.4s, d12 10.6s, d13 8.5s, d27 10.5s
+
+old PSTs:
+	d13 17.6s, d12 9.6s, d13 9.8s, d29 12.2s
+
+With full PVS at all depths:
+	d13 8s, d14 12.4s, d28 15s
+
+With PVS and AB at depths 2 and below:
+	d13 7.96s, d14 12.4s, d15 12.4s, d29 10.19s
+
+
+Prior to using vector::reserve
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   13      8.066
+	Midgame 1               14      12.839
+	Midgame 2               15      12.551
+	King-Pawn               21      94.925 (console error here)
+
+After vector::reserve
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   13      7.339
+	Midgame 1               14      10.588
+	Midgame 2               15      11.027
+	King-Pawn               29      9.55
+
+After vector::reserve(255):
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   13      7.565
+	Midgame 1               14      11.033
+	Midgame 2               15      11.583
+	King-Pawn               29      9.824
+
+
+After vector::reserve(256)
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   13      7.419
+	Midgame 1               14      10.704
+	Midgame 2               15      11.2
+	King-Pawn               29      9.801
+
+After vector::reserve(128)
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   13      7.379
+	Midgame 1               14      10.719
+	Midgame 2               15      11.194
+	King-Pawn               29      9.755
+
+After vector::reserve(64)
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   13      7.425
+	Midgame 1               14      10.717
+	Midgame 2               15      11.215
+	King-Pawn               29      9.671
+
+
+
+After a bunch of changes, and No LMR:
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   13      12.24
+	Midgame 1               12      8.513
+	Midgame 2               13      7.982
+	King-Pawn               28      12.245
+
+
+First try at IID:
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   12      6.287
+	Midgame 1               12      7.299
+	Midgame 2               13      8.23
+	King-Pawn               28      11.826
+
+IID depth >= 3:
+Position               Depth    Time
+	-------------------------------------------------
+	Start                   12      6.038
+	Midgame 1               12      7.003
+	Midgame 2               13      8
+	King-Pawn               28      11.516
+
+Magics (Queen moves not generated seperately):
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   12      5.188
+	Midgame 1               12      7.89
+	Midgame 2               13      8.322
+	King-Pawn               27      7.298
+
+Magics (Queen seperate):
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   13      11.843
+	Midgame 1               12      8.419
+	Midgame 2               13      7.702
+	King-Pawn               29      9.256
+
+
+After some minor eval:
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   13      16.394
+	Midgame 1               12      9.526
+	Midgame 2               14      23.887
+	King-Pawn               30      10.841
+
+Killers disabled:
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   13      16.762
+	Midgame 1               12      10.102
+	Midgame 2               13      7.368
+	King-Pawn               30      9.352
+
+Killers enabled:
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   13      16.788
+	Midgame 1               12      9.886
+	Midgame 2               14      24.286
+	King-Pawn               30      10.931
+
+Check extensions:
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   12      11.798
+	Midgame 1               12      16.199
+	Midgame 2               12      9.48
+	King-Pawn               23      9.858
+
+Remove the the double in eval:
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   12      11.569
+	Midgame 1               12      15.864
+	Midgame 2               12      9.344
+	King-Pawn               23      9.833
+
+HASH class from 32bytes to 24bytes
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   12      11.273
+	Midgame 1               12      15.693
+	Midgame 2               12      9.087
+	King-Pawn               25      9.181
+
+Before SEE revamp:
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   12      11.218				2.22m NPS	17676420 nodes
+	Midgame 1               12      15.276				2.41m NPS	22941468 nodes
+	Midgame 2               12      9.352				2.72m NPS	14593641 nodes
+	King-Pawn               25      8.706				3.78m NPS	12531593 nodes
+
+After SEE revamp:
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   12      11.637				2.26m NPS	19311208 nodes
+	Midgame 1               12      18.693				2.48m NPS	28797498 nodes
+	Midgame 2               12      13.342				2.70m NPS	18314082 nodes
+	King-Pawn               25      8.518				3.83m NPS	12229957 nodes
+
+SEE3:
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   12      11.044
+	Midgame 1               12      14.775
+	Midgame 2               12      9.22
+	King-Pawn               25      8.634
+
+SEE on every capture:
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   12      11.014
+	Midgame 1               12      14.522
+	Midgame 2               12      9.135
+	King-Pawn               25      8.513
+

@@ -1,0 +1,3186 @@
+
+//------------------------------------------------------------------------------------------------------------
+//FROM HEADERS:
+//------------------------------------------------------------------------------------------------------------
+
+bool MoveCompare (MOVE i,MOVE j); //used in sorting.
+
+std::vector<MOVE> CaptureGen(CHESSBOARD *b);
+std::vector<MOVE> nonCaptureGen(CHESSBOARD *b);
+
+
+std::vector<MOVE> MoveGen(CHESSBOARD *b);
+
+void MoveSort(MOVELIST & move_list);
+void MoveSort(std::vector<MOVE> &move_list);
+void MoveSort(std::vector<MOVE> &move_list, MOVE &priority1);
+void MoveSort(std::vector<MOVE> &move_list, MOVE &priority1, MOVE &priority2);
+
+void OrderMoves(MOVE ** linked_list, short size);
+
+
+
+
+//------------------------------------------------------------------------------------------------------------
+
+
+
+
+bool MoveCompare (MOVE i,MOVE j) { 	
+	return (i.static_value>j.static_value); 
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+// SELECTION SORT:
+//////////////////////////////////////////////////////////////////////////
+int find_max(vector<MOVE>& search_vector, int start_index, int end_index) {
+	//returns the POSITION in the vector with the minimal value
+	int max_position = start_index;
+	for (int i = start_index+1; i <= end_index; i ++) {
+		if( search_vector.at(i).static_value > search_vector.at(max_position).static_value )
+			max_position = i;
+	}
+	return max_position;
+}
+void selection_sort(vector<MOVE>& sort_vector) {
+//Last test: depth 1-12, 8.5sec, 2.05m NPS, 10453755 nodes.
+
+	int vector_length = (int) sort_vector.size();
+	for (int i = 0; i < vector_length - 1; i++) {
+		int max_index = find_max(sort_vector, i, vector_length-1);
+		if (max_index != i)
+			swap(sort_vector.at(i), sort_vector.at(max_index));
+	}
+}
+
+
+void insertion_sort(vector<MOVE>& v) {
+	int j = 0;
+	MOVE value;
+	int v_length = (int) v.size();
+	for (int i=1; i < v_length; i++ ) {
+		value = v[i];
+		j= i -1;
+		while (j >=0 && v[j].static_value < value.static_value) {
+			v[j+1] = v[j];
+			j=j-1;
+		}
+		v[j+1] = value;
+	}
+}
+
+void MoveSort(vector<MOVE> & move_list) {
+	int j = 0;
+	MOVE value;
+	int v_length = (int) move_list.size();
+	for (int i=1; i < v_length; i++ ) {
+		value = move_list[i];
+		j= i -1;
+		while (j >=0 && move_list[j].static_value < value.static_value) {
+			move_list[j+1] = move_list[j];
+			j=j-1;
+		}
+		move_list[j+1] = value;
+	}
+}
+
+void MoveSort(vector<MOVE> & move_list, MOVE & priority1) {
+	int j = 0;
+	MOVE value;
+	int v_length = (int) move_list.size();
+	for (int i=1; i < v_length; i++ ) {
+		if(move_list[i] == priority1)
+			move_list[i].static_value += 1950;
+		value = move_list[i];
+		j= i -1;
+		while (j >=0 && move_list[j].static_value < value.static_value) {
+			move_list[j+1] = move_list[j];
+			j=j-1;
+		}
+		move_list[j+1] = value;
+	}
+}
+
+void MoveSort(vector<MOVE> & move_list, MOVE & priority1, MOVE & priority2) {
+	int j = 0;
+	MOVE value;
+	int v_length = (int) move_list.size();
+	for (int i=1; i < v_length; i++ ) {
+		if(move_list[i] == priority1)
+			move_list[i].static_value += 10000;
+		else if(move_list[i] == priority2)
+			move_list[i].static_value += 9000;
+	
+		value = move_list[i];
+		j= i -1;
+		while (j >=0 && move_list[j].static_value < value.static_value) {
+			move_list[j+1] = move_list[j];
+			j=j-1;
+		}
+		move_list[j+1] = value;
+	}
+}
+
+
+/**************************************************************************************************************************************************
+// OLD vector based movegen stuff:
+/**************************************************************************************************************************************************
+
+
+void CaptureGenBACKUP(CHESSBOARD *b, QMOVELIST * capture_list) {
+/*************************************************************************
+Generates captures and promotions. In order:
+	-Knights
+	-Bishops
+	-Rook
+	-Queen
+	-King
+	-Pawn
+
+*************************************************************************/
+
+	//vector<MOVE> capture_list;
+	//capture_list.reserve(MOVE_LIST_SIZE);
+	bool toMove = b->getActivePlayer();
+	bool opponent = !toMove;
+
+	
+/*	-------------------------------------
+	KNIGHT CAPTURES:
+	------------------------------------- */
+
+	bitboard pieceDB = b->getPieceBB(toMove,nKnight);
+	 while(pieceDB) {
+		 unsigned char from = getMostAdvanced(toMove, &pieceDB);
+		 bitboard attackMoveDB = mask::knight_moves[from] & b->getOccupiedBB(opponent);
+		 while(attackMoveDB) {
+			 unsigned char target = bitscan_msb(attackMoveDB);
+			 capture_list->addCapture(MOVE(from,target,toMove, nKnight, b->getBoard(target)));
+			 attackMoveDB ^= (1i64 << target);
+		 }
+		 pieceDB ^= (1i64 << from); //remove bit from DB
+	 }
+
+/*	-------------------------------------
+	BISHOP/QUEEN CAPTURES:
+	------------------------------------- */
+
+	pieceDB = b->getPieceBB(toMove, nBishop);
+	while(pieceDB) {
+		unsigned char from = getMostAdvanced(toMove, &pieceDB);
+		//NW:
+		unsigned char attackedSquare = bitscan_lsb(mask::nw[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->addCapture(MOVE(from,attackedSquare,toMove,nBishop, b->getBoard(attackedSquare)));
+
+		//NE:
+		attackedSquare = bitscan_lsb(mask::ne[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->addCapture(MOVE(from,attackedSquare,toMove,nBishop, b->getBoard(attackedSquare)));
+
+		//SE:
+		attackedSquare = bitscan_msb(mask::se[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->addCapture(MOVE(from,attackedSquare,toMove,nBishop, b->getBoard(attackedSquare)));
+
+		//SW:
+		attackedSquare = bitscan_msb( mask::sw[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->addCapture(MOVE(from,attackedSquare,toMove,nBishop, b->getBoard(attackedSquare)));
+		
+		pieceDB ^= (1i64 << from); //remove bit from DB
+	}
+		
+/*	-------------------------------------
+	ROOK CAPTURES:
+	------------------------------------- */
+
+	pieceDB = b->getPieceBB(toMove, nRook);
+	while(pieceDB) {
+		unsigned char from = getMostAdvanced(toMove, &pieceDB);
+		//North:
+		unsigned char attackedSquare = bitscan_lsb(mask::north[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->addCapture(MOVE(from,attackedSquare,toMove,nRook,b->getBoard(attackedSquare)));
+
+		//East:
+		attackedSquare = bitscan_msb(mask::east[from] & b->getOccupiedBB(BOTH));
+		if(mask::square[attackedSquare] & b->getOccupiedBB(opponent) )
+			capture_list->addCapture(MOVE(from,attackedSquare,toMove,nRook,b->getBoard(attackedSquare)));
+
+		//South:
+		attackedSquare = bitscan_msb(mask::south[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->addCapture(MOVE(from,attackedSquare,toMove,nRook,b->getBoard(attackedSquare)));
+
+		//West:
+		attackedSquare = bitscan_lsb(mask::west[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->addCapture(MOVE(from,attackedSquare,toMove,nRook,b->getBoard(attackedSquare)));
+ 
+		pieceDB ^= (1i64 << from); //remove bit from DB
+	}
+
+/*	-------------------------------------
+	QUEEN CAPTURES:
+	------------------------------------- */
+
+	pieceDB = b->getPieceBB(toMove, nQueen);
+	while(pieceDB) {
+		unsigned char from = getMostAdvanced(toMove, &pieceDB);
+		//NW:
+		unsigned char attackedSquare = bitscan_lsb( mask::nw[from] & b->getOccupiedBB(BOTH) );
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->addCapture(MOVE(from,attackedSquare,toMove,nQueen, b->getBoard(attackedSquare)));
+
+		//NE:
+		attackedSquare = bitscan_lsb( mask::ne[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->addCapture(MOVE(from,attackedSquare,toMove,nQueen, b->getBoard(attackedSquare)));
+
+		//SE:
+		attackedSquare = bitscan_msb(mask::se[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->addCapture(MOVE(from,attackedSquare,toMove,nQueen, b->getBoard(attackedSquare)));
+
+		//SW:
+		attackedSquare = bitscan_msb(mask::sw[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->addCapture(MOVE(from,attackedSquare,toMove,nQueen, b->getBoard(attackedSquare)));
+		
+		//North:
+		attackedSquare = bitscan_lsb(mask::north[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->addCapture(MOVE(from,attackedSquare,toMove,nQueen,b->getBoard(attackedSquare)));
+
+		//East:
+		attackedSquare = bitscan_msb(mask::east[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->addCapture(MOVE(from,attackedSquare,toMove,nQueen,b->getBoard(attackedSquare)));
+
+		//South:
+		attackedSquare = bitscan_msb( mask::south[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->addCapture(MOVE(from,attackedSquare,toMove,nQueen,b->getBoard(attackedSquare)));
+
+		//West:
+		attackedSquare = bitscan_lsb(mask::west[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->addCapture(MOVE(from,attackedSquare,toMove,nQueen,b->getBoard(attackedSquare)));
+
+		pieceDB ^= (1i64 << from); //remove bit from DB
+	}
+
+/*	-------------------------------------
+	KING CAPTURES:
+	------------------------------------- */
+
+	unsigned char from = bitscan_msb(b->getPieceBB(toMove,nKing));
+	bitboard validMoveDB = mask::king_moves[from] & b->getOccupiedBB(opponent);
+	while(validMoveDB) {
+		unsigned char target = bitscan_msb(validMoveDB);
+		capture_list->addCapture(MOVE(from ,target, toMove, nKing, b->getBoard(target)));
+		validMoveDB ^= (1i64 << target);
+	}
+	 
+/*	-------------------------------------
+	PAWN CAPTURES:
+	------------------------------------- */
+
+	//Pawn kills:
+	pieceDB = b->getPieceBB(toMove,nPawn) & ~mask::pawns_spawn[!toMove];
+	while(pieceDB) {
+		//quit after exhausting all of the bits in the current database.
+		unsigned char from = getMostAdvanced(toMove, &pieceDB);
+		//Check for normal attacks:
+		bitboard kill_list = mask::pawn_captures[toMove][from] & b->getOccupiedBB(opponent);
+		while(kill_list) {
+			int index = bitscan_msb(kill_list);
+			capture_list->addCapture(MOVE(from,index,toMove, nPawn,b->getBoard(index)) );
+			kill_list ^= (1i64 << index);
+		}
+		//En passant kills:
+		kill_list = mask::pawn_captures[toMove][from] & mask::square[b->getEnPassantIndex()];
+		if(kill_list) {
+			int index = bitscan_msb(kill_list);
+			capture_list->addCapture(MOVE(from,index,toMove, nPawn,0,0,nPieceValue[nPawn]));
+		}
+
+		pieceDB ^= (1i64 << from); //remove bit from DB
+	}
+
+	//Pawn Promotions To Queen or Capture Promotions:
+	pieceDB = (b->getPieceBB(toMove,nPawn) & mask::pawns_spawn[!toMove]);
+	while(pieceDB) {
+		unsigned char from = getMostAdvanced(toMove, &pieceDB);
+		bitboard promote_kills	=	(mask::pawn_captures[toMove][from] &  b->getOccupiedBB(!toMove) );
+		bitboard promote		=	(mask::pawn_advances[toMove][from] & ~b->getOccupiedBB(BOTH)    );
+		
+		//Promotion via attacks for all possibilities:
+		while(promote_kills) {
+			unsigned char to = bitscan_msb(promote_kills);
+			capture_list->addCapture( MOVE(from,to,toMove,nPawn,b->getBoard(to), nQueen, Q_PROMOTE_CAPTURE) );
+			capture_list->addCapture( MOVE(from,to,toMove,nPawn,b->getBoard(to), nKnight, N_PROMOTE_CAPTURE) );
+			capture_list->addCapture( MOVE(from,to,toMove,nPawn,b->getBoard(to), nBishop, B_PROMOTE_CAPTURE) );
+			capture_list->addCapture( MOVE(from,to,toMove,nPawn,b->getBoard(to), nRook, R_PROMOTE_CAPTURE) );
+			promote_kills ^= (1i64 << to);
+		}
+		pieceDB ^= (1i64 << from); //remove bit from DB
+		
+		//Promotion via advancement to Queen only:
+		if(promote) {
+			unsigned char to = bitscan_msb(promote);
+			capture_list->addCapture( MOVE(from,to,toMove,nPawn,0, nQueen, Q_PROMOTE) );
+		}
+	}
+
+
+/*	------------------------------------- */
+
+	//return capture_list;
+}
+
+vector<MOVE> MoveGen(CHESSBOARD *b) {
+	vector<MOVE> move_list;
+	
+	bool toMove = b->getActivePlayer();
+
+/*	-------------------------------------
+	PAWN MOVES:
+	------------------------------------- */
+	
+	bitboard pieceDB = b->getPieceBB(toMove,nPawn);
+
+	while(pieceDB) {
+		//quit after exhausting all of the bits in the current database.
+		int from = bitscan_msb(pieceDB);
+		
+		//Single Advance:
+		bitboard advance = mask::pawn_advances[toMove][from] & ~b->getOccupiedBB(BOTH) ;
+		if(advance) {
+			int to = bitscan_lsb(advance);
+			move_list.push_back(MOVE(from,to,toMove, nPawn));
+			
+			//Double Advance:
+			advance = mask::pawn_double_advances[toMove][from] & ~b->getOccupiedBB(BOTH);
+			if(advance) {
+				to = bitscan_lsb(advance);
+				move_list.push_back(MOVE(from,to,toMove, nPawn));
+			}
+		}
+		
+		//Pawn attacks:
+		bitboard kill_list = mask::pawn_captures[toMove][from] & ( b->getOccupiedBB(!toMove) ); // | mask::square[b->getEnPassantIndex()]) ;					
+		while(kill_list) {
+			int index = bitscan_lsb(kill_list);
+			move_list.push_back(MOVE(from,index,toMove, nPawn, b->getBoard(index)) );
+			kill_list ^= (1i64 << index);
+		}
+
+		pieceDB ^= (1i64 << from); //remove bit from DB
+	}
+	
+	
+	//Pawn Promotions:
+	pieceDB = (b->getPieceBB(toMove,nPawn) & mask::pawns_spawn[!toMove]);
+	while(pieceDB) {
+		int from = bitscan_lsb(pieceDB);
+		bitboard promote =	(  mask::pawn_advances[toMove][from] & ~b->getOccupiedBB(BOTH) )	//check that no piece blocks an advance.
+							| (mask::pawn_captures[toMove][from] & b->getOccupiedBB(!toMove) ); //check for possible kills.
+		while(promote) {
+			int to = bitscan_lsb(promote);
+			//Promote to both Queen and Knight:
+			move_list.push_back( MOVE(from,to,toMove,nPawn,b->getBoard(to), nQueen) );
+			move_list.push_back( MOVE(from,to,toMove,nPawn,b->getBoard(to), nKnight) );
+			promote ^= (1i64 << to);
+		}
+		pieceDB ^= (1i64 << from); //remove bit from DB
+	}
+
+/*	-------------------------------------
+	KNIGHT MOVES:
+	------------------------------------- */
+	
+	pieceDB = b->getPieceBB(toMove,nKnight);
+	 while(pieceDB) {
+		 int from = bitscan_lsb(pieceDB);
+		 bitboard validMoveDB = mask::knight_moves[from] & ~b->getOccupiedBB(toMove);
+		 while(validMoveDB) {
+			 int target = bitscan_lsb(validMoveDB);
+			 move_list.push_back(MOVE(from,target,toMove, nKnight, b->getBoard(target))); //add something for captures here!
+			 validMoveDB ^= (1i64 << target);
+		 }
+		 pieceDB ^= (1i64 << from); //remove bit from DB
+	 }
+	 
+/*	-------------------------------------
+	BISHOP MOVES:
+	------------------------------------- */
+
+	pieceDB = b->getPieceBB(toMove, nBishop);
+	while(pieceDB) {
+		int from = bitscan_lsb(pieceDB);
+		//NW:
+		bitboard nwMoves = mask::nw[from];
+		int blockedSquare = bitscan_lsb(nwMoves & b->getOccupiedBB(BOTH));
+		nwMoves ^= mask::nw[blockedSquare];
+		nwMoves &= ~b->getOccupiedBB(toMove);
+		while(nwMoves) {
+			int target = bitscan_lsb(nwMoves);
+			move_list.push_back(MOVE(from,target,toMove,nBishop, b->getBoard(target)));
+			nwMoves^=(1i64 << target);
+		}
+		//NE:
+		bitboard neMoves = mask::ne[from];
+		blockedSquare = bitscan_lsb(neMoves & b->getOccupiedBB(BOTH));
+		neMoves ^= mask::ne[blockedSquare];
+		neMoves &= ~b->getOccupiedBB(toMove);
+		while(neMoves) {
+			int target = bitscan_lsb(neMoves);
+			move_list.push_back(MOVE(from,target,toMove,nBishop,b->getBoard(target)));
+			neMoves^=(1i64 << target);
+		}
+		//SE:
+		bitboard seMoves = mask::se[from];
+		blockedSquare = bitscan_msb(seMoves & b->getOccupiedBB(BOTH));
+		seMoves ^= mask::se[blockedSquare];
+		seMoves &= ~b->getOccupiedBB(toMove);
+		while(seMoves) {
+			int target = bitscan_lsb(seMoves);
+			move_list.push_back(MOVE(from,target,toMove,nBishop,b->getBoard(target)));
+			seMoves^=(1i64 << target);
+		}
+		//SW:
+		bitboard swMoves = mask::sw[from];
+		blockedSquare = bitscan_msb(swMoves & b->getOccupiedBB(BOTH));
+		swMoves ^= mask::sw[blockedSquare];
+		swMoves &= ~b->getOccupiedBB(toMove);
+		while(swMoves) {
+			int target = bitscan_lsb(swMoves);
+			move_list.push_back(MOVE(from,target,toMove,nBishop,b->getBoard(target)));
+			swMoves^=(1i64 << target);
+		} 
+		pieceDB ^= (1i64 << from); //remove bit from DB
+	}
+
+/*	-------------------------------------
+	ROOK MOVES:
+	------------------------------------- */
+
+	pieceDB = b->getPieceBB(toMove, nRook);
+	while(pieceDB) {
+		int from = bitscan_lsb(pieceDB);
+		//North:
+		bitboard northMoves = mask::north[from];
+		int blockedSquare = bitscan_lsb(northMoves & b->getOccupiedBB(BOTH));
+		northMoves ^= mask::north[blockedSquare];
+		northMoves &= ~b->getOccupiedBB(toMove);
+		while(northMoves) {
+			int target = bitscan_lsb(northMoves);
+			move_list.push_back(MOVE(from,target,toMove,nRook,b->getBoard(target)));
+			northMoves^=(1i64 << target);
+		}
+		//East:
+		bitboard eastMoves = mask::east[from];
+		blockedSquare = bitscan_msb(eastMoves & b->getOccupiedBB(BOTH));
+		eastMoves ^= mask::east[blockedSquare];
+		eastMoves &= ~b->getOccupiedBB(toMove);
+		while(eastMoves) {
+			int target = bitscan_lsb(eastMoves);
+			move_list.push_back(MOVE(from,target,toMove,nRook,b->getBoard(target)));
+			eastMoves^=(1i64 << target);
+		}
+		//South:
+		bitboard southMoves = mask::south[from];
+		blockedSquare = bitscan_msb(southMoves & b->getOccupiedBB(BOTH));
+		southMoves ^= mask::south[blockedSquare];
+		southMoves &= ~b->getOccupiedBB(toMove);
+		while(southMoves) {
+			int target = bitscan_lsb(southMoves);
+			move_list.push_back(MOVE(from,target,toMove,nRook,b->getBoard(target)));
+			southMoves^=(1i64 << target);
+		}
+		//West:
+		bitboard westMoves = mask::west[from];
+		blockedSquare = bitscan_lsb(westMoves & b->getOccupiedBB(BOTH));
+		westMoves ^= mask::west[blockedSquare];
+		westMoves &= ~b->getOccupiedBB(toMove);
+		while(westMoves) {
+			int target = bitscan_lsb(westMoves);
+			move_list.push_back(MOVE(from,target,toMove,nRook,b->getBoard(target)));
+			westMoves^=(1i64 << target);
+		} 
+		pieceDB ^= (1i64 << from); //remove bit from DB
+	}
+
+/*	-------------------------------------
+	QUEEN MOVES:
+	------------------------------------- */
+	
+	pieceDB = b->getPieceBB(toMove, nQueen);
+	while(pieceDB) {
+		int from = bitscan_lsb(pieceDB);
+		//North:
+		bitboard northMoves = mask::north[from];
+		int blockedSquare = bitscan_lsb(northMoves & b->getOccupiedBB(BOTH));
+		northMoves ^= mask::north[blockedSquare];
+		northMoves &= ~b->getOccupiedBB(toMove);
+		while(northMoves) {
+			int target = bitscan_lsb(northMoves);
+			move_list.push_back(MOVE(from,target,toMove,nQueen, b->getBoard(target)));
+			northMoves^=(1i64 << target);
+		}
+		//East:
+		bitboard eastMoves = mask::east[from];
+		blockedSquare = bitscan_msb(eastMoves & b->getOccupiedBB(BOTH));
+		eastMoves ^= mask::east[blockedSquare];
+		eastMoves &= ~b->getOccupiedBB(toMove);
+		while(eastMoves) {
+			int target = bitscan_lsb(eastMoves);
+			move_list.push_back(MOVE(from,target,toMove,nQueen, b->getBoard(target)));
+			eastMoves^=(1i64 << target);
+		}
+		//South:
+		bitboard southMoves = mask::south[from];
+		blockedSquare = bitscan_msb(southMoves & b->getOccupiedBB(BOTH));
+		southMoves ^= mask::south[blockedSquare];
+		southMoves &= ~b->getOccupiedBB(toMove);
+		while(southMoves) {
+			int target = bitscan_lsb(southMoves);
+			move_list.push_back(MOVE(from,target,toMove,nQueen, b->getBoard(target)));
+			southMoves^=(1i64 << target);
+		}
+		//West:
+		bitboard westMoves = mask::west[from];
+		blockedSquare = bitscan_lsb(westMoves & b->getOccupiedBB(BOTH));
+		westMoves ^= mask::west[blockedSquare];
+		westMoves &= ~b->getOccupiedBB(toMove);
+		while(westMoves) {
+			int target = bitscan_lsb(westMoves);
+			move_list.push_back(MOVE(from,target,toMove,nQueen, b->getBoard(target)));
+			westMoves^=(1i64 << target);
+		} 
+		//NW:
+		bitboard nwMoves = mask::nw[from];
+		blockedSquare = bitscan_lsb(nwMoves & b->getOccupiedBB(BOTH));
+		nwMoves ^= mask::nw[blockedSquare];
+		nwMoves &= ~b->getOccupiedBB(toMove);
+		while(nwMoves) {
+			int target = bitscan_lsb(nwMoves);
+			move_list.push_back(MOVE(from,target,toMove,nQueen, b->getBoard(target)));
+			nwMoves^=(1i64 << target);
+		}
+		//NE:
+		bitboard neMoves = mask::ne[from];
+		blockedSquare = bitscan_lsb(neMoves & b->getOccupiedBB(BOTH));
+		neMoves ^= mask::ne[blockedSquare];
+		neMoves &= ~b->getOccupiedBB(toMove);
+		while(neMoves) {
+			int target = bitscan_lsb(neMoves);
+			move_list.push_back(MOVE(from,target,toMove,nQueen, b->getBoard(target)));
+			neMoves^=(1i64 << target);
+		}
+		//SE:
+		bitboard seMoves = mask::se[from];
+		blockedSquare = bitscan_msb(seMoves & b->getOccupiedBB(BOTH));
+		seMoves ^= mask::se[blockedSquare];
+		seMoves &= ~b->getOccupiedBB(toMove);
+		while(seMoves) {
+			int target = bitscan_lsb(seMoves);
+			move_list.push_back(MOVE(from,target,toMove,nQueen, b->getBoard(target)));
+			seMoves^=(1i64 << target);
+		}
+	
+		//SW:
+		bitboard swMoves = mask::sw[from];
+		blockedSquare = bitscan_msb(swMoves & b->getOccupiedBB(BOTH));
+		swMoves ^= mask::sw[blockedSquare];
+		swMoves &= ~b->getOccupiedBB(toMove);
+		while(swMoves) {
+			int target = bitscan_lsb(swMoves);
+			move_list.push_back(MOVE(from,target,toMove,nQueen, b->getBoard(target)));
+			swMoves^=(1i64 << target);
+		}
+		pieceDB ^= (1i64 << from); //remove bit from DB
+	}
+	
+/*	-------------------------------------
+	KING MOVES:
+	------------------------------------- */
+
+	pieceDB = b->getPieceBB(toMove,nKing);
+	int from = bitscan_lsb(pieceDB);
+	bitboard validMoveDB = mask::king_moves[from] & ~b->getOccupiedBB(toMove);
+	while(validMoveDB) {
+		int target = bitscan_lsb(validMoveDB);
+		move_list.push_back(MOVE(from,target,toMove,nKing, b->getBoard(target)));
+		validMoveDB ^= (1i64 << target);
+	}
+	  
+	if(b->getCastlingRights(toMove, QUEEN_SIDE) == true ) {
+		if(((b->getOccupiedBB(BOTH) & mask::qCastle_path[toMove]) == 0) 
+			&& (mask::qRook_spawn[toMove] & b->getPieceBB(toMove,nRook)) 
+			&& (mask::king_spawn[toMove] & b->getPieceBB(toMove,nKing))	
+		) {
+					
+			if( !b->isInCheck() 
+				&& !b->isAttacked(bitscan_lsb(mask::queen_spawn[toMove]))   
+			) {
+
+				int from = bitscan_lsb(mask::king_spawn[toMove]);
+				int target = bitscan_lsb(mask::qCastle[toMove]);
+				move_list.push_back(MOVE(from,target,toMove,nKing, b->getBoard(target)));
+			}
+		}
+	}
+	if(b->getCastlingRights(toMove, KING_SIDE) == true ) {
+		if(((b->getOccupiedBB(BOTH) & mask::kCastle_path[toMove])==0) 
+			&& (mask::kRook_spawn[toMove] & b->getPieceBB(toMove,nRook)) 
+			&& (mask::king_spawn[toMove] & b->getPieceBB(toMove,nKing))	
+		) {
+				
+			if( !b->isInCheck()
+				&& !b->isAttacked(bitscan_lsb(mask::kBishop_spawn[toMove]))  
+			) {
+				int from = bitscan_lsb(mask::king_spawn[toMove]);
+				int target = bitscan_lsb(mask::kCastle[toMove]);
+				move_list.push_back(MOVE(from,target,toMove,nKing,b->getBoard(target)));
+			}
+		}
+	}
+
+/*	------------------------------------- */
+	 
+	 return move_list;
+
+}
+
+vector<MOVE> nonCaptureGen(CHESSBOARD *b) {
+/*************************************************************************
+Todo: generate the furthest advanced piece's move first.
+
+In order:
+	-Castles
+	-Knights
+	-Bishops
+	-Rook
+	-Queen
+	-King
+	-Pawn
+
+*************************************************************************/	
+	
+	vector<MOVE> move_list;
+	bool toMove = b->getActivePlayer();
+	bitboard pieceDB;
+
+/*	-------------------------------------
+	Castles:
+	------------------------------------- */
+ 
+	if(b->getCastlingRights(toMove, QUEEN_SIDE) == true ) {
+		if(((b->getOccupiedBB(BOTH) & mask::qCastle_path[toMove]) == 0) 
+			&& (mask::qRook_spawn[toMove] & b->getPieceBB(toMove,nRook)) 
+			&& (mask::king_spawn[toMove] & b->getPieceBB(toMove,nKing))	
+		) {
+					
+			if( !b->isInCheck() 
+				&& !b->isAttacked(bitscan_msb(mask::queen_spawn[toMove]))   
+			) {
+				unsigned char from = bitscan_msb(mask::king_spawn[toMove]);
+				unsigned char target = bitscan_msb(mask::qCastle[toMove]);
+				move_list.push_back(MOVE(from,target,toMove,nKing, b->getBoard(target)));
+			}
+		}
+	}
+	if(b->getCastlingRights(toMove, KING_SIDE) == true ) {
+		if(((b->getOccupiedBB(BOTH) & mask::kCastle_path[toMove])==0) 
+			&& (mask::kRook_spawn[toMove] & b->getPieceBB(toMove,nRook)) 
+			&& (mask::king_spawn[toMove] & b->getPieceBB(toMove,nKing))	
+		) {	
+			if( !b->isInCheck()
+				&& !b->isAttacked(bitscan_msb(mask::kBishop_spawn[toMove]))  
+			) {
+				unsigned char from = bitscan_msb(mask::king_spawn[toMove]);
+				unsigned char target = bitscan_msb(mask::kCastle[toMove]);
+				move_list.push_back(MOVE(from,target,toMove,nKing,b->getBoard(target)));
+			}
+		}
+	}
+
+/*	-------------------------------------
+	KNIGHT MOVES:
+	------------------------------------- */
+	
+	pieceDB = b->getPieceBB(toMove,nKnight);
+	 while(pieceDB) {
+		 unsigned char from = getMostAdvanced(toMove, &pieceDB);
+		 bitboard validMoveDB = mask::knight_moves[from] & ~b->getOccupiedBB(BOTH);
+		 while(validMoveDB) {
+			 unsigned char target = bitscan_msb(validMoveDB);
+			 move_list.push_back(MOVE(from,target,toMove, nKnight, 0));
+			 validMoveDB ^= (1i64 << target);
+		 }
+		 pieceDB ^= (1i64 << from); //remove bit from DB
+	 }
+	 
+/*	-------------------------------------
+	BISHOP MOVES:
+	------------------------------------- */
+
+	pieceDB = b->getPieceBB(toMove, nBishop);
+	while(pieceDB) {
+		unsigned char from = getMostAdvanced(toMove, &pieceDB);
+		//NW:
+		bitboard nwMoves = mask::nw[from];
+		unsigned char blockedSquare = bitscan_lsb(nwMoves & b->getOccupiedBB(BOTH));
+		nwMoves ^= mask::nw[blockedSquare];
+		nwMoves &= ~b->getOccupiedBB(BOTH);
+		while(nwMoves) {
+			unsigned char target = bitscan_msb(nwMoves);
+			move_list.push_back(MOVE(from,target,toMove,nBishop, 0));
+			nwMoves^=(1i64 << target);
+		}
+		//NE:
+		bitboard neMoves = mask::ne[from];
+		blockedSquare = bitscan_lsb(neMoves & b->getOccupiedBB(BOTH));
+		neMoves ^= mask::ne[blockedSquare];
+		neMoves &= ~b->getOccupiedBB(BOTH);
+		while(neMoves) {
+			unsigned char target = bitscan_msb(neMoves);
+			move_list.push_back(MOVE(from,target,toMove,nBishop,0));
+			neMoves^=(1i64 << target);
+		}
+		//SE:
+		bitboard seMoves = mask::se[from];
+		blockedSquare = bitscan_msb(seMoves & b->getOccupiedBB(BOTH));
+		seMoves ^= mask::se[blockedSquare];
+		seMoves &= ~b->getOccupiedBB(BOTH);
+		while(seMoves) {
+			unsigned char target = bitscan_msb(seMoves);
+			move_list.push_back(MOVE(from,target,toMove,nBishop,0));
+			seMoves^=(1i64 << target);
+		}
+		//SW:
+		bitboard swMoves = mask::sw[from];
+		blockedSquare = bitscan_msb(swMoves & b->getOccupiedBB(BOTH));
+		swMoves ^= mask::sw[blockedSquare];
+		swMoves &= ~b->getOccupiedBB(BOTH);
+		while(swMoves) {
+			unsigned char target = bitscan_msb(swMoves);
+			move_list.push_back(MOVE(from,target,toMove,nBishop,0));
+			swMoves^=(1i64 << target);
+		} 
+		pieceDB ^= (1i64 << from); //remove bit from DB
+	}
+
+/*	-------------------------------------
+	ROOK MOVES:
+	------------------------------------- */
+
+	pieceDB = b->getPieceBB(toMove, nRook);
+	while(pieceDB) {
+		unsigned char from = getMostAdvanced(toMove, &pieceDB);
+		//North:
+		bitboard northMoves = mask::north[from];
+		unsigned char blockedSquare = bitscan_lsb(northMoves & b->getOccupiedBB(BOTH));
+		northMoves ^= mask::north[blockedSquare];
+		northMoves &= ~b->getOccupiedBB(BOTH);
+		while(northMoves) {
+			unsigned char target = bitscan_msb(northMoves);
+			move_list.push_back(MOVE(from,target,toMove,nRook,0));
+			northMoves^=(1i64 << target);
+		}
+		//East:
+		bitboard eastMoves = mask::east[from];
+		blockedSquare = bitscan_msb(eastMoves & b->getOccupiedBB(BOTH));
+		eastMoves ^= mask::east[blockedSquare];
+		eastMoves &= ~b->getOccupiedBB(BOTH);
+		while(eastMoves) {
+			unsigned char target = bitscan_msb(eastMoves);
+			move_list.push_back(MOVE(from,target,toMove,nRook,0));
+			eastMoves^=(1i64 << target);
+		}
+		//South:
+		bitboard southMoves = mask::south[from];
+		blockedSquare = bitscan_msb(southMoves & b->getOccupiedBB(BOTH));
+		southMoves ^= mask::south[blockedSquare];
+		southMoves &= ~b->getOccupiedBB(BOTH);
+		while(southMoves) {
+			unsigned char target = bitscan_msb(southMoves);
+			move_list.push_back(MOVE(from,target,toMove,nRook,0));
+			southMoves^=(1i64 << target);
+		}
+		//West:
+		bitboard westMoves = mask::west[from];
+		blockedSquare = bitscan_lsb(westMoves & b->getOccupiedBB(BOTH));
+		westMoves ^= mask::west[blockedSquare];
+		westMoves &= ~b->getOccupiedBB(BOTH);
+		while(westMoves) {
+			unsigned char target = bitscan_msb(westMoves);
+			move_list.push_back(MOVE(from,target,toMove,nRook,0));
+			westMoves^=(1i64 << target);
+		} 
+		pieceDB ^= (1i64 << from); //remove bit from DB
+	}
+
+/*	-------------------------------------
+	QUEEN MOVES:
+	------------------------------------- */
+	
+	pieceDB = b->getPieceBB(toMove, nQueen);
+	while(pieceDB) {
+		int from = getMostAdvanced(toMove, &pieceDB);
+		//North:
+		bitboard northMoves = mask::north[from];
+		unsigned char blockedSquare = bitscan_lsb(northMoves & b->getOccupiedBB(BOTH));
+		northMoves ^= mask::north[blockedSquare];
+		northMoves &= ~b->getOccupiedBB(BOTH);
+		while(northMoves) {
+			unsigned char target = bitscan_msb(northMoves);
+			move_list.push_back(MOVE(from,target,toMove,nQueen,0));
+			northMoves^=(1i64 << target);
+		}
+		//East:
+		bitboard eastMoves = mask::east[from];
+		blockedSquare = bitscan_msb(eastMoves & b->getOccupiedBB(BOTH));
+		eastMoves ^= mask::east[blockedSquare];
+		eastMoves &= ~b->getOccupiedBB(BOTH);
+		while(eastMoves) {
+			unsigned char target = bitscan_msb(eastMoves);
+			move_list.push_back(MOVE(from,target,toMove,nQueen, 0));
+			eastMoves^=(1i64 << target);
+		}
+		//South:
+		bitboard southMoves = mask::south[from];
+		blockedSquare = bitscan_msb(southMoves & b->getOccupiedBB(BOTH));
+		southMoves ^= mask::south[blockedSquare];
+		southMoves &= ~b->getOccupiedBB(BOTH);
+		while(southMoves) {
+			unsigned char target = bitscan_msb(southMoves);
+			move_list.push_back(MOVE(from,target,toMove,nQueen,0));
+			southMoves^=(1i64 << target);
+		}
+		//West:
+		bitboard westMoves = mask::west[from];
+		blockedSquare = bitscan_lsb(westMoves & b->getOccupiedBB(BOTH));
+		westMoves ^= mask::west[blockedSquare];
+		westMoves &= ~b->getOccupiedBB(BOTH);
+		while(westMoves) {
+			unsigned char target = bitscan_msb(westMoves);
+			move_list.push_back(MOVE(from,target,toMove,nQueen, 0));
+			westMoves^=(1i64 << target);
+		} 
+		//NW:
+		bitboard nwMoves = mask::nw[from];
+		blockedSquare = bitscan_lsb(nwMoves & b->getOccupiedBB(BOTH));
+		nwMoves ^= mask::nw[blockedSquare];
+		nwMoves &= ~b->getOccupiedBB(BOTH);
+		while(nwMoves) {
+			unsigned char target = bitscan_msb(nwMoves);
+			move_list.push_back(MOVE(from,target,toMove,nQueen, 0));
+			nwMoves^=(1i64 << target);
+		}
+		//NE:
+		bitboard neMoves = mask::ne[from];
+		blockedSquare = bitscan_lsb(neMoves & b->getOccupiedBB(BOTH));
+		neMoves ^= mask::ne[blockedSquare];
+		neMoves &= ~b->getOccupiedBB(BOTH);
+		while(neMoves) {
+			unsigned char target = bitscan_msb(neMoves);
+			move_list.push_back(MOVE(from,target,toMove,nQueen, 0));
+			neMoves^=(1i64 << target);
+		}
+		//SE:
+		bitboard seMoves = mask::se[from];
+		blockedSquare = bitscan_msb(seMoves & b->getOccupiedBB(BOTH));
+		seMoves ^= mask::se[blockedSquare];
+		seMoves &= ~b->getOccupiedBB(BOTH);
+		while(seMoves) {
+			unsigned char target = bitscan_msb(seMoves);
+			move_list.push_back(MOVE(from,target,toMove,nQueen, 0));
+			seMoves^=(1i64 << target);
+		}
+	
+		//SW:
+		bitboard swMoves = mask::sw[from];
+		blockedSquare = bitscan_msb(swMoves & b->getOccupiedBB(BOTH));
+		swMoves ^= mask::sw[blockedSquare];
+		swMoves &= ~b->getOccupiedBB(BOTH);
+		while(swMoves) {
+			unsigned char target = bitscan_msb(swMoves);
+			move_list.push_back(MOVE(from,target,toMove,nQueen,0));
+			swMoves^=(1i64 << target);
+		}
+		pieceDB ^= (1i64 << from); //remove bit from DB
+	}
+
+/*	-------------------------------------
+	KING MOVES:
+	------------------------------------- */
+
+	pieceDB = b->getPieceBB(toMove,nKing);
+	unsigned char from = bitscan_msb(pieceDB);
+	bitboard validMoveDB = mask::king_moves[from] & ~b->getOccupiedBB(BOTH);
+	while(validMoveDB) {
+		int target = bitscan_msb(validMoveDB);
+		move_list.push_back(MOVE(from,target,toMove,nKing, 0));
+		validMoveDB ^= (1i64 << target);
+	}
+	
+/*	-------------------------------------
+	PAWN MOVES:
+	------------------------------------- */
+
+	pieceDB = b->getPieceBB(toMove,nPawn) & ~mask::pawns_spawn[!toMove];
+
+	while(pieceDB) {
+		//quit after exhausting all of the bits in the current database.
+		unsigned char from = getMostAdvanced(toMove, &pieceDB);
+		
+		//Single Advance:
+		bitboard advance = mask::pawn_advances[toMove][from] & ~b->getOccupiedBB(BOTH) ;
+		if(advance) {
+			unsigned char to = bitscan_msb(advance);
+			move_list.push_back(MOVE(from,to,toMove, nPawn));
+			
+			//Double Advance:
+			advance = mask::pawn_double_advances[toMove][from] & ~b->getOccupiedBB(BOTH);
+			if(advance) {
+				to = bitscan_msb(advance);
+				move_list.push_back(MOVE(from,to,toMove, nPawn));
+			}
+		}
+		pieceDB ^= (1i64 << from); //remove bit from DB
+	}
+
+
+/*	------------------------------------- */
+	 
+	 return move_list;
+
+}
+
+vector<MOVE> CaptureGen(CHESSBOARD *b) {
+/*************************************************************************
+Generates captures and promotions. In order:
+	-Knights
+	-Bishops
+	-Rook
+	-Queen
+	-King
+	-Pawn
+
+*************************************************************************/
+
+	vector<MOVE> capture_list;
+	bool toMove = b->getActivePlayer();
+	bool opponent = !toMove;
+
+	
+/*	-------------------------------------
+	KNIGHT CAPTURES:
+	------------------------------------- */
+
+	bitboard pieceDB = b->getPieceBB(toMove,nKnight);
+	 while(pieceDB) {
+		 unsigned char from = getMostAdvanced(toMove, &pieceDB);
+		 bitboard attackMoveDB = mask::knight_moves[from] & b->getOccupiedBB(opponent);
+		 while(attackMoveDB) {
+			 unsigned char target = bitscan_msb(attackMoveDB);
+			 capture_list.push_back(MOVE(from,target,toMove, nKnight, b->getBoard(target)));
+			 attackMoveDB ^= (1i64 << target);
+		 }
+		 pieceDB ^= (1i64 << from); //remove bit from DB
+	 }
+
+/*	-------------------------------------
+	BISHOP/QUEEN CAPTURES:
+	------------------------------------- */
+
+	pieceDB = b->getPieceBB(toMove, nBishop);
+	while(pieceDB) {
+		unsigned char from = getMostAdvanced(toMove, &pieceDB);
+		//NW:
+		unsigned char attackedSquare = bitscan_lsb(mask::nw[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list.push_back(MOVE(from,attackedSquare,toMove,nBishop, b->getBoard(attackedSquare)));
+
+		//NE:
+		attackedSquare = bitscan_lsb(mask::ne[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list.push_back(MOVE(from,attackedSquare,toMove,nBishop, b->getBoard(attackedSquare)));
+
+		//SE:
+		attackedSquare = bitscan_msb(mask::se[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list.push_back(MOVE(from,attackedSquare,toMove,nBishop, b->getBoard(attackedSquare)));
+
+		//SW:
+		attackedSquare = bitscan_msb( mask::sw[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list.push_back(MOVE(from,attackedSquare,toMove,nBishop, b->getBoard(attackedSquare)));
+		
+		pieceDB ^= (1i64 << from); //remove bit from DB
+	}
+		
+/*	-------------------------------------
+	ROOK CAPTURES:
+	------------------------------------- */
+
+	pieceDB = b->getPieceBB(toMove, nRook);
+	while(pieceDB) {
+		unsigned char from = getMostAdvanced(toMove, &pieceDB);
+		//North:
+		unsigned char attackedSquare = bitscan_lsb(mask::north[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list.push_back(MOVE(from,attackedSquare,toMove,nRook,b->getBoard(attackedSquare)));
+
+		//East:
+		attackedSquare = bitscan_msb(mask::east[from] & b->getOccupiedBB(BOTH));
+		if(mask::square[attackedSquare] & b->getOccupiedBB(opponent) )
+			capture_list.push_back(MOVE(from,attackedSquare,toMove,nRook,b->getBoard(attackedSquare)));
+
+		//South:
+		attackedSquare = bitscan_msb(mask::south[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list.push_back(MOVE(from,attackedSquare,toMove,nRook,b->getBoard(attackedSquare)));
+
+		//West:
+		attackedSquare = bitscan_lsb(mask::west[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list.push_back(MOVE(from,attackedSquare,toMove,nRook,b->getBoard(attackedSquare)));
+ 
+		pieceDB ^= (1i64 << from); //remove bit from DB
+	}
+
+/*	-------------------------------------
+	QUEEN CAPTURES:
+	------------------------------------- */
+
+	pieceDB = b->getPieceBB(toMove, nQueen);
+	while(pieceDB) {
+		unsigned char from = getMostAdvanced(toMove, &pieceDB);
+		//NW:
+		unsigned char attackedSquare = bitscan_lsb( mask::nw[from] & b->getOccupiedBB(BOTH) );
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list.push_back(MOVE(from,attackedSquare,toMove,nQueen, b->getBoard(attackedSquare)));
+
+		//NE:
+		attackedSquare = bitscan_lsb( mask::ne[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list.push_back(MOVE(from,attackedSquare,toMove,nQueen, b->getBoard(attackedSquare)));
+
+		//SE:
+		attackedSquare = bitscan_msb(mask::se[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list.push_back(MOVE(from,attackedSquare,toMove,nQueen, b->getBoard(attackedSquare)));
+
+		//SW:
+		attackedSquare = bitscan_msb(mask::sw[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list.push_back(MOVE(from,attackedSquare,toMove,nQueen, b->getBoard(attackedSquare)));
+		
+		//North:
+		attackedSquare = bitscan_lsb(mask::north[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list.push_back(MOVE(from,attackedSquare,toMove,nQueen,b->getBoard(attackedSquare)));
+
+		//East:
+		attackedSquare = bitscan_msb(mask::east[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list.push_back(MOVE(from,attackedSquare,toMove,nQueen,b->getBoard(attackedSquare)));
+
+		//South:
+		attackedSquare = bitscan_msb( mask::south[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list.push_back(MOVE(from,attackedSquare,toMove,nQueen,b->getBoard(attackedSquare)));
+
+		//West:
+		attackedSquare = bitscan_lsb(mask::west[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list.push_back(MOVE(from,attackedSquare,toMove,nQueen,b->getBoard(attackedSquare)));
+
+		pieceDB ^= (1i64 << from); //remove bit from DB
+	}
+
+/*	-------------------------------------
+	KING CAPTURES:
+	------------------------------------- */
+
+	unsigned char from = bitscan_msb(b->getPieceBB(toMove,nKing));
+	bitboard validMoveDB = mask::king_moves[from] & b->getOccupiedBB(opponent);
+	while(validMoveDB) {
+		unsigned char target = bitscan_msb(validMoveDB);
+		capture_list.push_back(MOVE(from ,target, toMove, nKing, b->getBoard(target)));
+		validMoveDB ^= (1i64 << target);
+	}
+	 
+/*	-------------------------------------
+	PAWN CAPTURES:
+	------------------------------------- */
+
+	//Pawn Promotions:
+	pieceDB = (b->getPieceBB(toMove,nPawn) & mask::pawns_spawn[!toMove]);
+	while(pieceDB) {
+		unsigned char from = getMostAdvanced(toMove, &pieceDB);
+		bitboard promote =	(mask::pawn_captures[toMove][from] &  b->getOccupiedBB(!toMove) )
+						 |	(mask::pawn_advances[toMove][from] & ~b->getOccupiedBB(BOTH)    );
+		while(promote) {
+			unsigned char to = bitscan_msb(promote);
+			//Promote to both Queen and Knight:
+			capture_list.push_back( MOVE(from,to,toMove,nPawn,b->getBoard(to), nQueen, nPieceValue[nQueen]-nPieceValue[nPawn]) );
+			capture_list.push_back( MOVE(from,to,toMove,nPawn,b->getBoard(to), nKnight, nPieceValue[nKnight]-nPieceValue[nPawn]) );
+			capture_list.push_back( MOVE(from,to,toMove,nPawn,b->getBoard(to), nRook, nPieceValue[nRook]-nPieceValue[nPawn]) );
+			capture_list.push_back( MOVE(from,to,toMove,nPawn,b->getBoard(to), nBishop, nPieceValue[nBishop]-nPieceValue[nPawn]) );
+			promote ^= (1i64 << to);
+		}
+		pieceDB ^= (1i64 << from); //remove bit from DB
+	}
+	
+	//Pawn kills:
+	pieceDB = b->getPieceBB(toMove,nPawn) & ~mask::pawns_spawn[!toMove];
+	while(pieceDB) {
+		//quit after exhausting all of the bits in the current database.
+		unsigned char from = getMostAdvanced(toMove, &pieceDB);
+		//Check for normal attacks:
+		bitboard kill_list = mask::pawn_captures[toMove][from] & b->getOccupiedBB(opponent);
+		while(kill_list) {
+			int index = bitscan_msb(kill_list);
+			capture_list.push_back(MOVE(from,index,toMove, nPawn,b->getBoard(index)) );
+			kill_list ^= (1i64 << index);
+		}
+		//En passant kills:
+		kill_list = mask::pawn_captures[toMove][from] & mask::square[b->getEnPassantIndex()];
+		if(kill_list) {
+			int index = bitscan_msb(kill_list);
+			capture_list.push_back(MOVE(from,index,toMove, nPawn,0,0,nPieceValue[nPawn]));
+		}
+
+		pieceDB ^= (1i64 << from); //remove bit from DB
+	}
+
+/*	------------------------------------- */
+
+	return capture_list;
+}
+
+
+
+
+//*******************************************************************************************************************************************
+// isAttacked and isInCheck backups:
+//*******************************************************************************************************************************************
+
+/*
+	bool opponent = !player;
+	bitboard pieceDB =0;
+
+	// Is in danger from pawns?:
+	if(opponent == WHITE) {
+		pieceDB =	((pieceBB[opponent][nPawn] & ~mask::file[a]) << 9) 
+				  |	((pieceBB[opponent][nPawn] & ~mask::file[h]) << 7); //5 bit operations for this?
+		if(pieceDB & pieceBB[player][nKing] ) {
+			return true;
+		}
+	}
+	else {
+		pieceDB =	((pieceBB[opponent][nPawn] & ~mask::file[h]) >> 9) 
+				  |	((pieceBB[opponent][nPawn] & ~mask::file[a]) >> 7); //5 bit operations for this?
+		if(pieceDB & pieceBB[player][nKing] ) {
+			return true;
+		}
+	}
+	
+	short kings_square = bitscan_msb(pieceBB[player][nKing]);
+
+	//Knight attacks:
+	if(mask::knight_moves[kings_square] & pieceBB[opponent][nKnight]){
+		return true;
+	}
+	//Diagonal attacks:
+	bitboard t;
+	if(t = mask::ne[kings_square] & (pieceBB[opponent][nBishop] | pieceBB[opponent][nQueen])) {
+		if(bitscan_lsb(t) == bitscan_lsb( mask::ne[kings_square] & occupiedBB[BOTH]) ){
+			return true;
+		}
+	}
+	if(t = mask::nw[kings_square] & (pieceBB[opponent][nBishop] | pieceBB[opponent][nQueen])) {
+		if(bitscan_lsb(t) == bitscan_lsb( mask::nw[kings_square] & occupiedBB[BOTH]) ) {
+			return true;
+		}
+	}
+	if(t = mask::se[kings_square] & (pieceBB[opponent][nBishop] | pieceBB[opponent][nQueen])) {
+		if(bitscan_msb(t) == bitscan_msb( mask::se[kings_square] & occupiedBB[BOTH]) ) {
+			return true;
+		}
+	}
+	if(t = mask::sw[kings_square] & (pieceBB[opponent][nBishop] | pieceBB[opponent][nQueen])) {
+		if(bitscan_msb(t) == bitscan_msb( mask::sw[kings_square] & occupiedBB[BOTH]) ) {
+			return true;
+		}
+	}
+
+	// Horizontal and Vertical attacks:
+	if(t = mask::north[kings_square] & (pieceBB[opponent][nRook] | pieceBB[opponent][nQueen])) {
+		if(bitscan_lsb(t) == bitscan_lsb( mask::north[kings_square] & occupiedBB[BOTH]) ) {
+			return true;
+		}
+	}
+	if(t = mask::west[kings_square] & (pieceBB[opponent][nRook] | pieceBB[opponent][nQueen])) {
+		if(bitscan_lsb(t) == bitscan_lsb( mask::west[kings_square] & occupiedBB[BOTH]) ) {
+			return true;
+		}
+	}
+	if(t = mask::south[kings_square] & (pieceBB[opponent][nRook] | pieceBB[opponent][nQueen])) {
+		if(bitscan_msb(t) == bitscan_msb( mask::south[kings_square] & occupiedBB[BOTH]) ) {
+			return true;
+		}
+	}
+	if(t = mask::east[kings_square] & (pieceBB[opponent][nRook] | pieceBB[opponent][nQueen])) {
+		if(bitscan_msb(t) == bitscan_msb( mask::east[kings_square] & occupiedBB[BOTH]) )
+			return true;
+	}
+	
+	// King attacks:
+	if(mask::king_moves[kings_square] & pieceBB[opponent][nKing]) {
+		return true;
+	}
+	*/
+	//return false;
+
+
+	
+bool CHESSBOARD::isInCheck(bool player) {
+	//Returns if the active player is in check.
+	
+	// TODO:	-Re-arrange in order of most occurring if/else.
+	
+	bool opponent = !player;
+	bitboard pieceDB =0;
+
+	// Is in danger from pawns?:
+	if(opponent == WHITE) {
+		pieceDB =	((pieceBB[opponent][nPawn] & ~mask::file[a]) << 9) 
+				  |	((pieceBB[opponent][nPawn] & ~mask::file[h]) << 7); //5 bit operations for this?
+		if(pieceDB & pieceBB[player][nKing] )
+			return true;
+	}
+	else {
+		pieceDB =	((pieceBB[opponent][nPawn] & ~mask::file[h]) >> 9) 
+				  |	((pieceBB[opponent][nPawn] & ~mask::file[a]) >> 7); //5 bit operations for this?
+		if(pieceDB & pieceBB[player][nKing] )
+			return true;
+	}
+	
+	// Is in danger from knights? :
+	pieceDB = pieceBB[opponent][nKnight];
+	while(pieceDB) {
+		int square = bitscan_lsb(pieceDB);
+		if(mask::knight_moves[square] & pieceBB[player][nKing])
+			return true;
+		pieceDB ^= (1i64 << square);
+	}
+
+	// In Danger from Diagonal Attacks? Bishops and Queens:
+	pieceDB = pieceBB[opponent][nBishop] | pieceBB[opponent][nQueen];
+	while(pieceDB) {
+		int square = bitscan_lsb(pieceDB);
+		//NE:
+		if(mask::ne[square] & pieceBB[player][nKing]) { 
+			if(bitscan_lsb(pieceBB[player][nKing]) == bitscan_lsb(mask::ne[square] & occupiedBB[BOTH]))
+				return true;
+		}
+		//NW:
+		if(mask::nw[square] & pieceBB[player][nKing]) { 
+			if(bitscan_lsb(pieceBB[player][nKing]) == bitscan_lsb(mask::nw[square] & occupiedBB[BOTH]))
+				return true;
+		}
+		//SE:
+		if(mask::se[square] & pieceBB[player][nKing]) { 
+			if(bitscan_msb(pieceBB[player][nKing]) == bitscan_msb(mask::se[square] & occupiedBB[BOTH]))
+				return true;
+		}
+		//SW:
+		if(mask::sw[square] & pieceBB[player][nKing]) { 
+			if(bitscan_msb(pieceBB[player][nKing]) == bitscan_msb(mask::sw[square] & occupiedBB[BOTH]))
+				return true;
+		}
+		pieceDB ^= (1i64 << square);
+	}
+
+	// Is in danger from straight attacks? Rooks and Queens:
+	pieceDB = pieceBB[opponent][nRook] | pieceBB[opponent][nQueen];
+	while(pieceDB) {
+		int square = bitscan_lsb(pieceDB);
+		//North:
+		if(mask::north[square] & pieceBB[player][nKing]) { 
+			if(bitscan_lsb(pieceBB[player][nKing]) == bitscan_lsb(mask::north[square] & occupiedBB[BOTH]))
+				return true;
+		}
+		//West:
+		if(mask::west[square] & pieceBB[player][nKing]) { 
+			if(bitscan_lsb(pieceBB[player][nKing]) == bitscan_lsb(mask::west[square] & occupiedBB[BOTH]))
+				return true;
+		}
+		//South:
+		if(mask::south[square] & pieceBB[player][nKing]) { 
+			if(bitscan_msb(pieceBB[player][nKing]) == bitscan_msb(mask::south[square] & occupiedBB[BOTH]))
+				return true;
+		}
+		//East:
+		if(mask::east[square] & pieceBB[player][nKing]) { 
+			if(bitscan_msb(pieceBB[player][nKing]) == bitscan_msb(mask::east[square] & occupiedBB[BOTH]))
+				return true;
+		}
+		pieceDB ^= (1i64 << square);
+	}
+
+	// Is in danger from the other king:
+	pieceDB = pieceBB[opponent][nKing];
+	int square = bitscan_lsb(pieceDB);
+	if(mask::king_moves[square] & pieceBB[player][nKing])
+		return true;
+
+	return false;
+}
+*/
+
+//----------------------------------------------------------------------------------------
+
+/*
+	bool opponent = !player;
+	bitboard pieceDB =0;
+
+	// Is in danger from pawns?:
+	if(opponent == WHITE) {
+		pieceDB =	((pieceBB[opponent][nPawn] & ~mask::file[a]) << 9) 
+				  |	((pieceBB[opponent][nPawn] & ~mask::file[h]) << 7); //5 bit operations for this?
+		if(pieceDB & (1i64 << square_index) )
+			return true;
+	}
+	else {
+		pieceDB =	((pieceBB[opponent][nPawn] & ~mask::file[h]) >> 9) 
+				  |	((pieceBB[opponent][nPawn] & ~mask::file[a]) >> 7); //5 bit operations for this?
+		if(pieceDB & (1i64 << square_index) )
+			return true;
+	}
+	
+	// Is in danger from knights? :
+	pieceDB = pieceBB[opponent][nKnight];
+	while(pieceDB) {
+		int index = bitscan_lsb(pieceDB);
+		if(mask::knight_moves[index] & (1i64 << square_index))
+			return true;
+		pieceDB ^= (1i64 << index);
+	}
+
+	// In Danger from Diagonal Attacks? Bishops and Queens:
+	pieceDB = pieceBB[opponent][nBishop] | pieceBB[opponent][nQueen];
+	while(pieceDB) {
+		int index = bitscan_lsb(pieceDB);
+		//NE:
+		if(mask::ne[index] & (1i64 << square_index)) { 
+			if(square_index == bitscan_lsb(mask::ne[index] & (occupiedBB[BOTH] | (1i64 << square_index))) )
+				return true;
+		}
+		//NW:
+		if(mask::nw[index] & (1i64 << square_index)) { 
+			if(square_index == bitscan_lsb(mask::nw[index] & (occupiedBB[BOTH] | (1i64 << square_index))) )
+				return true;
+		}
+		//SE:
+		if(mask::se[index] & (1i64 << square_index)) { 
+			if(square_index == bitscan_msb(mask::se[index] & (occupiedBB[BOTH] | (1i64 << square_index))) )
+				return true;
+		}
+		//SW:
+		if(mask::sw[index] & (1i64 << square_index)) { 
+			if(square_index == bitscan_msb(mask::sw[index] & (occupiedBB[BOTH] | (1i64 << square_index))) )
+				return true;
+		}
+		pieceDB ^= (1i64 << index);
+	}
+
+	// Is in danger from straight attacks? Rooks and Queens:
+	pieceDB = pieceBB[opponent][nRook] | pieceBB[opponent][nQueen];
+	while(pieceDB) {
+		int index = bitscan_lsb(pieceDB);
+		//North:
+		if(mask::north[index] & (1i64 << square_index)) { 
+			if(square_index == bitscan_lsb(mask::north[index] & (occupiedBB[BOTH] | (1i64 << square_index))) )
+				return true;
+		}
+		//West:
+		if(mask::west[index] & (1i64 << square_index)) { 
+			if(square_index == bitscan_lsb(mask::west[index] & (occupiedBB[BOTH] | (1i64 << square_index))) )
+				return true;
+		}
+		//South:
+		if(mask::south[index] & (1i64 << square_index)) { 
+			if(square_index == bitscan_msb(mask::south[index] & (occupiedBB[BOTH] | (1i64 << square_index))) )
+				return true;
+		}
+		//East:
+		if(mask::east[index] & (1i64 << square_index)) { 
+			if( square_index == bitscan_msb(mask::east[index] & (occupiedBB[BOTH] | (1i64 << square_index))) )
+				return true;
+		}
+		pieceDB ^= (1i64 << index);
+	}
+
+	// Is in danger from the other king:
+	pieceDB = pieceBB[opponent][nKing];
+	int index = bitscan_lsb(pieceDB);
+	if(mask::king_moves[index] & (1i64 << square_index))
+		return true;
+
+	return false;
+	*/
+
+
+//*******************************************************************************************************************************************
+
+ /*
+	pieceDB = b->getPieceBB(toMove, nBishop);
+	while(pieceDB) {
+		unsigned char from = getMostAdvanced(toMove, &pieceDB);
+		//NW:
+		unsigned char attackedSquare = bitscan_lsb(mask::nw[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->addCapture(MOVE(from,attackedSquare,toMove,nBishop, b->getBoard(attackedSquare)));
+
+		//NE:
+		attackedSquare = bitscan_lsb(mask::ne[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->addCapture(MOVE(from,attackedSquare,toMove,nBishop, b->getBoard(attackedSquare)));
+
+		//SE:
+		attackedSquare = bitscan_msb(mask::se[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->addCapture(MOVE(from,attackedSquare,toMove,nBishop, b->getBoard(attackedSquare)));
+
+		//SW:
+		attackedSquare = bitscan_msb( mask::sw[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->addCapture(MOVE(from,attackedSquare,toMove,nBishop, b->getBoard(attackedSquare)));
+		
+		pieceDB ^= (1i64 << from); //remove bit from DB
+	}
+	*/
+
+	/*pieceDB = b->getPieceBB(toMove, nRook);
+	while(pieceDB) {
+		unsigned char from = getMostAdvanced(toMove, &pieceDB);
+		//North:
+		unsigned char attackedSquare = bitscan_lsb(mask::north[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->addCapture(MOVE(from,attackedSquare,toMove,nRook,b->getBoard(attackedSquare)));
+
+		//East:
+		attackedSquare = bitscan_msb(mask::east[from] & b->getOccupiedBB(BOTH));
+		if(mask::square[attackedSquare] & b->getOccupiedBB(opponent) )
+			capture_list->addCapture(MOVE(from,attackedSquare,toMove,nRook,b->getBoard(attackedSquare)));
+
+		//South:
+		attackedSquare = bitscan_msb(mask::south[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->addCapture(MOVE(from,attackedSquare,toMove,nRook,b->getBoard(attackedSquare)));
+
+		//West:
+		attackedSquare = bitscan_lsb(mask::west[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->addCapture(MOVE(from,attackedSquare,toMove,nRook,b->getBoard(attackedSquare)));
+ 
+		pieceDB ^= (1i64 << from); //remove bit from DB
+	}
+	*/
+
+	/*
+	pieceDB = b->getPieceBB(toMove, nQueen);
+	while(pieceDB) {
+		unsigned char from = getMostAdvanced(toMove, &pieceDB);
+		//NW:
+		unsigned char attackedSquare = bitscan_lsb( mask::nw[from] & b->getOccupiedBB(BOTH) );
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->addCapture(MOVE(from,attackedSquare,toMove,nQueen, b->getBoard(attackedSquare)));
+
+		//NE:
+		attackedSquare = bitscan_lsb( mask::ne[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->addCapture(MOVE(from,attackedSquare,toMove,nQueen, b->getBoard(attackedSquare)));
+
+		//SE:
+		attackedSquare = bitscan_msb(mask::se[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->addCapture(MOVE(from,attackedSquare,toMove,nQueen, b->getBoard(attackedSquare)));
+
+		//SW:
+		attackedSquare = bitscan_msb(mask::sw[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->addCapture(MOVE(from,attackedSquare,toMove,nQueen, b->getBoard(attackedSquare)));
+		
+		//North:
+		attackedSquare = bitscan_lsb(mask::north[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->addCapture(MOVE(from,attackedSquare,toMove,nQueen,b->getBoard(attackedSquare)));
+
+		//East:
+		attackedSquare = bitscan_msb(mask::east[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->addCapture(MOVE(from,attackedSquare,toMove,nQueen,b->getBoard(attackedSquare)));
+
+		//South:
+		attackedSquare = bitscan_msb( mask::south[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->addCapture(MOVE(from,attackedSquare,toMove,nQueen,b->getBoard(attackedSquare)));
+
+		//West:
+		attackedSquare = bitscan_lsb(mask::west[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->addCapture(MOVE(from,attackedSquare,toMove,nQueen,b->getBoard(attackedSquare)));
+
+		pieceDB ^= (1i64 << from); //remove bit from DB
+	}
+	*/
+
+//*******************************************************************************************************************************************
+
+/*
+	while(pieceDB) {
+		unsigned char from = getMostAdvanced(toMove, &pieceDB);
+		//NW:
+		bitboard nwMoves = mask::nw[from];
+		unsigned char blockedSquare = bitscan_lsb(nwMoves & b->getOccupiedBB(BOTH));
+		nwMoves ^= mask::nw[blockedSquare];
+		nwMoves &= ~b->getOccupiedBB(BOTH);
+		while(nwMoves) {
+			unsigned char target = bitscan_msb(nwMoves);
+			move_list->addMove(MOVE(from,target,toMove,nBishop, 0));
+			nwMoves^=(1i64 << target);
+		}
+		//NE:
+		bitboard neMoves = mask::ne[from];
+		blockedSquare = bitscan_lsb(neMoves & b->getOccupiedBB(BOTH));
+		neMoves ^= mask::ne[blockedSquare];
+		neMoves &= ~b->getOccupiedBB(BOTH);
+		while(neMoves) {
+			unsigned char target = bitscan_msb(neMoves);
+			move_list->addMove(MOVE(from,target,toMove,nBishop,0));
+			neMoves^=(1i64 << target);
+		}
+		//SE:
+		bitboard seMoves = mask::se[from];
+		blockedSquare = bitscan_msb(seMoves & b->getOccupiedBB(BOTH));
+		seMoves ^= mask::se[blockedSquare];
+		seMoves &= ~b->getOccupiedBB(BOTH);
+		while(seMoves) {
+			unsigned char target = bitscan_msb(seMoves);
+			move_list->addMove(MOVE(from,target,toMove,nBishop,0));
+			seMoves^=(1i64 << target);
+		}
+		//SW:
+		bitboard swMoves = mask::sw[from];
+		blockedSquare = bitscan_msb(swMoves & b->getOccupiedBB(BOTH));
+		swMoves ^= mask::sw[blockedSquare];
+		swMoves &= ~b->getOccupiedBB(BOTH);
+		while(swMoves) {
+			unsigned char target = bitscan_msb(swMoves);
+			move_list->addMove(MOVE(from,target,toMove,nBishop,0));
+			swMoves^=(1i64 << target);
+		} 
+		pieceDB ^= (1i64 << from); //remove bit from DB
+	}
+	*/
+
+	/*
+	pieceDB = b->getPieceBB(toMove, nRook);
+	while(pieceDB) {
+		unsigned char from = getMostAdvanced(toMove, &pieceDB);
+		//North:
+		bitboard northMoves = mask::north[from];
+		unsigned char blockedSquare = bitscan_lsb(northMoves & b->getOccupiedBB(BOTH));
+		northMoves ^= mask::north[blockedSquare];
+		northMoves &= ~b->getOccupiedBB(BOTH);
+		while(northMoves) {
+			unsigned char target = bitscan_msb(northMoves);
+			move_list->addMove(MOVE(from,target,toMove,nRook,0));
+			northMoves^=(1i64 << target);
+		}
+		//East:
+		bitboard eastMoves = mask::east[from];
+		blockedSquare = bitscan_msb(eastMoves & b->getOccupiedBB(BOTH));
+		eastMoves ^= mask::east[blockedSquare];
+		eastMoves &= ~b->getOccupiedBB(BOTH);
+		while(eastMoves) {
+			unsigned char target = bitscan_msb(eastMoves);
+			move_list->addMove(MOVE(from,target,toMove,nRook,0));
+			eastMoves^=(1i64 << target);
+		}
+		//South:
+		bitboard southMoves = mask::south[from];
+		blockedSquare = bitscan_msb(southMoves & b->getOccupiedBB(BOTH));
+		southMoves ^= mask::south[blockedSquare];
+		southMoves &= ~b->getOccupiedBB(BOTH);
+		while(southMoves) {
+			unsigned char target = bitscan_msb(southMoves);
+			move_list->addMove(MOVE(from,target,toMove,nRook,0));
+			southMoves^=(1i64 << target);
+		}
+		//West:
+		bitboard westMoves = mask::west[from];
+		blockedSquare = bitscan_lsb(westMoves & b->getOccupiedBB(BOTH));
+		westMoves ^= mask::west[blockedSquare];
+		westMoves &= ~b->getOccupiedBB(BOTH);
+		while(westMoves) {
+			unsigned char target = bitscan_msb(westMoves);
+			move_list->addMove(MOVE(from,target,toMove,nRook,0));
+			westMoves^=(1i64 << target);
+		} 
+		pieceDB ^= (1i64 << from); //remove bit from DB
+	}
+	*/
+
+	/*
+	pieceDB = b->getPieceBB(toMove, nQueen);
+	while(pieceDB) {
+		int from = getMostAdvanced(toMove, &pieceDB);
+		//North:
+		bitboard northMoves = mask::north[from];
+		unsigned char blockedSquare = bitscan_lsb(northMoves & b->getOccupiedBB(BOTH));
+		northMoves ^= mask::north[blockedSquare];
+		northMoves &= ~b->getOccupiedBB(BOTH);
+		while(northMoves) {
+			unsigned char target = bitscan_msb(northMoves);
+			move_list->addMove(MOVE(from,target,toMove,nQueen,0));
+			northMoves^=(1i64 << target);
+		}
+		//East:
+		bitboard eastMoves = mask::east[from];
+		blockedSquare = bitscan_msb(eastMoves & b->getOccupiedBB(BOTH));
+		eastMoves ^= mask::east[blockedSquare];
+		eastMoves &= ~b->getOccupiedBB(BOTH);
+		while(eastMoves) {
+			unsigned char target = bitscan_msb(eastMoves);
+			move_list->addMove(MOVE(from,target,toMove,nQueen, 0));
+			eastMoves^=(1i64 << target);
+		}
+		//South:
+		bitboard southMoves = mask::south[from];
+		blockedSquare = bitscan_msb(southMoves & b->getOccupiedBB(BOTH));
+		southMoves ^= mask::south[blockedSquare];
+		southMoves &= ~b->getOccupiedBB(BOTH);
+		while(southMoves) {
+			unsigned char target = bitscan_msb(southMoves);
+			move_list->addMove(MOVE(from,target,toMove,nQueen,0));
+			southMoves^=(1i64 << target);
+		}
+		//West:
+		bitboard westMoves = mask::west[from];
+		blockedSquare = bitscan_lsb(westMoves & b->getOccupiedBB(BOTH));
+		westMoves ^= mask::west[blockedSquare];
+		westMoves &= ~b->getOccupiedBB(BOTH);
+		while(westMoves) {
+			unsigned char target = bitscan_msb(westMoves);
+			move_list->addMove(MOVE(from,target,toMove,nQueen, 0));
+			westMoves^=(1i64 << target);
+		} 
+		//NW:
+		bitboard nwMoves = mask::nw[from];
+		blockedSquare = bitscan_lsb(nwMoves & b->getOccupiedBB(BOTH));
+		nwMoves ^= mask::nw[blockedSquare];
+		nwMoves &= ~b->getOccupiedBB(BOTH);
+		while(nwMoves) {
+			unsigned char target = bitscan_msb(nwMoves);
+			move_list->addMove(MOVE(from,target,toMove,nQueen, 0));
+			nwMoves^=(1i64 << target);
+		}
+		//NE:
+		bitboard neMoves = mask::ne[from];
+		blockedSquare = bitscan_lsb(neMoves & b->getOccupiedBB(BOTH));
+		neMoves ^= mask::ne[blockedSquare];
+		neMoves &= ~b->getOccupiedBB(BOTH);
+		while(neMoves) {
+			unsigned char target = bitscan_msb(neMoves);
+			move_list->addMove(MOVE(from,target,toMove,nQueen, 0));
+			neMoves^=(1i64 << target);
+		}
+		//SE:
+		bitboard seMoves = mask::se[from];
+		blockedSquare = bitscan_msb(seMoves & b->getOccupiedBB(BOTH));
+		seMoves ^= mask::se[blockedSquare];
+		seMoves &= ~b->getOccupiedBB(BOTH);
+		while(seMoves) {
+			unsigned char target = bitscan_msb(seMoves);
+			move_list->addMove(MOVE(from,target,toMove,nQueen, 0));
+			seMoves^=(1i64 << target);
+		}
+	
+		//SW:
+		bitboard swMoves = mask::sw[from];
+		blockedSquare = bitscan_msb(swMoves & b->getOccupiedBB(BOTH));
+		swMoves ^= mask::sw[blockedSquare];
+		swMoves &= ~b->getOccupiedBB(BOTH);
+		while(swMoves) {
+			unsigned char target = bitscan_msb(swMoves);
+			move_list->addMove(MOVE(from,target,toMove,nQueen,0));
+			swMoves^=(1i64 << target);
+		}
+		pieceDB ^= (1i64 << from); //remove bit from DB
+	}
+	*/
+
+
+//*******************************************************************************************************************************************
+
+void CaptureGen(CHESSBOARD *b, MOVELIST * capture_list) {
+/*************************************************************************
+Generates captures and promotions. In order:
+	-Knights
+	-Bishops
+	-Rook
+	-Queen
+	-King
+	-Pawn
+
+*************************************************************************/
+
+	//vector<MOVE> capture_list;
+	//capture_list.reserve(MOVE_LIST_SIZE);
+	bool toMove = b->getActivePlayer();
+	bool opponent = !toMove;
+
+	
+/*	-------------------------------------
+	KNIGHT CAPTURES:
+	------------------------------------- */
+
+	bitboard pieceDB = b->getPieceBB(toMove,nKnight);
+	 while(pieceDB) {
+		 unsigned char from = getMostAdvanced(toMove, &pieceDB);
+		 bitboard attackMoveDB = mask::knight_moves[from] & b->getOccupiedBB(opponent);
+		 while(attackMoveDB) {
+			 unsigned char target = bitscan_msb(attackMoveDB);
+			 capture_list->push_back(MOVE(from,target,toMove, nKnight, b->getBoard(target)));
+			 attackMoveDB ^= (1i64 << target);
+		 }
+		 pieceDB ^= (1i64 << from); //remove bit from DB
+	 }
+
+/*	-------------------------------------
+	BISHOP/QUEEN CAPTURES:
+	------------------------------------- */
+
+	pieceDB = b->getPieceBB(toMove, nBishop);
+	while(pieceDB) {
+		unsigned char from = getMostAdvanced(toMove, &pieceDB);
+		//NW:
+		unsigned char attackedSquare = bitscan_lsb(mask::nw[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->push_back(MOVE(from,attackedSquare,toMove,nBishop, b->getBoard(attackedSquare)));
+
+		//NE:
+		attackedSquare = bitscan_lsb(mask::ne[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->push_back(MOVE(from,attackedSquare,toMove,nBishop, b->getBoard(attackedSquare)));
+
+		//SE:
+		attackedSquare = bitscan_msb(mask::se[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->push_back(MOVE(from,attackedSquare,toMove,nBishop, b->getBoard(attackedSquare)));
+
+		//SW:
+		attackedSquare = bitscan_msb( mask::sw[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->push_back(MOVE(from,attackedSquare,toMove,nBishop, b->getBoard(attackedSquare)));
+		
+		pieceDB ^= (1i64 << from); //remove bit from DB
+	}
+		
+/*	-------------------------------------
+	ROOK CAPTURES:
+	------------------------------------- */
+
+	pieceDB = b->getPieceBB(toMove, nRook);
+	while(pieceDB) {
+		unsigned char from = getMostAdvanced(toMove, &pieceDB);
+		//North:
+		unsigned char attackedSquare = bitscan_lsb(mask::north[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->push_back(MOVE(from,attackedSquare,toMove,nRook,b->getBoard(attackedSquare)));
+
+		//East:
+		attackedSquare = bitscan_msb(mask::east[from] & b->getOccupiedBB(BOTH));
+		if(mask::square[attackedSquare] & b->getOccupiedBB(opponent) )
+			capture_list->push_back(MOVE(from,attackedSquare,toMove,nRook,b->getBoard(attackedSquare)));
+
+		//South:
+		attackedSquare = bitscan_msb(mask::south[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->push_back(MOVE(from,attackedSquare,toMove,nRook,b->getBoard(attackedSquare)));
+
+		//West:
+		attackedSquare = bitscan_lsb(mask::west[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->push_back(MOVE(from,attackedSquare,toMove,nRook,b->getBoard(attackedSquare)));
+ 
+		pieceDB ^= (1i64 << from); //remove bit from DB
+	}
+
+/*	-------------------------------------
+	QUEEN CAPTURES:
+	------------------------------------- */
+
+	pieceDB = b->getPieceBB(toMove, nQueen);
+	while(pieceDB) {
+		unsigned char from = getMostAdvanced(toMove, &pieceDB);
+		//NW:
+		unsigned char attackedSquare = bitscan_lsb( mask::nw[from] & b->getOccupiedBB(BOTH) );
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->push_back(MOVE(from,attackedSquare,toMove,nQueen, b->getBoard(attackedSquare)));
+
+		//NE:
+		attackedSquare = bitscan_lsb( mask::ne[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->push_back(MOVE(from,attackedSquare,toMove,nQueen, b->getBoard(attackedSquare)));
+
+		//SE:
+		attackedSquare = bitscan_msb(mask::se[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->push_back(MOVE(from,attackedSquare,toMove,nQueen, b->getBoard(attackedSquare)));
+
+		//SW:
+		attackedSquare = bitscan_msb(mask::sw[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->push_back(MOVE(from,attackedSquare,toMove,nQueen, b->getBoard(attackedSquare)));
+		
+		//North:
+		attackedSquare = bitscan_lsb(mask::north[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->push_back(MOVE(from,attackedSquare,toMove,nQueen,b->getBoard(attackedSquare)));
+
+		//East:
+		attackedSquare = bitscan_msb(mask::east[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->push_back(MOVE(from,attackedSquare,toMove,nQueen,b->getBoard(attackedSquare)));
+
+		//South:
+		attackedSquare = bitscan_msb( mask::south[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->push_back(MOVE(from,attackedSquare,toMove,nQueen,b->getBoard(attackedSquare)));
+
+		//West:
+		attackedSquare = bitscan_lsb(mask::west[from] & b->getOccupiedBB(BOTH));
+		if( (attackedSquare < 64) && ( (1i64 << attackedSquare)&b->getOccupiedBB(opponent)) )
+			capture_list->push_back(MOVE(from,attackedSquare,toMove,nQueen,b->getBoard(attackedSquare)));
+
+		pieceDB ^= (1i64 << from); //remove bit from DB
+	}
+
+/*	-------------------------------------
+	KING CAPTURES:
+	------------------------------------- */
+
+	unsigned char from = bitscan_msb(b->getPieceBB(toMove,nKing));
+	bitboard validMoveDB = mask::king_moves[from] & b->getOccupiedBB(opponent);
+	while(validMoveDB) {
+		unsigned char target = bitscan_msb(validMoveDB);
+		capture_list->push_back(MOVE(from ,target, toMove, nKing, b->getBoard(target)));
+		validMoveDB ^= (1i64 << target);
+	}
+	 
+/*	-------------------------------------
+	PAWN CAPTURES:
+	------------------------------------- */
+
+	//Pawn Promotions:
+	pieceDB = (b->getPieceBB(toMove,nPawn) & mask::pawns_spawn[!toMove]);
+	while(pieceDB) {
+		unsigned char from = getMostAdvanced(toMove, &pieceDB);
+		bitboard promote =	(mask::pawn_captures[toMove][from] &  b->getOccupiedBB(!toMove) )
+						 |	(mask::pawn_advances[toMove][from] & ~b->getOccupiedBB(BOTH)    );
+		while(promote) {
+			unsigned char to = bitscan_msb(promote);
+			//Promote to both Queen and Knight:
+			capture_list->push_back( MOVE(from,to,toMove,nPawn,b->getBoard(to), nQueen, nPieceValue[nQueen]-nPieceValue[nPawn]) );
+			capture_list->push_back( MOVE(from,to,toMove,nPawn,b->getBoard(to), nKnight, nPieceValue[nKnight]-nPieceValue[nPawn]) );
+			capture_list->push_back( MOVE(from,to,toMove,nPawn,b->getBoard(to), nRook, nPieceValue[nRook]-nPieceValue[nPawn]) );
+			capture_list->push_back( MOVE(from,to,toMove,nPawn,b->getBoard(to), nBishop, nPieceValue[nBishop]-nPieceValue[nPawn]) );
+			promote ^= (1i64 << to);
+		}
+		pieceDB ^= (1i64 << from); //remove bit from DB
+	}
+	
+	//Pawn kills:
+	pieceDB = b->getPieceBB(toMove,nPawn) & ~mask::pawns_spawn[!toMove];
+	while(pieceDB) {
+		//quit after exhausting all of the bits in the current database.
+		unsigned char from = getMostAdvanced(toMove, &pieceDB);
+		//Check for normal attacks:
+		bitboard kill_list = mask::pawn_captures[toMove][from] & b->getOccupiedBB(opponent);
+		while(kill_list) {
+			int index = bitscan_msb(kill_list);
+			capture_list->push_back(MOVE(from,index,toMove, nPawn,b->getBoard(index)) );
+			kill_list ^= (1i64 << index);
+		}
+		//En passant kills:
+		kill_list = mask::pawn_captures[toMove][from] & mask::square[b->getEnPassantIndex()];
+		if(kill_list) {
+			int index = bitscan_msb(kill_list);
+			capture_list->push_back(MOVE(from,index,toMove, nPawn,0,0,nPieceValue[nPawn]));
+		}
+
+		pieceDB ^= (1i64 << from); //remove bit from DB
+	}
+
+/*	------------------------------------- */
+
+	//return capture_list;
+}
+
+//******************************************************************************************************************
+
+
+
+
+#ifndef nextmove_h
+#define nextmove_h
+
+#include <vector>
+
+#include "move.h"
+#include "board.h"
+#include "search.h"
+
+#define HASH_MOVE		0
+#define CAPTURES		1
+#define KILLER_MOVE_1	2
+#define KILLER_MOVE_2	3
+#define NONCAPTURES		4
+
+
+class MOVELIST {
+public:
+	MOVELIST() {	move_phase = HASH_MOVE; 
+					list_index = 0; 
+					list_size = 1;
+					move_list.reserve(MOVE_LIST_SIZE);
+	}
+	
+	bool NextMove(MOVE * next_move, SEARCH * search, short depth, CHESSBOARD * game, MOVE hash_suggestion);
+	bool NextRootMove(MOVE * next_move, CHESSBOARD * game, MOVE hash_suggestion);
+	unsigned char phase() {return move_phase;}
+
+private:
+
+	std::vector<MOVE> move_list;
+
+	unsigned char list_size;
+	unsigned char list_index; // 9 queens on an open board is 252 moves. this *may* not be enough moves.
+	unsigned char move_phase;
+};
+
+
+#endif
+
+
+
+//------------------------------------------------------------------------------------------
+	TAKEN FROM PVS:
+//------------------------------------------------------------------------------------------
+
+	while( move_list.NextRootMove(&next_move, game, hash_suggestion) ) {
+		game->MakeMove(next_move);
+		if(!game->isInCheck(!game->getActivePlayer())) {
+			move_count++;
+			node_count++;
+			fMate = false;
+			score = -PVS(depth-1, game, -beta, -alpha, false);
+			best_sub_move = next_move;
+			if( score >= beta ) {
+				game->unMakeMove(next_move);
+				if(move_list.phase() == NONCAPTURES) {
+					addKiller(depth, next_move);
+				}
+				hashtable->RecordHash( game->getKey(),depth, beta, HASH_BETA, &next_move );
+				return beta; }
+			if(score > alpha) {
+				hashe_flag = HASH_EXACT;					
+				alpha = score;
+				foundPV = true;
+				//best_sub_move = next_move;
+			}
+		}
+		game->unMakeMove(next_move);
+		if(move_count == 1) break;
+	}
+	
+	
+	//while( move_list.NextMove(&next_move, this, depth, game, hash_suggestion) ) {
+	while( move_list.NextRootMove(&next_move, game, hash_suggestion) ) {
+		
+
+		game->MakeMove(next_move);
+		if(!game->isInCheck(!game->getActivePlayer())) {
+			node_count++;
+			fMate = false;
+			short depth_adjustment = 0;
+			//-----------------------------------------------------------------------
+			/*
+			if(move_count == 0) {
+				score = -PVS(depth-1, game, -beta, -alpha, false); 
+			}
+			else {
+				if( move_list.phase() == NONCAPTURES	// Only reduce noncaptures
+				&& move_count >= LMR_THRESHOLD			// Wait for LATE moves
+				//&& !foundPV							// Do not reduce PV nodes
+				&& depth >= LMR_HORIZON					// Do not reduce too close to the horizon
+				&& !checked								// Do not reduce if in check
+				&& depth_adjustment == 0				// Do not reduce if already extended (also makes sure opponent is not in check)
+				) {
+					score = -PVS(depth-2, game, -(alpha+1), -alpha, false);
+				}
+				else {
+					score = alpha + 1; // is this hack needed?
+				}
+
+				if(score > alpha) {
+					score = -PVS(depth-1, game, -(alpha+1), -alpha, false);
+					if(score > alpha && score < beta) {
+						score = -PVS(depth-1, game, -beta, -alpha, false);
+					}
+				}
+			}
+			*/
+			//-----------------------------------------------------------------------
+			
+			/*
+			//Check extension:
+			if(game->isInCheck(game->getActivePlayer())) {
+				depth_adjustment = 1; //INCREASE the search depth by 1
+			}
+			*/
+
+			/*
+			//LMR:
+			if( move_list.phase() == NONCAPTURES	// Only reduce noncaptures
+			&&	move_count >= LMR_THRESHOLD			// Wait for LATE moves
+			//&& !foundPV							// Do not reduce PV nodes
+			&&	depth >= LMR_HORIZON				// Do not reduce too close to the horizon
+			&&	!checked							// Do not reduce if in check
+			&&	depth_adjustment == 0				// Do not reduce if already extended (also makes sure opponent is not in check)
+			) {
+				depth_adjustment = -1;
+			}
+			*/
+			move_count++;
+
+			//PVS:
+			if(foundPV) {
+				score = -PVS(depth-1 + depth_adjustment, game, -alpha-1, -alpha, false);
+				if ( (score > alpha) && (score < beta) ) {
+					score = -PVS(depth-1 + depth_adjustment, game, -beta, -alpha,false); }
+			}
+			else
+				score = -PVS(depth-1 + depth_adjustment, game, -beta, -alpha, false); 
+				
+			//Research at full depth if need be:
+			if(depth_adjustment > 0 && score > alpha)
+				score = -PVS(depth-1, game, -beta, -alpha, false); 
+			
+			//Normal Alpha-Beta:
+			if( score >= beta ) {
+				game->unMakeMove(next_move);
+				if(move_list.phase() == NONCAPTURES) {
+					addKiller(depth, next_move);
+				}
+				hashtable->RecordHash( game->getKey(),depth, beta, HASH_BETA, &next_move );
+				return beta; }
+			if(score > alpha) {
+				hashe_flag = HASH_EXACT;					
+				alpha = score;
+				foundPV = true;
+				best_sub_move = next_move;
+			}
+		}
+		game->unMakeMove(next_move);
+
+		/*****************************************************
+			Quit searching if the allotted time is up.
+		*****************************************************/
+		if(node_count % 2000000 == 0) {
+			if(isOutOfTime())
+				break;
+		}
+	}
+
+	//Return scores:
+	if(fMate) {
+		if(!game->isInCheck())
+			return contempt(game); //stalemate
+		else{
+			return (-MATE + (root_depth - depth)); //checkmate
+		}
+	}
+	else {
+		hashtable->RecordHash(game->getKey(), depth, alpha, hashe_flag, &best_sub_move);
+		return alpha;
+	}	
+
+//-----------------------------------------------------------------------------------
+	TAKEN FROM PVS ROOT:
+//-----------------------------------------------------------------------------------
+
+
+/***************************************************
+	Try to generate a good first move to search:
+***************************************************/
+/*
+	//First try the hashed suggestions:
+	if(hash_suggestion.from != 64) {
+		root_game->MakeMove(hash_suggestion);
+		if(!root_game->isInCheck(!root_game->getActivePlayer())) {
+			fMate = false;
+			score = -PVS(root_depth -1, root_game, -beta, -alpha); //Since foundPV will be false already;
+			alpha = score;
+			hashe_flag = HASH_EXACT;
+			foundPV = true;
+			best_move = hash_suggestion;
+			best_score = score;
+		}
+		root_game->unMakeMove(hash_suggestion);
+	}
+*/
+/****************************************************************
+	Try to search the remaining moves in the fastest manner:
+*****************************************************************/
+/*
+	typedef vector<MOVE> (*fn)(CHESSBOARD * g);
+	static fn MoveGenFunctions[] = {CaptureGen, nonCaptureGen};
+
+	short move_count = 0;
+	bool checked = root_game->isInCheck();
+	
+	clearKillers(root_depth-1);
+	for(int j=0; j <2; j++) {
+		vector<MOVE> move_list = MoveGenFunctions[j](root_game);
+		MoveSort(move_list);
+*/
+
+
+
+	//Make it soft:
+	while( move_list.NextRootMove(&next_move, root_game, hash_suggestion) ) {
+		root_game->MakeMove(next_move);
+		if(!root_game->isInCheck(!root_game->getActivePlayer())) {
+			node_count++;
+			move_count++;
+			fMate = false;
+			score = -PVS(root_depth -1, root_game, -beta, -alpha); //Since foundPV will be false already;
+			
+			/*
+			alpha = score;
+			hashe_flag = HASH_EXACT;
+			foundPV = true;
+			*/
+			best_move = next_move;
+			best_score = score;
+			
+			if(score > alpha) {
+				alpha = score;
+				hashe_flag = HASH_EXACT;
+				foundPV = true;
+				//best_move = move_list.at(i);
+				//best_move = next_move;
+				//best_score = score;
+			}
+
+
+		}
+		root_game->unMakeMove(next_move);
+		if( move_count == 1) break;
+	}
+
+	while( move_list.NextRootMove(&next_move, root_game, hash_suggestion) ) {
+		
+		//for (int i=0;  i < move_list.size(); i++) {
+			
+			//root_game->MakeMove(move_list.at(i));
+			root_game->MakeMove(next_move);
+			if(!root_game->isInCheck(!root_game->getActivePlayer())) {
+				node_count++;
+				fMate = false;
+				short depth_adjustment = 0;
+				
+				/*
+				if(move_count == 0) {
+					score = -PVS(root_depth-1, root_game, -beta, -alpha, false); 
+				}
+				else {
+					if( move_list.phase() == NONCAPTURES	// Only reduce noncaptures
+					&& move_count >= LMR_THRESHOLD			// Wait for LATE moves
+					//&& !foundPV							// Do not reduce PV nodes
+					&& root_depth >= LMR_HORIZON			// Do not reduce too close to the horizon
+					&& !checked								// Do not reduce if in check
+					&& depth_adjustment == 0				// Do not reduce if already extended (also makes sure opponent is not in check)
+					) {
+						score = -PVS(root_depth-2, root_game, -(alpha+1), -alpha, false);
+					}
+					else {
+						score = alpha + 1; // is this hack needed?
+					}
+
+					if(score > alpha) {
+						score = -PVS(root_depth-1, root_game, -(alpha+1), -alpha, false);
+						if(score > alpha && score < beta) {
+							score = -PVS(root_depth-1, root_game, -beta, -alpha, false);
+						}
+					}
+				}
+				*/
+				//-----------------------------------------------------------------------
+				
+				
+				/*
+				//Check extension:
+				if(root_game->isInCheck(root_game->getActivePlayer())) {
+					depth_adjustment = 1;			//INCREASE the search depth by 1
+				}
+				*/
+				
+				/*
+				//LMR:
+				if( move_list.phase() == NONCAPTURES		// Only reduce noncaptures
+					&& move_count >= LMR_THRESHOLD			// Wait for LATE moves
+					//&& !foundPV							// Do not reduce PV nodes
+					&& root_depth >= LMR_HORIZON			// Do not reduce too close to the horizon
+					&& !checked								// Do not reduce if in check
+					&& depth_adjustment == 0				// Do not reduce if already extended (also makes sure opponent is not in check)
+					) {
+					depth_adjustment = -1;
+				}
+				*/
+
+				move_count++;
+				
+				//PVS:
+				if(foundPV) {
+					score = -PVS(root_depth -1 + depth_adjustment, root_game, -alpha-1, -alpha);
+					if ( (score > alpha) && (score < beta) ) {
+						score = -PVS(root_depth-1 + depth_adjustment, root_game, -beta, -alpha); }
+				}
+				else {
+					score = -PVS(root_depth -1 + depth_adjustment, root_game, -beta, -alpha); 
+				}
+				//Research at normal depth if need be:
+				if(depth_adjustment > 0 && score > alpha)
+					score = -PVS(root_depth -1, root_game, -beta, -alpha); 	
+				
+				//Normal Alpha-Beta:
+				if( score >= beta ) {
+					//root_game->unMakeMove(move_list.at(i));
+					root_game->unMakeMove(next_move);
+					//hashtable->RecordHash(root_game->getKey(),root_depth, beta, HASH_BETA, &move_list.at(i));
+					hashtable->RecordHash(root_game->getKey(),root_depth, beta, HASH_BETA, &next_move);
+					//best_move = move_list.at(i);
+					best_move = next_move;
+					best_score = score;
+					break; 
+				}
+				if(score > alpha) {
+					alpha = score;
+					hashe_flag = HASH_EXACT;
+					foundPV = true;
+					//best_move = move_list.at(i);
+					best_move = next_move;
+					best_score = score;
+				}
+
+			}
+			//root_game->unMakeMove(move_list.at(i));
+			root_game->unMakeMove(next_move);
+			/*****************************************************
+				Quit searching if the allotted time is up.
+			*****************************************************/
+			if(node_count % 2000000 == 0) {
+				if(isOutOfTime())
+					break;
+			}
+		}
+	//}
+
+	if(fMate) {
+		//Check for a stalemate:
+		if(!root_game->isInCheck())
+			best_score = contempt(root_game);
+		//Return checkmate score:
+		else {
+			best_score = -MATE;
+		}
+	}
+	else {
+		hashtable->RecordHash(root_game->getKey(), root_depth, alpha, hashe_flag, &best_move);
+	}
+
+
+
+
+
+
+
+
+
+int SEARCH::PVS(int depth, CHESSBOARD * game, int alpha, int beta, bool fNulled) {
+
+	//Draw by 50 move rule or 3 fold repition:
+	if(game->getHalfMovesRule() >=4) {
+		//check for 3 fold:
+		if(game->checkThreeFold())
+			return contempt(game);
+		//check for 50 move:
+		if(game->getHalfMovesRule() >= 50)
+			return contempt(game);
+	}
+
+	//Hashe table Check:
+	//MOVE * hash_suggestion = NULL; // the move that was made from a search of lower depth.
+	MOVE hash_suggestion;
+	int score = hashtable->SearchHash(game->getKey(),depth,alpha,beta, &hash_suggestion);
+	if(score != HASH_UNKNOWN )
+		return score;
+	
+	char hashe_flag = HASH_ALPHA;
+	
+	//Final depth return:
+	if(depth <= 0) {
+		//int value = relative_eval(game);
+		int value = qSearch(game, alpha, beta,1);
+		//hashtable->RecordHash(game.getKey(),depth, value, HASH_EXACT);
+		return value; 
+	}
+
+	bool checked = game->isInCheck();
+
+
+/**************************************************************************************
+	Null move if it is not a King/pawn game and the previous move want a null move.
+***************************************************************************************/
+	
+	if(		!fNulled			//Do not null if we just nulled
+		&&	!checked			//Do not null in check, thats stupid
+		&&	(score>=alpha)		//Do not null if the hash table says that we might get a fail low.
+		&& ( (game->getPieceBB(game->getActivePlayer(), nPawn) | game->getPieceBB(game->getActivePlayer(), nKing)) 
+		   != game->getOccupiedBB(game->getActivePlayer())) ) 
+	{
+		game->NullMove(); //make nullmove!
+		score = -PVS(depth - 1 - 2, game, -beta,-beta+1, true);
+		game->unNullMove(); //unmake nullmove!
+		if (score >=beta) {
+			return beta; }
+	}
+	
+	MOVE best_sub_move;
+	bool foundPV = false;
+	bool fMate = true;
+	short move_count = 0;
+	int best_local_score = -INFINITY;
+
+/**************************************************************************************
+	First search the hash suggestion:
+***************************************************************************************/
+
+/*
+	if(hash_suggestion != NULL && (*hash_suggestion).from != 64) {
+	//if(hash_suggestion != NULL) {
+		node_count++;		
+		move_count++;
+		//game->MakeMove(hash_suggestion);
+		game->MakeMove(*hash_suggestion);
+		if(!game->isInCheck(!game->getActivePlayer())) {
+			fMate = false;
+			score = -PVS(depth -1, game, -beta, -alpha, false);
+			if( score >= beta ) {
+				//game->unMakeMove(hash_suggestion);
+				game->unMakeMove(*hash_suggestion);
+				//hashtable->RecordHash(game->getKey(),depth, beta, HASH_BETA, &hash_suggestion);
+				hashtable->RecordHash(game->getKey(),depth, beta, HASH_BETA, hash_suggestion);
+				return beta; }
+			if(score > alpha) {
+				hashe_flag = HASH_EXACT;					
+				alpha = score;
+				foundPV = true;
+				best_sub_move = *hash_suggestion;
+			}
+		}
+		//game->unMakeMove(hash_suggestion);
+		game->unMakeMove(*hash_suggestion);
+	}
+*/
+/****************************************************************
+	Try to search the remaining moves in the fastest manner:
+*****************************************************************/
+/*	
+	typedef vector<MOVE> (*fn)(CHESSBOARD * g);
+	static fn MoveGenFunctions[] = {CaptureGen, nonCaptureGen};
+	
+	for(int j=0; j <2; j++) {
+		vector<MOVE> move_list;
+		move_list = MoveGenFunctions[j](game);
+		short list_size = (short) move_list.size();
+		
+		//Prioritize killer moves:
+		if(j==1)
+			MoveSort(move_list, killer_move[0][depth], killer_move[1][depth] );
+		else
+			MoveSort(move_list); 	
+	*/	
+		//Clear the next set of killer moves:
+		clearKillers(depth-1);
+
+		//Go through the move list:
+		//for (int i=0;  i < list_size; i++) {
+		MOVE next_move;
+		MOVELIST move_list;
+		while( move_list.NextMove(&next_move, this, depth, game, hash_suggestion) ) {
+
+			node_count++;
+			//game->MakeMove(move_list.at(i));
+			game->MakeMove(next_move);
+			if(!game->isInCheck(!game->getActivePlayer())) {
+				move_count++;
+				fMate = false;
+				short depth_adjustment = 0;
+				
+				/*
+				//Check extension:
+				if(game->isInCheck(game->getActivePlayer())) {
+					depth_adjustment = 1; //INCREASE the search depth by 1
+				}
+				*/
+
+				/*
+				//LMR:
+				if( j == 1							// Do not reduce captures
+					&& move_count >= LMR_THRESHOLD	// Wait for LATE moves
+					&& i >= countKillers()			// Do not reduce killers
+					//&& !foundPV					// Do not reduce PV nodes
+					&& depth >= LMR_HORIZON			// Do not reduce too close to the horizon
+					&& !checked						// Do not reduce if in check
+					&& depth_adjustment == 0		// Do not reduce if already extended (also makes sure opponent is not in check)
+				) {
+					depth_adjustment = -1;
+				}
+				*/
+				//PVS:
+				if(foundPV) {
+					score = -PVS(depth-1 + depth_adjustment, game, -alpha-1, -alpha, false);
+					if ( (score > alpha) && (score < beta) ) {
+						score = -PVS(depth-1 + depth_adjustment, game, -beta, -alpha,false); }
+				}
+				else
+					score = -PVS(depth-1 + depth_adjustment, game, -beta, -alpha, false); 
+				
+				//Research at full depth if need be:
+				//if(depth_adjustment > 0 && score > alpha)
+				//	score = -PVS(depth-1, game, -beta, -alpha, false); 
+				
+				//Normal Alpha-Beta:
+				if( score >= beta ) {
+					//game->unMakeMove(move_list.at(i));
+					game->unMakeMove(next_move);
+					//if(j==1)
+						//addKiller(depth, move_list.at(i));
+					if(move_list.phase() == NONCAPTURES) {
+						addKiller(depth, next_move);
+					}
+					//hashtable->RecordHash( game->getKey(),depth, beta, HASH_BETA, &move_list.at(i) );
+					hashtable->RecordHash( game->getKey(),depth, beta, HASH_BETA, &next_move );
+					return beta; }
+				if(score > alpha) {
+					hashe_flag = HASH_EXACT;					
+					alpha = score;
+					foundPV = true;
+					//best_sub_move = move_list.at(i);
+					best_sub_move = next_move;
+				}
+			
+			}
+			//game->unMakeMove(move_list.at(i));
+			game->unMakeMove(next_move);
+
+			/*****************************************************
+				Quit searching if the allotted time is up.
+			*****************************************************/
+			if(node_count % 2000000 == 0) {
+				if(isOutOfTime())
+					break;
+			}
+		}
+		
+	//}
+
+	//Return scores:
+	if(fMate) {
+		if(!game->isInCheck())
+			return contempt(game); //stalemate
+		else
+			return (-MATE + (root_depth - depth)); //checkmate
+	}
+	else {
+		hashtable->RecordHash(game->getKey(), depth, alpha, hashe_flag, &best_sub_move);
+		return alpha;
+	}
+	
+}
+
+
+const int nSquareValue[2][8][64] = { 
+	//WHITE:
+	{
+		{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+		//Pawns:
+		{
+			0,  0,  0,  0,  0,  0,  0,  0,
+			5, 10, 10,-25,-25, 10, 10,  5,
+			5, -5,-10,  0,  0,-10, -5,  5,
+			0,  0,  0, 25, 25,  0,  0,  0,
+			5,  5, 10, 27, 27, 10,  5,  5,
+			10, 10, 20, 30, 30, 20, 10, 10,
+			50, 50, 50, 50, 50, 50, 50, 50,
+			0,  0,  0,  0,  0,  0,  0,  0
+		},
+		//Knights:
+		{
+			-50,-40,-30,-30,-30,-30,-40,-50,
+			-40,-20,  0,  5,  5,  0,-20,-40,
+			-30,  5, 10, 15, 15, 10,  5,-30,
+			-30,  0, 15, 20, 20, 15,  0,-30,
+			-30,  5, 15, 20, 20, 15,  5,-30,
+			-30,  0, 10, 15, 15, 10,  0,-30,
+			-40,-20,  0,  0,  0,  0,-20,-40,
+			-50,-40,-20,-30,-30,-20,-40,-50
+		},
+		//King (Early/Mid Game):
+		{
+			20,  30,  10,   0,   0,  10,  30,  20,
+			20,  20,   0,   0,   0,   0,  20,  20,
+			-10, -20, -20, -20, -20, -20, -20, -10, 
+			-20, -30, -30, -40, -40, -30, -30, -20,
+			-30, -40, -40, -50, -50, -40, -40, -30,
+			-30, -40, -40, -50, -50, -40, -40, -30,
+			-30, -40, -40, -50, -50, -40, -40, -30,
+			-30, -40, -40, -50, -50, -40, -40, -30	
+		},
+
+		{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+		//Bishops:
+		{
+			-20,-10,-40,-10,-10,-40,-10,-20,
+			-10,  5,  0,  0,  0,  0,  5,-10,
+			-10, 10, 10, 10, 10, 10, 10,-10,
+			-10,  0, 10, 10, 10, 10,  0,-10,
+			-10,  5,  5, 10, 10,  5,  5,-10,
+			-10,  0,  5, 10, 10,  5,  0,-10,
+			-10,  0,  0,  0,  0,  0,  0,-10,
+			-20,-10,-10,-10,-10,-10,-10,-20
+		},
+		//Rooks:
+		{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+		/*{
+			-30,-10,10,20,20,10,-10,-30,
+			0,0,0,0,0,0,0,0,
+			0,0,0,0,0,0,0,0,
+			0,0,0,0,0,0,0,0,
+			0,0,0,0,0,0,0,0,
+			0,0,0,0,0,0,0,0,
+			10,10,10,10,10,10,10,10,
+			15,15,15,15,15,15,15,15
+		},
+		*/
+		//Queens:
+		{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
+	},
+	//BLACK:
+	{
+		{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+		//Pawns:
+		{
+			0,  0,  0,  0,  0,  0,  0,  0,
+			50, 50, 50, 50, 50, 50, 50, 50,
+			10, 10, 20, 30, 30, 20, 10, 10,
+			5,  5, 10, 27, 27, 10,  5,  5,
+			0,  0,  0, 25, 25,  0,  0,  0,
+			5, -5,-10,  0,  0,-10, -5,  5,
+			5, 10, 10,-25,-25, 10, 10,  5,
+			0,  0,  0,  0,  0,  0,  0,  0
+		},
+		//Knights:
+		{
+			-50,-40,-30,-30,-30,-30,-40,-50,
+			-40,-20,  0,  0,  0,  0,-20,-40,
+			-30,  0, 10, 15, 15, 10,  0,-30,
+			-30,  5, 15, 20, 20, 15,  5,-30,
+			-30,  0, 15, 20, 20, 15,  0,-30,
+			-30,  5, 10, 15, 15, 10,  5,-30,
+			-40,-20,  0,  5,  5,  0,-20,-40,
+			-50,-40,-20,-30,-30,-20,-40,-50
+		},
+		//King (Early/Mid Game):
+		{
+			-30, -40, -40, -50, -50, -40, -40, -30,
+			-30, -40, -40, -50, -50, -40, -40, -30,
+			-30, -40, -40, -50, -50, -40, -40, -30,
+			-30, -40, -40, -50, -50, -40, -40, -30,
+			-20, -30, -30, -40, -40, -30, -30, -20,
+			-10, -20, -20, -20, -20, -20, -20, -10, 
+			 20,  20,   0,   0,   0,   0,  20,  20,
+			 20,  30,  10,   0,   0,  10,  30,  20
+		},
+		/* King (Late Game):
+		{
+			-50,-40,-30,-20,-20,-30,-40,-50,
+			-30,-20,-10,  0,  0,-10,-20,-30,
+			-30,-10, 20, 30, 30, 20,-10,-30,
+			-30,-10, 30, 40, 40, 30,-10,-30,
+			-30,-10, 30, 40, 40, 30,-10,-30,
+			-30,-10, 20, 30, 30, 20,-10,-30,
+			-30,-30,  0,  0,  0,  0,-30,-30,
+			-50,-30,-30,-30,-30,-30,-30,-50
+		}; */
+
+		{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+		//Bishops:
+		{
+			-20,-10,-10,-10,-10,-10,-10,-20,
+			-10,  0,  0,  0,  0,  0,  0,-10,
+			-10,  0,  5, 10, 10,  5,  0,-10,
+			-10,  5,  5, 10, 10,  5,  5,-10,
+			-10,  0, 10, 10, 10, 10,  0,-10,
+			-10, 10, 10, 10, 10, 10, 10,-10,
+			-10,  5,  0,  0,  0,  0,  5,-10,
+			-20,-10,-40,-10,-10,-40,-10,-20
+		},
+		//Rooks:
+		{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+		/*
+		{
+			15,15,15,15,15,15,15,15,
+			10,10,10,10,10,10,10,10,
+			0,0,0,0,0,0,0,0,
+			0,0,0,0,0,0,0,0,
+			0,0,0,0,0,0,0,0,
+			0,0,0,0,0,0,0,0,
+			0,0,0,0,0,0,0,0,
+			-30,-10,10,20,20,10,-10,-30
+		},
+		*/
+		//Queens:
+		{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
+	}
+};
+
+
+
+int SEARCH::PVS(int depth, CHESSBOARD * game, int alpha, int beta, bool fNulled) {
+
+	//Draw by 50 move rule or 3 fold repition:
+	if(game->getHalfMovesRule() >=4) {
+		//check for 3 fold:
+		if(game->checkThreeFold())
+			return contempt(game);
+		//check for 50 move:
+		if(game->getHalfMovesRule() >= 50)
+			return contempt(game);
+	}
+
+	//Hashe table Check:
+	MOVE hash_suggestion; // the move that was made from a search of lower depth.
+	int score = hashtable->SearchHash(game->getKey(),depth,alpha,beta, &hash_suggestion);
+	if(score != HASH_UNKNOWN )
+		return score;
+	
+	char hashe_flag = HASH_ALPHA;
+	
+	//Final depth return:
+	if(depth <= 0) {
+		//int value = relative_eval(game);
+		int value = qSearch(game, alpha, beta,1);
+		//hashtable->RecordHash(game.getKey(),depth, value, HASH_EXACT);
+		return value; 
+	}
+
+/**************************************************************************************
+	Null move if it is not a King/pawn game and the previous move want a null move.
+***************************************************************************************/
+
+	if((!fNulled) && 
+		( (game->getPieceBB(game->getActivePlayer(), nPawn) | game->getPieceBB(game->getActivePlayer(), nKing)) 
+		   != game->getOccupiedBB(game->getActivePlayer())) ) 
+	{
+		game->NullMove(); //make nullmove!
+		score = -PVS(depth - 1 - 2, game, -beta,-beta+1, true);
+		game->unNullMove(); //unmake nullmove!
+		if (score >=beta) {
+			return beta; }
+	}
+
+	MOVE best_sub_move;
+	bool foundPV = false;
+	bool fMate = true;
+
+/**************************************************************************************
+	First search the hash suggestion:
+***************************************************************************************/
+	int best_local_score = -INFINITY;
+	if(hash_suggestion.from != 64) {
+		node_count++;		
+		game->MakeMove(hash_suggestion);
+		if(!game->isInCheck(!game->getActivePlayer())) {
+			fMate = false;
+			score = -PVS(depth -1, game, -beta, -alpha, false);
+			if( score >= beta ) {
+				game->unMakeMove(hash_suggestion);
+				hashtable->RecordHash(game->getKey(),depth, beta, HASH_BETA, &hash_suggestion);
+				return beta; }
+			if(score > alpha) {
+				hashe_flag = HASH_EXACT;					
+				alpha = score;
+				foundPV = true;
+				best_sub_move = hash_suggestion;
+			}
+		}
+		game->unMakeMove(hash_suggestion);
+	}
+/*	
+	//Try to generate another good first move to search:
+	else if (!fNulled){
+		if(depth >= 6) {
+			SEARCH find_first_move(depth-2, game, hashtable, INFINITY);
+			find_first_move.start();
+			game->MakeMove(find_first_move.getBestMove());
+			if(!game->isInCheck(!game->getActivePlayer())) {
+				fMate = false;
+				score = -PVS(depth -1, game, -beta, -alpha);
+				if( score >= beta ) {
+					game->unMakeMove(find_first_move.getBestMove());
+					hashtable->RecordHash(game->getKey(),depth, beta, HASH_BETA, &find_first_move.getBestMove());
+					return beta; }
+				if(score > alpha) {
+					hashe_flag = HASH_EXACT;
+					alpha = score;
+					foundPV = true;
+					best_sub_move = find_first_move.getBestMove();
+				}
+			}
+			game->unMakeMove(find_first_move.getBestMove());
+		}
+	}
+	*/
+
+/****************************************************************
+	Try to search the remaining moves in the fastest manner:
+*****************************************************************/
+
+	typedef vector<MOVE> (*fn)(CHESSBOARD * g);
+	static fn MoveGenFunctions[] = {CaptureGen, nonCaptureGen};
+
+	for(int j=0; j <2; j++) {
+		vector<MOVE> move_list = MoveGenFunctions[j](game); //The Hashed move will be searched twice =(
+		MoveSort(&move_list);
+
+		//Fail-soft:
+		node_count++;
+		game->MakeMove(move_list.at(0));
+		if(!game->isInCheck()) {
+			fMate =false;
+			score = -PVS(depth-1,game,-beta,-alpha,false);
+			if(score >= beta){
+				game->unMakeMove(move_list.at(0));
+				hashtable->RecordHash( game->getKey(),depth, beta, HASH_BETA, &move_list.at(0) );
+				return score;
+			}
+			alpha = score;
+			hashe_flag = HASH_EXACT;					
+			alpha = score;
+			foundPV = true;
+			best_sub_move = move_list.at(0);
+		}
+		game->unMakeMove(move_list.at(0));
+		
+		//Go through the move list:
+		for (int i=1;  i < move_list.size(); i++) {
+			node_count++;
+			game->MakeMove(move_list.at(i));
+			if(!game->isInCheck(!game->getActivePlayer())) {
+				fMate = false;
+				//New PVS:
+				score = -PVS(depth -1, game, -alpha-1, -alpha, false);
+				if(score > alpha && score < beta) {
+					score = -PVS(depth -1, game, -beta, -alpha, false);
+					if(score > alpha) {
+						alpha = score;
+						hashe_flag = HASH_EXACT;
+						best_sub_move = move_list.at(i);
+					}
+				}
+				game->unMakeMove(move_list.at(i));
+				if(score > best_score) {
+					if(score >= beta) {
+						hashtable->RecordHash( game->getKey(),depth, beta, HASH_BETA, &move_list.at(i) );
+						return beta;
+					}
+					best_score = score;	
+				}
+
+				//PVS Addition:
+				/*
+				if(foundPV) {
+					score = -PVS(depth -1, game, -alpha-1, -alpha, false);
+					if ( (score > alpha) && (score < beta) ) {
+						score = -PVS(depth-1, game, -beta, -alpha,false); }
+				}
+				else {
+					score = -PVS(depth -1, game, -beta, -alpha, false); }
+				//Normal Alpha-Beta:
+				if( score >= beta ) {
+					game->unMakeMove(move_list.at(i));
+					hashtable->RecordHash( game->getKey(),depth, beta, HASH_BETA, &move_list.at(i) );
+					return beta; }
+				if(score > alpha) {
+					hashe_flag = HASH_EXACT;					
+					alpha = score;
+					foundPV = true;
+					best_sub_move = move_list.at(i);
+				}
+			*/
+			}
+			//game->unMakeMove(move_list.at(i));
+		
+			/*****************************************************
+				Quit searching if the allotted time is up.
+			*****************************************************/
+			if(node_count % 2000000 == 0) {
+				if(isOutOfTime())
+					break;
+			}
+		}
+	}
+
+	//Return scores:
+	if(fMate) {
+		if(!game->isInCheck())
+			return contempt(game); //stalemate
+		else
+			return (-MATE + (root_depth - depth)); //checkmate
+	}
+	else {
+		hashtable->RecordHash(game->getKey(), depth, alpha, hashe_flag, &best_sub_move);
+		return alpha;
+		
+	}
+	
+}
+
+
+
+
+
+
+
+
+
+vector<MOVE> MoveGen(CHESSBOARD *b) {
+	vector<MOVE> move_list;
+	
+	list<MOVE> test_list;
+	//test_list.push_back(MOVE(1,1,BLACK,nPawn));
+	list<MOVE>::iterator p;
+	p = test_list.begin();
+	AddToList( &p, MOVE(1,1,WHITE,nPawn) );
+	
+	bool toMove = b->getActivePlayer();
+
+/*	-------------------------------------
+	PAWN MOVES:
+	------------------------------------- */
+
+	bitboard pieceDB = b->getPieceBB(toMove,nPawn);
+
+	while(pieceDB) {
+		//quit after exhausting all of the bits in the current database.
+		int from = bitscan_lsb(pieceDB);
+		
+		//Single Advance:
+		bitboard advance = mask::pawn_advances[toMove][from] & ~b->getOccupiedBB(BOTH) ;
+		if(advance) {
+			int to = bitscan_lsb(advance);
+			move_list.push_back(MOVE(from,to,toMove, nPawn));
+			
+			//Double Advance:
+			advance = mask::pawn_double_advances[toMove][from] & ~b->getOccupiedBB(BOTH);
+			if(advance) {
+				to = bitscan_lsb(advance);
+				move_list.push_back(MOVE(from,to,toMove, nPawn));
+			}
+		}
+					
+		bitboard kill_list = mask::pawn_captures[toMove][from] & (b->getOccupiedBB(!toMove) | b->enPassant[!toMove]);
+		while(kill_list) {
+			int index = bitscan_lsb(kill_list);
+			move_list.push_back( MOVE(from,index,toMove, nPawn,b->getBoard(index)) );
+			kill_list ^= mask::square[index];
+		}
+		pieceDB ^= mask::square[from]; //remove bit from DB
+	}
+
+/*	-------------------------------------
+	KNIGHT MOVES:
+	------------------------------------- */
+
+	pieceDB = b->getPieceBB(toMove,nKnight);
+	 while(pieceDB) {
+		 int from = bitscan_lsb(pieceDB);
+		 bitboard validMoveDB = mask::knight_moves[from] & ~b->getOccupiedBB(toMove);
+		 while(validMoveDB) {
+			 int target = bitscan_lsb(validMoveDB);
+			 move_list.push_back(MOVE(from,target,toMove, nKnight, b->getBoard(target))); //add something for captures here!
+			 validMoveDB ^= mask::square[target];
+		 }
+		 pieceDB ^= mask::square[from]; //remove bit from DB
+	 }
+
+/*	-------------------------------------
+	BISHOP MOVES:
+	------------------------------------- */
+
+	pieceDB = b->getPieceBB(toMove, nBishop);
+	while(pieceDB) {
+		int from = bitscan_lsb(pieceDB);
+		//NW:
+		bitboard nwMoves = mask::nw[from];
+		int blockedSquare = bitscan_lsb(nwMoves & b->getOccupiedBB(BOTH));
+		nwMoves ^= mask::nw[blockedSquare];
+		nwMoves &= ~b->getOccupiedBB(toMove);
+		while(nwMoves) {
+			int target = bitscan_lsb(nwMoves);
+			move_list.push_back(MOVE(from,target,toMove,nBishop, b->getBoard(target)));
+			nwMoves^=mask::square[target];
+		}
+		//NE:
+		bitboard neMoves = mask::ne[from];
+		blockedSquare = bitscan_lsb(neMoves & b->getOccupiedBB(BOTH));
+		neMoves ^= mask::ne[blockedSquare];
+		neMoves &= ~b->getOccupiedBB(toMove);
+		while(neMoves) {
+			int target = bitscan_lsb(neMoves);
+			move_list.push_back(MOVE(from,target,toMove,nBishop,b->getBoard(target)));
+			neMoves^=mask::square[target];
+		}
+		//SE:
+		bitboard seMoves = mask::se[from];
+		blockedSquare = bitscan_msb(seMoves & b->getOccupiedBB(BOTH));
+		seMoves ^= mask::se[blockedSquare];
+		seMoves &= ~b->getOccupiedBB(toMove);
+		while(seMoves) {
+			int target = bitscan_lsb(seMoves);
+			move_list.push_back(MOVE(from,target,toMove,nBishop,b->getBoard(target)));
+			seMoves^=mask::square[target];
+		}
+		//SW:
+		bitboard swMoves = mask::sw[from];
+		blockedSquare = bitscan_msb(swMoves & b->getOccupiedBB(BOTH));
+		swMoves ^= mask::sw[blockedSquare];
+		swMoves &= ~b->getOccupiedBB(toMove);
+		while(swMoves) {
+			int target = bitscan_lsb(swMoves);
+			move_list.push_back(MOVE(from,target,toMove,nBishop,b->getBoard(target)));
+			swMoves^=mask::square[target];
+		} 
+		pieceDB ^= mask::square[from]; //remove bit from DB
+	}
+
+/*	-------------------------------------
+	ROOK MOVES:
+	------------------------------------- */
+
+	pieceDB = b->getPieceBB(toMove, nRook);
+	while(pieceDB) {
+		int from = bitscan_lsb(pieceDB);
+		//North:
+		bitboard northMoves = mask::north[from];
+		int blockedSquare = bitscan_lsb(northMoves & b->getOccupiedBB(BOTH));
+		northMoves ^= mask::north[blockedSquare];
+		northMoves &= ~b->getOccupiedBB(toMove);
+		while(northMoves) {
+			int target = bitscan_lsb(northMoves);
+			move_list.push_back(MOVE(from,target,toMove,nRook,b->getBoard(target)));
+			northMoves^=mask::square[target];
+		}
+		//East:
+		bitboard eastMoves = mask::east[from];
+		blockedSquare = bitscan_msb(eastMoves & b->getOccupiedBB(BOTH));
+		eastMoves ^= mask::east[blockedSquare];
+		eastMoves &= ~b->getOccupiedBB(toMove);
+		while(eastMoves) {
+			int target = bitscan_lsb(eastMoves);
+			move_list.push_back(MOVE(from,target,toMove,nRook,b->getBoard(target)));
+			eastMoves^=mask::square[target];
+		}
+		//South:
+		bitboard southMoves = mask::south[from];
+		blockedSquare = bitscan_msb(southMoves & b->getOccupiedBB(BOTH));
+		southMoves ^= mask::south[blockedSquare];
+		southMoves &= ~b->getOccupiedBB(toMove);
+		while(southMoves) {
+			int target = bitscan_lsb(southMoves);
+			move_list.push_back(MOVE(from,target,toMove,nRook,b->getBoard(target)));
+			southMoves^=mask::square[target];
+		}
+		//West:
+		bitboard westMoves = mask::west[from];
+		blockedSquare = bitscan_lsb(westMoves & b->getOccupiedBB(BOTH));
+		westMoves ^= mask::west[blockedSquare];
+		westMoves &= ~b->getOccupiedBB(toMove);
+		while(westMoves) {
+			int target = bitscan_lsb(westMoves);
+			move_list.push_back(MOVE(from,target,toMove,nRook,b->getBoard(target)));
+			westMoves^=mask::square[target];
+		} 
+		pieceDB ^= mask::square[from]; //remove bit from DB
+	}
+
+/*	-------------------------------------
+	QUEEN MOVES:
+	------------------------------------- */
+
+	pieceDB = b->getPieceBB(toMove, nQueen);
+	while(pieceDB) {
+		int from = bitscan_lsb(pieceDB);
+		//North:
+		bitboard northMoves = mask::north[from];
+		int blockedSquare = bitscan_lsb(northMoves & b->getOccupiedBB(BOTH));
+		northMoves ^= mask::north[blockedSquare];
+		northMoves &= ~b->getOccupiedBB(toMove);
+		while(northMoves) {
+			int target = bitscan_lsb(northMoves);
+			move_list.push_back(MOVE(from,target,toMove,nQueen, b->getBoard(target)));
+			northMoves^=mask::square[target];
+		}
+		//East:
+		bitboard eastMoves = mask::east[from];
+		blockedSquare = bitscan_msb(eastMoves & b->getOccupiedBB(BOTH));
+		eastMoves ^= mask::east[blockedSquare];
+		eastMoves &= ~b->getOccupiedBB(toMove);
+		while(eastMoves) {
+			int target = bitscan_lsb(eastMoves);
+			move_list.push_back(MOVE(from,target,toMove,nQueen, b->getBoard(target)));
+			eastMoves^=mask::square[target];
+		}
+		//South:
+		bitboard southMoves = mask::south[from];
+		blockedSquare = bitscan_msb(southMoves & b->getOccupiedBB(BOTH));
+		southMoves ^= mask::south[blockedSquare];
+		southMoves &= ~b->getOccupiedBB(toMove);
+		while(southMoves) {
+			int target = bitscan_lsb(southMoves);
+			move_list.push_back(MOVE(from,target,toMove,nQueen, b->getBoard(target)));
+			southMoves^=mask::square[target];
+		}
+		//West:
+		bitboard westMoves = mask::west[from];
+		blockedSquare = bitscan_lsb(westMoves & b->getOccupiedBB(BOTH));
+		westMoves ^= mask::west[blockedSquare];
+		westMoves &= ~b->getOccupiedBB(toMove);
+		while(westMoves) {
+			int target = bitscan_lsb(westMoves);
+			move_list.push_back(MOVE(from,target,toMove,nQueen, b->getBoard(target)));
+			westMoves^=mask::square[target];
+		} 
+		//NW:
+		bitboard nwMoves = mask::nw[from];
+		blockedSquare = bitscan_lsb(nwMoves & b->getOccupiedBB(BOTH));
+		nwMoves ^= mask::nw[blockedSquare];
+		nwMoves &= ~b->getOccupiedBB(toMove);
+		while(nwMoves) {
+			int target = bitscan_lsb(nwMoves);
+			move_list.push_back(MOVE(from,target,toMove,nQueen, b->getBoard(target)));
+			nwMoves^=mask::square[target];
+		}
+		//NE:
+		bitboard neMoves = mask::ne[from];
+		blockedSquare = bitscan_lsb(neMoves & b->getOccupiedBB(BOTH));
+		neMoves ^= mask::ne[blockedSquare];
+		neMoves &= ~b->getOccupiedBB(toMove);
+		while(neMoves) {
+			int target = bitscan_lsb(neMoves);
+			move_list.push_back(MOVE(from,target,toMove,nQueen, b->getBoard(target)));
+			neMoves^=mask::square[target];
+		}
+		//SE:
+		bitboard seMoves = mask::se[from];
+		blockedSquare = bitscan_msb(seMoves & b->getOccupiedBB(BOTH));
+		seMoves ^= mask::se[blockedSquare];
+		seMoves &= ~b->getOccupiedBB(toMove);
+		while(seMoves) {
+			int target = bitscan_lsb(seMoves);
+			move_list.push_back(MOVE(from,target,toMove,nQueen, b->getBoard(target)));
+			seMoves^=mask::square[target];
+		}
+	
+		//SW:
+		bitboard swMoves = mask::sw[from];
+		blockedSquare = bitscan_msb(swMoves & b->getOccupiedBB(BOTH));
+		swMoves ^= mask::sw[blockedSquare];
+		swMoves &= ~b->getOccupiedBB(toMove);
+		while(swMoves) {
+			int target = bitscan_lsb(swMoves);
+			move_list.push_back(MOVE(from,target,toMove,nQueen, b->getBoard(target)));
+			swMoves^=mask::square[target];
+		}
+		pieceDB ^= mask::square[from]; //remove bit from DB
+	}
+
+/*	-------------------------------------
+	KING MOVES:
+	------------------------------------- */
+
+	pieceDB = b->getPieceBB(toMove,nKing);
+	 while(pieceDB) {
+		 int from = bitscan_lsb(pieceDB);
+		 bitboard validMoveDB = mask::king_moves[from] & ~b->getOccupiedBB(toMove);
+		 while(validMoveDB) {
+			 int target = bitscan_lsb(validMoveDB);
+			 MOVE m(from,target,toMove,nKing, b->getBoard(target));
+			 //if(!willKingBeInCheck(b,m))
+				move_list.push_back(m); //add something for captures here!   (???)
+			 validMoveDB ^= mask::square[target];
+		 }
+		 pieceDB ^= mask::square[from]; //remove bit from DB
+	 }
+	 if(b->queenCastle[toMove] == true ) {
+		 if((b->getOccupiedBB(BOTH) & mask::qCastle_path[toMove]) == 0){
+			int from = bitscan_lsb(mask::king_spawn[toMove]);
+			int target = bitscan_lsb(mask::qCastle[toMove]);
+			MOVE m(from,target,toMove,nKing, b->getBoard(target));
+			//if(!willKingBeInCheck(b,m))
+				move_list.push_back(m);
+		 }
+	 }
+	 if(b->kingCastle[toMove] == true ) {
+		 if((b->getOccupiedBB(BOTH) & mask::kCastle_path[toMove])==0) {
+			int from = bitscan_lsb(mask::king_spawn[toMove]);
+			int target = bitscan_lsb(mask::kCastle[toMove]);
+			MOVE m(from,target,toMove,nKing,b->getBoard(target));
+			//if(!willKingBeInCheck(b,m))
+				move_list.push_back(m);
+		 }
+	 }
+
+/*	------------------------------------- */
+
+	 sort(move_list.begin(), move_list.end(), MoveCompare );
+
+	 return move_list;
+
+}
