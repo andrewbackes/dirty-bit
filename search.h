@@ -9,41 +9,15 @@
 #include "move.h"
 #include "evaluate.h"
 #include "nextmove.h"
+#include "engine.h"
 
 #include "parameters.h"
 
 class SEARCH {
 public:
-	SEARCH(int depth, CHESSBOARD * game, HASHTABLE * h, long time )
-	{	root_depth = depth; root_game = game; q_max_ply = 0; selective_depth = 0;
-		start_time =0; end_time = 0; allotted_time = time; fTimeOut = false;
-		node_count =0; best_score = -INFTY; 
-		hashtable = h; side_to_move = game->getActivePlayer();
-		//move_list = new MOVELIST[root_depth+1];
-		//for(int i =0; i<=root_depth; i++) {
-		for(int i =0; i < MAX_PLY; i++) {
-			move_list[i].linkGame(root_game);
-		}
-		for(int i =0; i < Q_CUTOFF; i++ ) {
-			q_move_list[i].linkGame(root_game);
-		}
-		#ifdef SEARCH_STATS
-			for(int i=0; i <= BAD_CAPTURES; i++)
-				cutoff_phase[i]=0;
-			for(int i=0; i < 256; i++) {
-				cutoff_move[i]=0;
-				alpha_move[i]=0;
-			}
-		#endif
-	}
-	~SEARCH() 
-	{	
-		//hashtable->printStats();
-		#ifdef SEARCH_STATS
-			if(root_depth >= 8) print_stats();
-		#endif
-		//delete move_list;
-	}
+	SEARCH(int depth, CHESSBOARD * game, HASHTABLE * h, long time);
+	SEARCH(ENGINE * e, ITERATION_INFO * id);
+	~SEARCH();
 
 	void	start(int alpha_bound = -INFTY, int beta_bound = INFTY);
 	
@@ -124,7 +98,8 @@ public:
 	#endif
 
 private:
-	
+	bool abort();
+
 	CHESSBOARD * root_game;
 	bool side_to_move;
 	int root_depth;
@@ -144,6 +119,8 @@ private:
 	int best_score;
 
 	bool fTimeOut;
+
+	ITERATION_INFO * iteration;
 
 	HASHTABLE * hashtable;
 	std::vector<MOVE> pv;

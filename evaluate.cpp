@@ -19,11 +19,12 @@ using namespace std;
 PAWNTABLE pawntable;
 
 int contempt(CHESSBOARD * b) {
-	//return DRAW;
-	
+	return DRAW;
+	/*
 	if(b->getMaterialValue(b->getActivePlayer()) >= b->getMaterialValue(!b->getActivePlayer()))
 		return -50;
 	return DRAW;
+	*/
 }
 
 bool insufficientMaterial(CHESSBOARD *b) {
@@ -171,13 +172,13 @@ void PawnEval::Opening(CHESSBOARD *b, short &opening_bonus, short &endgame_bonus
 		pawn_opening_score += nSquareValue[WHITE][nPawn][square];
 		pawn_endgame_score += nEndgamePawnValue[WHITE][square];
 		// Edge pawn penalty:
-		if ((1i64 << square) & (FileMask(a) | FileMask(h)))
+		if ((((bitboard)1) << square) & (FileMask(a) | FileMask(h)))
 			pawn_opening_score += -EDGE_PAWN_PENALTY;
 		/***********************************
 			Passed/Canidates:
 		***********************************/
 		if (!(b->getPieceBB(BLACK, nPawn) & mask::passed_pawn[WHITE][square])) {
-			pawn_structure.passed_pawns[WHITE] |= (1i8 << FileOf(square));
+			pawn_structure.passed_pawns[WHITE] |= ((unsigned char)1 << FileOf(square)); //unsigned char was 1i8
 			pawn_opening_score += passed_pawn_value[RankOf(square) - 1];
 			pawn_endgame_score += passed_pawn_late_value[RankOf(square) - 1];
 		}
@@ -195,7 +196,7 @@ void PawnEval::Opening(CHESSBOARD *b, short &opening_bonus, short &endgame_bonus
 			Strength (how connected):
 		*********************************************/
 		//Pawn Duo
-		if ((b->getPieceBB(WHITE, nPawn)&~FileMask(a))&(1i64 << (square - 1))) {//check the pawn to the right.
+		if ((b->getPieceBB(WHITE, nPawn)&~FileMask(a))&(((bitboard)1) << (square - 1))) {//check the pawn to the right.
 			pawn_opening_score += PAWN_DUO_EARLY_VALUE;
 			pawn_endgame_score += PAWN_DUO_LATE_VALUE;
 		}
@@ -230,7 +231,7 @@ void PawnEval::Opening(CHESSBOARD *b, short &opening_bonus, short &endgame_bonus
 							| ((b->getPieceBB(BLACK, nPawn) & ~FileMask(h)) >> 9)
 							| ((b->getPieceBB(BLACK, nPawn) & ~FileMask(a)) >> 7);
 
-						if (!(enemy_control & (1i64 << (square + 8)))) backwards = false;
+						if (!(enemy_control & (((bitboard)1) << (square + 8)))) backwards = false;
 					}
 					//at spawn, is the friend 2 moves away?
 					else if ((RankOf(square) == 2) && (RankOf(square + 16) >= RankOf(closest_friend))) {
@@ -238,7 +239,7 @@ void PawnEval::Opening(CHESSBOARD *b, short &opening_bonus, short &endgame_bonus
 						bitboard enemy_control = b->getPieceBB(BLACK, nPawn)
 							| ((b->getPieceBB(BLACK, nPawn) & ~FileMask(h)) >> 9)
 							| ((b->getPieceBB(BLACK, nPawn) & ~FileMask(a)) >> 7);
-						if (!(enemy_control & ((1i64 << (square + 8)) | (1i64 << (square + 16))))) backwards = false;
+						if (!(enemy_control & ((((bitboard)1) << (square + 8)) | (((bitboard)1) << (square + 16))))) backwards = false;
 					}
 				}
 				if (backwards) {
@@ -286,7 +287,7 @@ void PawnEval::Opening(CHESSBOARD *b, short &opening_bonus, short &endgame_bonus
 			}
 		}
 		//Turn off the bit:
-		pieceDB ^= (1i64 << square);
+		pieceDB ^= (((bitboard)1) << square);
 		//cout << index_to_alg(square) << ": " << pawn_opening_score << "/" << pawn_endgame_score << endl;
 	}
 	
@@ -309,14 +310,14 @@ void PawnEval::Opening(CHESSBOARD *b, short &opening_bonus, short &endgame_bonus
 		pawn_opening_score -= nSquareValue[BLACK][nPawn][square];
 		pawn_endgame_score -= nEndgamePawnValue[BLACK][square];
 		//Edge pawn penalty
-		if ((1i64 << square) & (FileMask(a) | FileMask(h)))
+		if ((((bitboard)1) << square) & (FileMask(a) | FileMask(h)))
 			pawn_opening_score -= -EDGE_PAWN_PENALTY;
 		/*********************************************
 			Passed/Canidates:
 		*********************************************/
 		//Passed pawn bonus:
 		if (!(b->getPieceBB(WHITE, nPawn) & mask::passed_pawn[BLACK][square])) {
-			pawn_structure.passed_pawns[BLACK] |= (1i8 << FileOf(square));
+			pawn_structure.passed_pawns[BLACK] |= ((unsigned char)1 << FileOf(square)); // (unsigned char) was 1i8
 			pawn_opening_score -= passed_pawn_value[9 - RankOf(square) - 1];
 			pawn_endgame_score -= passed_pawn_late_value[9 - RankOf(square) - 1];
 		}
@@ -334,7 +335,7 @@ void PawnEval::Opening(CHESSBOARD *b, short &opening_bonus, short &endgame_bonus
 			Strength (how connected):
 		*********************************************/
 		//Pawn Duo
-		if ((b->getPieceBB(BLACK, nPawn)&~FileMask(h))&(1i64 << (square + 1))) {//check the pawn to the left.
+		if ((b->getPieceBB(BLACK, nPawn)&~FileMask(h))&(((bitboard)1) << (square + 1))) {//check the pawn to the left.
 			pawn_opening_score -= PAWN_DUO_EARLY_VALUE;
 			pawn_endgame_score -= PAWN_DUO_LATE_VALUE;
 		}
@@ -368,7 +369,7 @@ void PawnEval::Opening(CHESSBOARD *b, short &opening_bonus, short &endgame_bonus
 						bitboard enemy_control = b->getPieceBB(WHITE, nPawn)
 							| ((b->getPieceBB(WHITE, nPawn) & ~FileMask(a)) << 9)
 							| ((b->getPieceBB(WHITE, nPawn) & ~FileMask(h)) << 7);
-						if (!(enemy_control & (1i64 << (square - 8)))) backwards = false;
+						if (!(enemy_control & (((bitboard)1) << (square - 8)))) backwards = false;
 					}
 					//at spawn, is the friend 2 moves away?
 					else if ((RankOf(square) == 7) && (RankOf(square - 16) <= RankOf(closest_friend))) {
@@ -376,7 +377,7 @@ void PawnEval::Opening(CHESSBOARD *b, short &opening_bonus, short &endgame_bonus
 						bitboard enemy_control = b->getPieceBB(WHITE, nPawn)
 							| ((b->getPieceBB(WHITE, nPawn) & ~FileMask(a)) << 9)
 							| ((b->getPieceBB(WHITE, nPawn) & ~FileMask(h)) << 7);
-						if (!(enemy_control & ((1i64 << (square - 8)) | (1i64 << (square - 16))))) backwards = false;
+						if (!(enemy_control & ((((bitboard)1) << (square - 8)) | (((bitboard)1) << (square - 16))))) backwards = false;
 					}
 				}
 				if (backwards) {
@@ -424,7 +425,7 @@ void PawnEval::Opening(CHESSBOARD *b, short &opening_bonus, short &endgame_bonus
 		}
 
 		//Turn off the bit:
-		pieceDB ^= (1i64 << square);
+		pieceDB ^= (((bitboard)1) << square);
 		//cout << index_to_alg(square) << ": " << pawn_opening_score << "/" << pawn_endgame_score << endl;
 	}
 	#ifdef ENABLE_PAWN_HASH
@@ -511,11 +512,11 @@ int evaluate(CHESSBOARD * b, bool side_to_move) {
 	// King safety, Pawn Shelter, Pawn Storm:
 	if (!end_game[WHITE]) {
 		//Short Side:
-		if ((1i64 << square) & mask::short_castle_area[WHITE]) {
+		if ((((bitboard)1) << square) & mask::short_castle_area[WHITE]) {
 			opening_score += -pawn_structure.short_shelter_penalty[WHITE];
 		}
 		//Long Side:
-		else if ((1i64 << square) & mask::long_castle_area[WHITE]) {
+		else if ((((bitboard)1) << square) & mask::long_castle_area[WHITE]) {
 			opening_score += -pawn_structure.long_shelter_penalty[WHITE];
 		}
 		
@@ -539,11 +540,11 @@ int evaluate(CHESSBOARD * b, bool side_to_move) {
 	
 	if (!end_game[BLACK]) {
 		//Short Side:
-		if ((1i64 << square) & mask::short_castle_area[BLACK]) {
+		if ((((bitboard)1) << square) & mask::short_castle_area[BLACK]) {
 			opening_score -= -pawn_structure.short_shelter_penalty[BLACK];
 		}
 		//Long Side:
-		else if ((1i64 << square) & mask::long_castle_area[BLACK]) {
+		else if ((((bitboard)1) << square) & mask::long_castle_area[BLACK]) {
 			opening_score -= -pawn_structure.long_shelter_penalty[BLACK];
 		}
 		//Middle Area:
@@ -589,7 +590,7 @@ int evaluate(CHESSBOARD * b, bool side_to_move) {
 		}
 		//Reduce value in late game:
 		endgame_score += -KNIGHT_LATE_PENALTY;
-		pieceDB ^= (1i64 << square);
+		pieceDB ^= (((bitboard)1) << square);
 	}
 
 	pieceDB = b->getPieceBB(BLACK, nKnight);
@@ -613,7 +614,7 @@ int evaluate(CHESSBOARD * b, bool side_to_move) {
 		//Reduce value in late game:
 		endgame_score -= -KNIGHT_LATE_PENALTY;
 
-		pieceDB ^= (1i64 << square);
+		pieceDB ^= (((bitboard)1) << square);
 	}
 	
 	/*******************************************************************************
@@ -650,7 +651,7 @@ int evaluate(CHESSBOARD * b, bool side_to_move) {
 			attackers_weight[WHITE] += BISHOP_THREAT_WEIGHT;
 		}
 
-		pieceDB ^= (1i64 << square);
+		pieceDB ^= (((bitboard)1) << square);
 	}
 
 	pieceDB = b->getPieceBB(BLACK, nBishop);
@@ -680,7 +681,7 @@ int evaluate(CHESSBOARD * b, bool side_to_move) {
 			king_attackers[BLACK]++;
 			attackers_weight[BLACK] += BISHOP_THREAT_WEIGHT;
 		}
-		pieceDB ^= (1i64 << square);
+		pieceDB ^= (((bitboard)1) << square);
 	}
 	
 	/*******************************************************************************
@@ -755,7 +756,7 @@ int evaluate(CHESSBOARD * b, bool side_to_move) {
 			}
 		}
 		
-		pieceDB ^= (1i64 << square);
+		pieceDB ^= (((bitboard)1) << square);
 	}
 
 	pieceDB = b->getPieceBB(BLACK, nRook);
@@ -823,7 +824,7 @@ int evaluate(CHESSBOARD * b, bool side_to_move) {
 				*/
 			}
 		}
-		pieceDB ^= (1i64 << square);
+		pieceDB ^= (((bitboard)1) << square);
 	}
 
 	
@@ -854,7 +855,7 @@ int evaluate(CHESSBOARD * b, bool side_to_move) {
 			attackers_weight[WHITE] += QUEEN_THREAT_WEIGHT;
 		}
 
-		pieceDB ^= (1i64 << square);
+		pieceDB ^= (((bitboard)1) << square);
 	}
 
 	pieceDB = b->getPieceBB(BLACK, nQueen);
@@ -876,7 +877,7 @@ int evaluate(CHESSBOARD * b, bool side_to_move) {
 			king_attackers[BLACK]++;
 			attackers_weight[BLACK] += QUEEN_THREAT_WEIGHT;
 		}
-		pieceDB ^= (1i64 << square);
+		pieceDB ^= (((bitboard)1) << square);
 	}
 
 	/*******************************************************************************
@@ -901,7 +902,7 @@ int evaluate(CHESSBOARD * b, bool side_to_move) {
 		if (material.no_pieces(BLACK)) {
 			//check the rule of the square or if the king is supporting:
 			if (!(mask::rule_of_the_square[WHITE][square] & b->getPieceBB(BLACK, nKing))
-			|| ((king_circle[WHITE] & ((1i64 << square)) && (king_circle[WHITE]&RankMask(8)))) 
+			|| ((king_circle[WHITE] & ((((bitboard)1) << square)) && (king_circle[WHITE]&RankMask(8)))) 
 			){
 				endgame_score += (GUARANTEED_PROMOTION_VALUE) / ((9) - RankOf(square));			
 			}
@@ -944,7 +945,7 @@ int evaluate(CHESSBOARD * b, bool side_to_move) {
 		if (material.no_pieces(WHITE)) {
 			// check the rule of the square or if the king is supporting:
 			if (!(mask::rule_of_the_square[BLACK][square] & b->getPieceBB(WHITE, nKing))
-			|| ((king_circle[BLACK] & (1i64 << square))&&(king_circle[BLACK] &RankMask(1))) 
+			|| ((king_circle[BLACK] & (((bitboard)1) << square))&&(king_circle[BLACK] &RankMask(1))) 
 			){
 				endgame_score -= (GUARANTEED_PROMOTION_VALUE) / (RankOf(square));
 			}
@@ -1063,7 +1064,7 @@ void PawnEval_loop(CHESSBOARD *b, short &opening_score, short &endgame_score) {
 				pawn_endgame_score[color] += -DOUBLED_PAWN_LATE_PENALTY;
 			}
 			//Turn off the bit:
-			pieceDB ^= (1i64 << square);
+			pieceDB ^= (((bitboard)1) << square);
 		}
 
 	}
@@ -1130,7 +1131,7 @@ int evaluate_loop(CHESSBOARD * b, int alpha, int beta) {
 		king_circle[color] = mask::king_moves[square];
 		
 		//Temporary Pawn Fortress bonus:
-		if ((1i64 << square) & (color == WHITE ? 231i64 : 16645304222761353216i64)) {
+		if ((((bitboard)1) << square) & (color == WHITE ? 23((bitboard)1) : 16645304222761353216i64)) {
 			opening_score[color] += SHELTER_BONUS		 *	bitcount(king_circle[color] & b->getPieceBB((bool)color, nPawn));
 			opening_score[color] += PIECE_SHELTER_BONUS  *	bitcount(king_circle[color] & b->getOccupiedBB(color));
 		}
@@ -1170,7 +1171,7 @@ int evaluate_loop(CHESSBOARD * b, int alpha, int beta) {
 			//Reduce value in late game:
 			endgame_score[color] += -KNIGHT_LATE_PENALTY;
 
-			pieceDB ^= (1i64 << square);
+			pieceDB ^= (((bitboard)1) << square);
 		}
 
 
@@ -1203,7 +1204,7 @@ int evaluate_loop(CHESSBOARD * b, int alpha, int beta) {
 				endgame_score[color] += BISHOP_KING_THREAT_LATE_BONUS;// * (  (mobility&king_circle[!color])? 1 : 0  );//bitcount(mobility&king_circle[!color]); //(  (mobility&king_circle[!color])? 1 : 0  );
 			}
 
-			pieceDB ^= (1i64 << square);
+			pieceDB ^= (((bitboard)1) << square);
 		}
 
 		/*******************************************************************************
@@ -1249,7 +1250,7 @@ int evaluate_loop(CHESSBOARD * b, int alpha, int beta) {
 					}
 				}
 			}
-			pieceDB ^= (1i64 << square);
+			pieceDB ^= (((bitboard)1) << square);
 		}
 
 		/*******************************************************************************
@@ -1288,7 +1289,7 @@ int evaluate_loop(CHESSBOARD * b, int alpha, int beta) {
 				opening_score[color] += QUEEN_KING_THREAT_EARLY_BONUS;// * (  (mobility&king_circle[!color])? 1 : 0  );//bitcount(mobility&king_circle[!color]); //(  (mobility&king_circle[!color])? 1 : 0  );
 				endgame_score[color] += QUEEN_KING_THREAT_LATE_BONUS;//  * (  (mobility&king_circle[!color])? 1 : 0  );//bitcount(mobility&king_circle[!color]); //(  (mobility&king_circle[!color])? 1 : 0  );
 			}
-			pieceDB ^= (1i64 << square);
+			pieceDB ^= (((bitboard)1) << square);
 		}
 
 

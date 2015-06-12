@@ -17,26 +17,26 @@ public:
 	unsigned char	promote_piece_to;
 	bool			color;
 	
-
-	void print(bool verbose = false);
+	std::string		to_str();
+	void			print(bool verbose = false);
 	
-	MOVE::MOVE(unsigned char from, unsigned char to, bool color, unsigned char active_piece_id, unsigned char captured_piece, unsigned char promote_piece_to, short static_value)
+	MOVE(unsigned char from, unsigned char to, bool color, unsigned char active_piece_id, unsigned char captured_piece, unsigned char promote_piece_to, short static_value)
 		: from(from), to(to), color(color), active_piece_id(active_piece_id), captured_piece(captured_piece), promote_piece_to(promote_piece_to), static_value(static_value)
 	{}
 
-	MOVE::MOVE(unsigned char from, unsigned char to, bool color, unsigned char active_piece_id, unsigned char captured_piece, unsigned char promote_piece_to) 
+	MOVE(unsigned char from, unsigned char to, bool color, unsigned char active_piece_id, unsigned char captured_piece, unsigned char promote_piece_to)
 		: from(from), to(to), color(color), active_piece_id(active_piece_id), captured_piece(captured_piece), promote_piece_to(promote_piece_to), static_value(0) 
 	{}
-	MOVE::MOVE(unsigned char from, unsigned char to, bool color,unsigned char active_piece_id, unsigned char captured_piece) 
+	MOVE(unsigned char from, unsigned char to, bool color,unsigned char active_piece_id, unsigned char captured_piece)
 		: from(from), to(to), color(color), active_piece_id(active_piece_id), captured_piece(captured_piece), promote_piece_to(0), static_value(0) 
 	{}
-	MOVE::MOVE(unsigned char from, unsigned char to, bool color, unsigned char active_piece_id) 
+	MOVE(unsigned char from, unsigned char to, bool color, unsigned char active_piece_id)
 		: from(from), to(to), color(color), active_piece_id(active_piece_id), captured_piece(0), promote_piece_to(0), static_value(0) 
 	{}
-	MOVE::MOVE(unsigned char from, unsigned char to, bool color) 
+	MOVE(unsigned char from, unsigned char to, bool color)
 		: from(from), to(to), color(color), active_piece_id(0), captured_piece(0), promote_piece_to(0), static_value(0) 
 	{}
-	MOVE::MOVE() 
+	MOVE() 
 		: from(64), to(64), active_piece_id(64), captured_piece(64), promote_piece_to(64), static_value(0) 
 	{}
 

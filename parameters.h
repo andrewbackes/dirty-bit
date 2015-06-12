@@ -8,7 +8,7 @@ General Info:
 *******************************************************************************/
 
 #define ID_NAME		"DirtyBit"
-#define ID_VERSION	"0.39.5"
+#define ID_VERSION	"0.40 rev.1"
 #define ID_AUTHOR	"Andrew Backes"
 
 
@@ -18,50 +18,13 @@ Debug:
 
 *******************************************************************************/
 
-//#define DEBUG_TIME
-//#define DEBUG_SEARCH
-//#define SEARCH_STATS
-//#define DEBUG_ZOBRIST
-//#define DEBUG_KILLERS
-
-/*******************************************************************************
-
-Search:
-
-*******************************************************************************/
-#define NODES_FOR_TIME_CHECK		2000000
-
-#define MAX_PLY						128
-
-#define Q_CUTOFF					50
-
-#define ENABLE_CHECK_EXTENSIONS
-
-#define ENABLE_KILLER_MOVES		
-
-#define PVS_HORIZON					2
-
-#define ENABLE_LMR
-#define ENABLE_ROOT_LMR
-#define LMR_THRESHOLD				4	// Minimum number of moves to search fully before reducing
-#define LMR_HORIZON					3	// Depth at which reductions will not occur
-#define LMR_REDUCTION				1	// Depth to reduce by
-
-#define ENABLE_FUTILITY_PRUNING
-#define FUTILITY_DEPTH				4
-const short
-//futility_margin[] =					{ 0, 190, 190, 375, 375 };
-futility_margin[] =					{ 0, 120, 120, 310, 310 };
-
-
-#define ENABLE_NULLMOVE
-#define NULL_REDUCTION				3
-
-//#define ENABLE_IID
-#define IID_REDUCTION				2
-#define IID_HORIZON					6
-
-//#define INSUFFICIENT_MATERIAL_CHECK
+#ifndef NDEBUG
+	//#define DEBUG_TIME
+	//#define DEBUG_SEARCH
+	//#define SEARCH_STATS
+	//#define DEBUG_ZOBRIST
+	//#define DEBUG_KILLERS
+#endif
 
 /*******************************************************************************
 
@@ -123,6 +86,13 @@ Board and Pieces:
 #define KING_SIDE			0
 #define QUEEN_SIDE			1
 
+#define INFTY 2147483647
+#define WIN 2147483647
+#define LOOSE -2147483647
+#define MATE 16384
+#define NEARMATE 15384
+#define DRAW 0
+
 /*******************************************************************************
 
 Bitboards:
@@ -157,7 +127,8 @@ Engine:
 
 *******************************************************************************/
 
-#define ASPIRATION_WINDOW		34
+#define LAG_TIME				60 //ms for possible delays
+#define ASPIRATION_WINDOW		34//20//34//t1=10, t2=20
 #define A_LOT					100					// TODO: come up with a better name.
 #define A_LITTLE				16					// TODO: come up with a better name.
 #define DEFAULT_NPS				2500000	// For when the current NPS has not yet been calculated.
@@ -165,6 +136,50 @@ Engine:
 #define TIME_WIGGLE_ROOM		1.25	//25% time buffer.
 
 #define ENABLE_PONDERING		false
+
+/*******************************************************************************
+
+Search:
+
+*******************************************************************************/
+
+#define NODES_FOR_TIME_CHECK		1500000
+
+#define MAX_PLY						128
+
+#define Q_CUTOFF					50
+
+#define ENABLE_CHECK_EXTENSIONS
+
+#define ENABLE_KILLER_MOVES		
+
+#define PVS_HORIZON					2
+
+#define ENABLE_LMR
+#define ENABLE_ROOT_LMR
+#define LMR_THRESHOLD				4// Minimum number of moves to search fully before reducing
+#define LMR_HORIZON					3	// Depth at which reductions will not occur
+#define LMR_REDUCTION				1	// Depth to reduce by
+
+//#define ENABLE_LMP
+
+#define ENABLE_FUTILITY_PRUNING
+#define FUTILITY_DEPTH				4//8//4
+const short
+//futility_margin[] =					{ 0, 190, 190, 375, 375 };
+futility_margin[] =					{ 0, 120, 120, 310, 310 };
+									//{ 0, 90, 140, 190, 240, 290, 340, 390, 440 }; //ip3
+									//{ 0, 40, 80, 120, 160, 200, 240, 280, 320 };//ip2
+//#define ENABLE_BETA_PRUNING
+
+#define ENABLE_NULLMOVE
+#define NULL_REDUCTION				3
+
+//#define ENABLE_IID
+#define IID_REDUCTION				2
+#define IID_HORIZON					6//3
+
+//#define INSUFFICIENT_MATERIAL_CHECK
 
 /*******************************************************************************
 
