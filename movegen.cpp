@@ -236,5 +236,17 @@ In order:
 
 }
 
+/*********************************************************************
 
+uncheckGen is designed to generate moves that get the king out
+of check.
+
+*********************************************************************/
+
+void uncheckGen(CHESSBOARD * b, MOVELIST * m) {
+	// First determine which pieces are attacking the king.
+
+
+
+}
 

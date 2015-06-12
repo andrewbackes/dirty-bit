@@ -7,6 +7,8 @@
 
 #include "parameters.h"
 
+bool valid_killer(MOVE killer, CHESSBOARD * linked_game);
+
 class MOVELIST {
 public:
 	MOVELIST() {

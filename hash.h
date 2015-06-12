@@ -6,6 +6,14 @@
 
 #include "parameters.h"
 
+struct PAWNSTRUCTURE {
+
+	unsigned char short_shelter_penalty[2];
+	unsigned char long_shelter_penalty[2];
+	unsigned char mid_shelter_penalty[2];
+
+	bitrow passed_pawns[2];
+};
 
 /*******************************************************************************
 	Pawn Hash Table:
@@ -15,9 +23,13 @@ struct PAWNHASH {
 	//Note: all scores are from the POV of white
 	//		who is to move is not recorded
 	//bitboard key;
+	
 	phash_lock key;
+	
 	short opening_value;
 	short ending_value;
+	
+	PAWNSTRUCTURE pawn_structure;
 };
 
 class PAWNTABLE {
@@ -37,23 +49,40 @@ public:
 		deinitialize();	initialize();	}
 
 	//Getters and setters:
-	bool getScores(phash_lock key, short &opening_v, short &ending_v) {
+	//bool getScores(phash_lock key, short &opening_v, short &ending_v, bitrow & pp_w, bitrow & pp_b, short & short_score, short & long_score) {
+	bool getScores(phash_lock key, short &opening_v, short &ending_v, PAWNSTRUCTURE &pstruct) {
 		//PAWNHASH * pEntry = &table[key % size];
 		PAWNHASH * pEntry = &table[key & 2097151];
 		if( pEntry->key == key) {
 			opening_v = pEntry->opening_value;
 			ending_v  = pEntry->ending_value;
+			pstruct = pEntry->pawn_structure;
+
+			/*
+			pstruct.passed_pawns[WHITE] = pEntry->pawn_structure.passed_pawns[WHITE];
+			pstruct.passed_pawns[BLACK] = pEntry->pawn_structure.passed_pawns[BLACK];
+			pstruct.short_shelter_penalty = pEntry->pawn_structure.short_shelter_penalty;
+			pstruct.long_shelter_penalty= pEntry->pawn_structure.long_shelter_penalty;
+			*/
 			return true;
 		}
 		return false;
 	}
-	void saveScore(phash_lock key, short opening_v, short ending_v) {
+	void saveScore(phash_lock key, short opening_v, short ending_v, PAWNSTRUCTURE pstruct) {
 		//PAWNHASH * pEntry = &table[key % size];
 		PAWNHASH * pEntry = &table[key & 2097151];
 
 		pEntry->key = key;
 		pEntry->opening_value = opening_v;
 		pEntry->ending_value = ending_v;
+		pEntry->pawn_structure = pstruct;
+
+		/*
+		pEntry->pawn_structure.passed_pawns[WHITE] = pstruct.passed_pawns[WHITE];
+		pEntry->pawn_structure.passed_pawns[BLACK] = pstruct.passed_pawns[BLACK];
+		pEntry->pawn_structure.short_shelter_penalty = pstruct.short_shelter_penalty;
+		pEntry->pawn_structure.long_shelter_penalty = pstruct.long_shelter_penalty;
+		*/
 	}
 
 private:

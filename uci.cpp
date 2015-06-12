@@ -22,6 +22,8 @@
 #include "SEE.h"
 #include "perft.h"
 #include "evaluate.h"
+#include "precompute.h"
+#include "debug.h"
 
 using namespace std;
 
@@ -37,6 +39,8 @@ bool fexists(string filename) {
 	return ( (bool) ifile );
 }
 */
+
+
 
 void benchmark(CHESSBOARD b, int depth, string label) {
 /*
@@ -76,7 +80,7 @@ void benchmark(CHESSBOARD b, int depth, string label) {
 		file_out << index_to_alg(search.getBestMove().from) << index_to_alg(search.getBestMove().to) << " ";
 		
 		b.MakeMove(search.getBestMove());
-		int score = -relative_eval(&b);
+		int score = -evaluate(&b);
 	
 		//console:
 		cout << "--> info depth " << search.getDepth() << " nodes " << search.getNodes() << " score cp " << score << " time " << search.getRunTime() << " nps " << search.getNPS() << " pv " ;
@@ -118,100 +122,6 @@ void benchmark(CHESSBOARD b, int depth, string label) {
 */
 };
 
-void printMoves(CHESSBOARD * b) {
-	MOVELIST moves;
-	moves.linkGame(b);
-	bool toMove = b->getActivePlayer();
-	//unsigned char old_phase = 0;
-	//int counter = 0;
-	//if(moves.hash_suggestion.from == 64) old_phase = 1;
-	while(moves.NextMove()) {
-			
-		b->MakeMove(*moves.move());
-		if(!b->isInCheck(toMove)) {
-			//if(counter == 0 || (moves.phase() > 1 && old_phase == 0) )
-			//	cout << "Movegen Phase " << (int)old_phase << ": ";
-			moves.move()->print();
-			//counter++;
-			//if(old_phase != moves.phase()) {
-			//	cout << endl;
-			//	old_phase = moves.phase();
-			//	counter =0;
-			//}
-
-		}
-		b->unMakeMove(*moves.move());
-	}
-	cout << endl;
-	/*
-	vector<MOVE> move_list = MoveGen(b);
-	MoveSort(move_list);
-
-	cout << "Psuedolegal Moves: \n";
-	for (int i=0; i < move_list.size(); i++) {
-		move_list.at(i).print() ;
-		//cout << "(" << move_list.at(i).static_value << ")";
-	}		
-	cout << " (" << move_list.size() << ")" << endl;
-	cout << "Lazy Psuedolegal Moves: \n";
-
-	typedef vector<MOVE> (*fn)(CHESSBOARD * g);
-	static fn MoveGenFunctions[] = {CaptureGen, nonCaptureGen};
-	
-	int counter =0;
-	for(int j=0; j <2; j++) {
-		move_list = MoveGenFunctions[j](b);
-		for (int i=0; i < move_list.size(); i++) {
-			move_list.at(i).print() ;
-			counter++;
-		}
-	}
-	cout << " (" << counter << ")" << endl << endl;
-	
-	/*
-	cout << endl << endl;
-	cout << "Legal Moves: \n";
-	for (int i=0; i < move_list.size(); i++) {
-		bool isLegal = isMoveLegal(b, move_list.at(i));
-		if( isLegal ) {
-			move_list.at(i).print() ;
-			//cout << "(" << move_list.at(i).static_value << ")";
-		}
-	}		
-	cout << endl;
-	*/
-}
-
-void printCaptures(CHESSBOARD * b) {
-	
-	/*
-	vector<MOVE> capture_list = CaptureGen(b);	
-	MoveSort(capture_list);
-	cout << "Captures: \n";
-	//for (list<MOVE>::iterator it=move_list.begin(); it != move_list.end(); ++it) {
-	for (int i=0; i < capture_list.size(); i++) {
-		capture_list.at(i).print() ;
-		//cout << "(" << capture_list.at(i).static_value << "). ";
-	}		
-	cout << endl;
-	*/
-}
-
-void printSEE(CHESSBOARD * b) {
-	MOVELIST cap_list;
-	cap_list.reset();
-	CaptureGen(b,&cap_list);
-	for(int i = 0; i < cap_list.capture_size(); i++) {
-		cap_list.capture_at(i).print();
-		cout << " SEE1: ";
-		cout << SEE1(b,cap_list.capture_at(i));
-		cout << ". SEE2: ";
-		cout << SEE2(b,cap_list.capture_at(i));
-		cout << ". SEE3: ";
-		cout << SEE3(b,cap_list.capture_at(i));
-		cout << endl;
-	}
-}
 
 void uci_setoption(string cmd_input) {
 	//ex: setoption name Hash value 32
@@ -290,9 +200,9 @@ int uci_go(CHESSBOARD * game, string go_string, BOOK * book, string move_history
 			moves_till_time_control = str_to_int(value);
 		}
 		else if(command == "infinite" || command == "INFINITE") {
-			//give 3 min for each move.
-			time_remaining[WHITE] = (long) floor((180000 * moves_till_time_control) / time_factor);
-			time_remaining[BLACK] = (long) floor((180000 * moves_till_time_control) / time_factor);
+			//give 1 hour for each move.
+			time_remaining[WHITE] = (long)floor((3600000 * moves_till_time_control) / time_factor);
+			time_remaining[BLACK] = (long)floor((3600000 * moves_till_time_control) / time_factor);
 		}
 	}
 
@@ -708,43 +618,7 @@ string uci_position(CHESSBOARD * b, string cmd_input) {
 	return move_history;
 }
 
-void uci_test(CHESSBOARD * game) {
-	BOOK b;
-	TIMER t1;
 
-	t1.start();
-	cout << "STARTING POSITION:\n";
-	game->newgame();
-	int d1 = uci_go(game,"", &b, "");
-	t1.end();
-	TIMER t2;
-	
-	t2.start();
-	cout << "\n \nGAME OF THE CENTURY QUEEN SACRIFICE:\n";
-	game->position("r3r1k1/pp3pbp/1qp3p1/2B5/2BP2b1/Q1n2N2/P4PPP/3R1K1R b - - 3 17");
-	int d2 = uci_go(game,"", &b, "");
-	t2.end();
-	
-	TIMER t3;
-	t3.start();
-	cout << "\n \nGAME OF THE CENTURY (MATE IN 15?):\n";
-	game->position("4r1k1/1p3pbp/1Qp3p1/8/r1b5/2n2N2/P4PPP/3R2KR b - - 0 25");
-	int d3 = uci_go(game,"", &b, "");
-	t3.end();
-	
-	TIMER t4;
-	t4.start();
-	cout << "\n\nRETI ENDGAME POSITION:\n";
-	game->position("7K/8/k1P5/7p/8/8/8/8 w - -");
-	int d4 = uci_go(game,"", &b, "");
-	t4.end();
-	cout << "Position               Depth\tTime" << endl;
-	cout << "-------------------------------------------------\n";
-	cout << "Start   		" << d1 << "\t" << t1.time()/1000.0 << endl;
-	cout << "Midgame 1		" << d2 << "\t" << t2.time()/1000.0 << endl;
-	cout << "Midgame 2		" << d3 << "\t" << t3.time()/1000.0 << endl;
-	cout << "King-Pawn		" << d4 << "\t" << t4.time()/1000.0 << endl;
-}
 
 void uci_move(CHESSBOARD * b, string cmd_input) {
 	stringstream command_stream(cmd_input);
@@ -809,65 +683,7 @@ void uci_unmove(CHESSBOARD * b, string cmd_input) {
 		promote_piece_id					));
 }
 
-void uci_perftsuite() {
-	
-	cout << "Perft Suite:\n";
-	string filename = "perftsuite_results.txt";
-	ofstream file_out;
-	file_out.open(filename);
-	
-	ifstream file_in;
-	file_in.open("perftsuite.epd");
 
-	CHESSBOARD test_board;
-	int record_num = 0;
-	
-	while(file_in) {
-		bool passed = true;
-		record_num++;
-		cout << record_num << ": ";
-		file_out << record_num << ": ";
-		
-		string line;
-		if(!getline(file_in, line)) break;
-
-		istringstream line_stream( line );
-		vector<string> line_data;
-
-		while(line_stream) {
-			string entry;
-			if(!getline( line_stream, entry, ';')) break;
-			line_data.push_back(entry);
-		}
-
-		test_board.position(line_data[0]);
-		for(int i =1; i < line_data.size() ; i++) {
-			istringstream depth_record( line_data[i] );
-			bitboard node_goal;
-			string depth;
-			depth_record >> depth >> node_goal;
-			bitboard nodes = perft(&test_board,i);
-			if( nodes != node_goal) {
-				passed = false;
-				cout << depth << "- FAILED! (" << nodes << "!=" << node_goal << "). ";
-				file_out << depth << "- FAILED! (" << nodes << "!=" << node_goal << "). ";
-				break;
-			}
-		}
-		if(passed == true) {
-			cout << "passed."; 
-			file_out << "passed.";
-		}
-		cout << endl;
-	}
-
-	cout << "Completed.\n";
-	file_out << "Completed.\n";
-
-	file_in.close();
-	file_out.close();
-	
-}
 
 int UCI_loop()
 {	
@@ -974,13 +790,18 @@ int UCI_loop()
 			active_game.print_bb(); 
 		}
 		else if(command == "printMoves" || command == "movegen" || command == "moves") {
-			printMoves(&active_game);
+			print::moves(&active_game);
 		}
 		else if(command == "captures" || command == "movegencaptures") {
-			printCaptures(&active_game);
+			print::captures(&active_game);
 		}
 		else if(command == "SEE" || command == "see") {
-			printSEE(&active_game);
+			print::SEE(&active_game);
+		}
+		else if (command == "ray") {
+			int from, to;
+			command_stream >> from >> to;
+			bitprint(mask::ray[from][to]);
 		}
 		else if(command == "divide") {
 			
@@ -998,24 +819,30 @@ int UCI_loop()
 			
 		}
 		else if(command == "perftsuite") {
-			uci_perftsuite();
+			test::perftsuite();
 		}
 		else if(command == "t" || command == "test") {
-			uci_test(&active_game);
+			test::bench(&active_game);
+		}
+		else if (command == "symmetric") {
+			test::symmetry(&active_game);
+		}
+		else if (command == "ptest") {
+			test::pawneval();
 		}
 		else if(command == "eval") {
 			
 			bool toMove = active_game.getActivePlayer();
-			short phase_gauge = ((active_game.getMaterialValue(toMove) > active_game.getMaterialValue(!toMove)) ? active_game.getMaterialValue(toMove) : active_game.getMaterialValue(!toMove)) - 9900; //This will range from 0 to 4055
-			phase_gauge = (phase_gauge < 1300 ) ? 0 : phase_gauge - 1300; //This will range from 0 to 2775
-			cout << "Relative Evaluation: "  << relative_eval(&active_game) << endl;
-			cout << "Phase Gauge:         " << phase_gauge << endl;
-			cout << "Formula:             " << "opening_bonus*(" << ((double)phase_gauge)/2775 <<") + endgame_bonus*(" << (double)1 - ((double)phase_gauge)/2775 << ")\n";
-			cout << "Formula 2:           ";
+			//short phase_gauge = ((active_game.getMaterialValue(toMove) > active_game.getMaterialValue(!toMove)) ? active_game.getMaterialValue(toMove) : active_game.getMaterialValue(!toMove)) - 9900; //This will range from 0 to 4055
+			//phase_gauge = (phase_gauge < 1300 ) ? 0 : phase_gauge - 1300; //This will range from 0 to 2775
+			cout << "Relative Evaluation: "  << evaluate(&active_game, active_game.getActivePlayer()) << endl;
+			//cout << "Phase Gauge:         " << phase_gauge << endl;
+			//cout << "Formula:             " << "opening_bonus*(" << ((double)phase_gauge)/2775 <<") + endgame_bonus*(" << (double)1 - ((double)phase_gauge)/2775 << ")\n";
+			//cout << "Formula 2:           ";
 		}
 		else if(command == "pawneval") {
 			short s=0, o=0, e=0;
-			PawnEval(&active_game, s, o, e);
+			//PawnEval(&active_game, o, e);
 			cout << "White Opening: " << o << "\nWhite Ending:  " << e << endl;
 		}
 		else if(command == "id" || command == "i" ) {
@@ -1053,6 +880,8 @@ int UCI_loop()
 		}
 		else if(command == "benchmark" ) {
 			benchmark(active_game,depth, cmd_input); }
+		else if (command == "parameters" || command == "param") {
+			print::params();		}
 
 	}
 

@@ -4,7 +4,8 @@
 #include "parameters.h"
 
 typedef unsigned long long bitboard;
-typedef unsigned long phash_lock;
+typedef unsigned char bitrow;
+typedef unsigned long long phash_lock;
 
 enum { h=0,g,f,e,d,c,b,a };
 
@@ -48,6 +49,8 @@ namespace mask {
 
 	const bitboard royal_rank[2][8] = {{square[0],square[1], square[2], square[3], square[4], square[5], square[6], square[7]},{square[56],square[57],square[58],square[59],square[60],square[61],square[62],square[63]}};
 
+	extern bitboard ray[64][64];
+
 	//For Castling:
 	const bitboard qRook_spawn[2] = {square[a1],square[a8]};
 	const bitboard kRook_spawn[2] = {square[h1],square[h8]};
@@ -65,6 +68,21 @@ namespace mask {
 	const bitboard pawn_enPassant[2][65] = {{0,0,0,0,0,0,0,0, square[h3],square[g3],square[f3],square[e3],square[d3],square[c3],square[b3],square[a3], 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  square[h6],square[g6],square[f6],square[e6],square[d6],square[c6],square[b6],square[a6], 0,0,0,0,0,0,0,0}};
 
 	//For evaluation:
+	const bitboard trapped_rook_short_king[] = { 6, 432345564227567616 };
+	const bitboard trapped_rook_short[] = { 259, 216454257090494464 };
+	const bitboard trapped_rook_long_king[] = { 96, 6917529027641081856 };
+	const bitboard trapped_rook_long[] = { 32960, 13871086852301127680 };
+	const bitboard trapped_bishop_long[] = { 9077842876825600, 1077944320 };
+	const bitboard trapped_bishop_short[] = { 1128107520032768, 33686528 };
+	const bitboard short_castle_area[] = { 7, 504403158265495552 };
+	const bitboard long_castle_area[] = { 224, 16140901064495857664 };
+	const bitboard between_castle_area[] = { 6168, 1736137656351326208 };
+	const bitboard short_castle_pawns[] = { 1792 ,  1970324836974592  };
+	const bitboard long_castle_pawns[] = {  57344 ,  63050394783186944  };
+	const bitboard mid_castle_pawns[] = { 7168 , 7881299347898368 };
+
+	extern bitboard rule_of_the_square[2][64];
+
 	const bitboard isolated_pawn[64] = {
 		144680345676153346,361700864190383365,723401728380766730,1446803456761533460,2893606913523066920,5787213827046133840,11574427654092267680,4629771061636907072,
 		144680345676153346,361700864190383365,723401728380766730,1446803456761533460,2893606913523066920,5787213827046133840,11574427654092267680,4629771061636907072,

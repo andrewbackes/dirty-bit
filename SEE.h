@@ -7,6 +7,9 @@
 #include "move.h"
 #include "evaluate.h"
 
+extern int ordering_tables[2][8][64];
+void initOrderingTables(short t);
+
 CAPTURER getSmallestAttacker( unsigned char toSquare, bool toMove, CHESSBOARD * b);
 
 void findAttackingSquares(bitboard &attackers, CHESSBOARD *b, unsigned char square);

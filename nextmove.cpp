@@ -9,6 +9,35 @@
 
 using namespace std;
 
+bool valid_killer(MOVE killer, CHESSBOARD * linked_game) {
+// Todo: worry about castles
+
+	// First check the source and destination squares:
+	if ( linked_game->getOccupiedBB(killer.color)&(1i64 << killer.from) ) {
+	//if (linked_game->getPieceBB(killer.color,killer.active_piece_id) & (1i64 << killer.from)) {
+		
+		// For knights, we just check the destination square
+		if (killer.active_piece_id == nKnight) {
+			return ( (linked_game->getOccupiedBB(BOTH)&(1i64 << killer.to)) == 0 );
+		}
+
+		// For Kings, destination matters and we avoid castles.
+		else if (killer.active_piece_id == nKing) {
+			if ( mask::king_moves[killer.from] & (1i64 << killer.from) )
+				return ((linked_game->getOccupiedBB(BOTH)&(1i64 << killer.to)) == 0);
+		}
+
+		// For sliders, we have to check the entire path along the way.
+		// Pawns are also considered here since they can double jump.
+		else {
+			if ( (mask::ray[killer.from][killer.to] & linked_game->getOccupiedBB(BOTH)) == 0 )
+				return true;
+		}
+	}
+	return false;
+}
+
+
 /*******************************************************************************
 
 Returns the next move in the search. Lazy generation / sorts in phases. 
@@ -83,23 +112,11 @@ bool MOVELIST::NextMove() {
 	if( next_move_phase == KILLER_MOVE_1 ) {
 		if( move_index < move_list_size ) {
 			move_index++;
-			if(	linked_game->getBoard(getKiller(0).from) == getKiller(0).active_piece_id
-			//&&	linked_game->getBoard(getKiller(0).to)	== getKiller(0).captured_piece 
-			&&	getKiller(0).color == linked_game->getActivePlayer() 
-			) {
-				/*
-				//DEBUG ONLY:
-				if(capture_list_size > 5) {
-					cout << "K: ";
-					killer_move[0].print();
-					cout << "(" << killer_move[0].static_value << ")\n";
-				}
-				*/
-				
+			if (valid_killer(killer_move[0], linked_game)) {
 				pMove = &killer_move[0];
 				move_phase = KILLER_MOVE_1;
 				#ifdef SEARCH_STATS
-					current_phase = KILLER_MOVE_1;
+				current_phase = KILLER_MOVE_1;
 				#endif
 				return true;
 			}
@@ -112,23 +129,11 @@ bool MOVELIST::NextMove() {
 	if( next_move_phase == KILLER_MOVE_2 ) {
 		if( move_index < move_list_size ) {
 			move_index++;
-			if(	linked_game->getBoard(getKiller(1).from) == getKiller(1).active_piece_id
-			//&&	linked_game->getBoard(getKiller(1).to)	== getKiller(1).captured_piece 
-			&&	getKiller(1).color == linked_game->getActivePlayer() 
-			) {
-				/*
-				//DEBUG ONLY:
-				if(capture_list_size > 5) {
-					cout << "K: ";
-					killer_move[1].print();
-					cout << "(" << killer_move[1].static_value << ")\n";
-				}
-				*/
-				//*next_move = getKiller(1);
+			if (valid_killer(killer_move[1], linked_game)) {	
 				pMove = &killer_move[1];
 				move_phase = KILLER_MOVE_2;
 				#ifdef SEARCH_STATS
-					current_phase = KILLER_MOVE_2;
+				current_phase = KILLER_MOVE_2;
 				#endif
 				return true;
 			}
@@ -383,37 +388,37 @@ void MOVELIST::clearKillers() {
 }
 
 void MOVELIST::addKiller(MOVE killer) {
-	//cout << "Added Killer: ";
-	//killer.print(true);
-	//cout << endl;
+
+	// First check if the killer slots are empty.
+	// Then check if we already saved this killer.
 	if(killer_counter[0] == 0) {
-		killer_move[0]= killer;
-		killer_counter[0]=1;
+		killer_move[0] = killer;
+		killer_counter[0] = 1;
 		return;
 	}
-	
-	if(killer_counter[1] == 0) {
-		killer_move[1] = killer;
-		killer_counter[1]=1;
-		return;
-	}
-	
-	if(killer_move[0] == killer) {
+	else if (killer_move[0] == killer) {
 		killer_counter[0]++;
 		return;
 	}
-	if(killer_move[1] == killer) {
+	else if (killer_counter[1] == 0) {
+		killer_move[1] = killer;
+		killer_counter[1] = 1;
+		return;
+	}
+	else if (killer_move[1] == killer) {
 		killer_counter[1]++;
 		return;
 	}
-
+	
+	// Now that we know this move is not one of the 2 saved killers
+	// and the 2 killer slots are not empty, we need to decide which killer to overwrite
 	if(killer_counter[0] >= killer_counter[1]) {
-		killer_move[1] = killer;
-		killer_counter[1]=1;
+		killer_move[0] = killer;
+		killer_counter[0] = 1;
 	}
 	else {
-		killer_move[0]= killer;
-		killer_counter[0]=1;
+		killer_move[1]= killer;
+		killer_counter[1]=1;
 	}
 }
 
@@ -431,6 +436,7 @@ bool QMOVELIST::NextQMove() {
 	if( move_phase == CAPTURES ) {
 		if( list_index < list_size 
 			&& move_list[list_index].static_value >=0 ) {
+			//) {
 			//*next_move = move_list[list_index++];
 			pMove = &move_list[list_index++];
 			return true;

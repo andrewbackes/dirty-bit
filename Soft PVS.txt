@@ -11,7 +11,7 @@ int SEARCH::qSearch(CHESSBOARD * game, int alpha, int beta, int qDepth) {
 		return value;
 	*/
 
-	int value = relative_eval(game,alpha, beta);
+	int value = evaluate(game,alpha, beta);
 
 	if (value >= beta) {
 		//return beta;	//hard
@@ -221,7 +221,7 @@ int SEARCH::PVS(int depth, CHESSBOARD * game, int alpha, int beta, bool fNulled)
 	
 	//Final depth return:
 	if(depth <= 0) {
-		//int value = relative_eval(game);
+		//int value = evaluate(game);
 		int value = qSearch(game, alpha, beta,1);
 		//hashtable->RecordHash( game->getKey(), 0, value, HASH_EXACT );
 		return value; 
@@ -372,7 +372,7 @@ int SEARCH::PVS(int depth, CHESSBOARD * game, int alpha, int beta, bool fNulled)
 /*
 int qSearch(CHESSBOARD game, int alpha, int beta) {
 	
-	int value = relative_eval(&game);
+	int value = evaluate(&game);
 
 	//Checkmate?
 	if(value == LOOSE || value == WIN)
@@ -406,7 +406,7 @@ int qSearch(CHESSBOARD game, int alpha, int beta) {
 */
 int NegaMax(int depth, CHESSBOARD * game) {
 	if(depth == 0) {
-		int eval = relative_eval(game);
+		int eval = evaluate(game);
 		//cout << "player: " << game.getActivePlayer() << " d0: " << eval << endl;
 		//int eval = qSearch(game, -10000,10000);
 		return eval; }

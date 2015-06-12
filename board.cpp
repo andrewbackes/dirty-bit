@@ -118,8 +118,8 @@ bool CHESSBOARD::isAttacked(bool player, unsigned char square_index) {
 
 	// Is in danger from pawns?:
 	if(opponent == WHITE) {
-		pieceDB =	((pieceBB[opponent][nPawn] & ~FileMask(a)/*~mask::file[a]*/) << 9)  
-				  |	((pieceBB[opponent][nPawn] & ~FileMask(h)/*~mask::file[h]*/) << 7); 
+		pieceDB =	((pieceBB[opponent][nPawn] & ~FileMask(a)) << 9)  
+				  |	((pieceBB[opponent][nPawn] & ~FileMask(h)) << 7); 
 		if(pieceDB & (1i64 << square_index) ) {
 			return true;
 		}
@@ -534,7 +534,7 @@ bitboard CHESSBOARD::generateKey() {
 }
 
 phash_lock CHESSBOARD::generatePawnKey() {
-//bitboard CHESSBOARD::generatePawnKey() {
+
 	//Since this function is only used for debugging
 	phash_lock key = 0;
 
