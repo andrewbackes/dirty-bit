@@ -1,10 +1,12 @@
 
-#include "board.h"
 #include "move.h"
-#include "evaluate.h"
 #include "utilities.h"
 
 #include <iostream>
+
+std::string MOVE::to_str() {
+	return (index_to_alg(from) + index_to_alg(to));
+}
 
 void MOVE::print(bool verbose) {
 	std::cout << index_to_alg(from) << index_to_alg(to) << " ";

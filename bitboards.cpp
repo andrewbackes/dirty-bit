@@ -59,11 +59,11 @@ void generateMagicBishopVariations(bitboard ** &varMask, bitboard ** &varAttacks
 			int j;
 			for (j=bit+9; j%8!=7 && j%8!=0 && j<=55 && (varMask[bit][i] & (1i64 << j)) == 0; j+=9);
 				if (j>=0 && j<=63) varAttacksMask[bit][i] |= (1i64 << j);
-            for (j=bit-9; j%8!=7 && j%8!=0 && j>=8 && (varMask[bit][i] & (1i64 << j)) == 0; j-=9);
+			for (j=bit-9; j%8!=7 && j%8!=0 && j>=8 && (varMask[bit][i] & (1i64 << j)) == 0; j-=9);
 				if (j>=0 && j<=63) varAttacksMask[bit][i] |= (1i64 << j);
-            for (j=bit+7; j%8!=7 && j%8!=0 && j<=55 && (varMask[bit][i] & (1i64 << j)) == 0; j+=7);
+			for (j=bit+7; j%8!=7 && j%8!=0 && j<=55 && (varMask[bit][i] & (1i64 << j)) == 0; j+=7);
 				if (j>=0 && j<=63) varAttacksMask[bit][i] |= (1i64 << j);
-            for (j=bit-7; j%8!=7 && j%8!=0 && j>=8 && (varMask[bit][i] & (1i64 << j)) == 0; j-=7);
+			for (j=bit-7; j%8!=7 && j%8!=0 && j>=8 && (varMask[bit][i] & (1i64 << j)) == 0; j-=7);
 				if (j>=0 && j<=63) varAttacksMask[bit][i] |= (1i64 << j);
 			
 
@@ -115,11 +115,11 @@ void initializeMagicBishops() {
 			int j;
 			for (j=bit+9; j%8!=7 && j%8!=0 && j<=55 && (varMask[bit][i] & (1i64 << j)) == 0; j+=9);
 				if (j>=0 && j<=63) varAttacksMask[bit][i] |= (1i64 << j);
-            for (j=bit-9; j%8!=7 && j%8!=0 && j>=8 && (varMask[bit][i] & (1i64 << j)) == 0; j-=9);
+			for (j=bit-9; j%8!=7 && j%8!=0 && j>=8 && (varMask[bit][i] & (1i64 << j)) == 0; j-=9);
 				if (j>=0 && j<=63) varAttacksMask[bit][i] |= (1i64 << j);
-            for (j=bit+7; j%8!=7 && j%8!=0 && j<=55 && (varMask[bit][i] & (1i64 << j)) == 0; j+=7);
+			for (j=bit+7; j%8!=7 && j%8!=0 && j<=55 && (varMask[bit][i] & (1i64 << j)) == 0; j+=7);
 				if (j>=0 && j<=63) varAttacksMask[bit][i] |= (1i64 << j);
-            for (j=bit-7; j%8!=7 && j%8!=0 && j>=8 && (varMask[bit][i] & (1i64 << j)) == 0; j-=7);
+			for (j=bit-7; j%8!=7 && j%8!=0 && j>=8 && (varMask[bit][i] & (1i64 << j)) == 0; j-=7);
 				if (j>=0 && j<=63) varAttacksMask[bit][i] |= (1i64 << j);
 		}
 
@@ -154,52 +154,52 @@ bitboard findMagicBishop(int square, int bits) {
 
 	bitboard magic, x, y, nw_occ, sw_occ, se_occ, ne_occ;
 	int o, nw = 0, sw = 0, se = 0, ne = 0, i, j, k, l, m, n;;
-    bool incomplete = true;
+	bool incomplete = true;
 
 	i = square % 8;
-    j = (square - i) / 8;
-    
-    if((i > 1) && (j < 6)) nw = (i - 1 <= 6 - j) ? i - 1 : 6 - j; //min(i - 1, 6 - j);
+	j = (square - i) / 8;
+	
+	if((i > 1) && (j < 6)) nw = (i - 1 <= 6 - j) ? i - 1 : 6 - j; //min(i - 1, 6 - j);
 	if((i > 1) && (j > 1)) sw = (i - 1 <= j - 1) ? i - 1 : j - 1; //min(i - 1, j - 1);
 	if((i < 6) && (j > 1)) se = (6 - i <= j - 1) ? 6 - i : j - 1; //min(6 - i, j - 1);
 	if((i < 6) && (j < 6)) ne = (6 - i <= 6 - j) ? 6 - i : 6 - j; //min(6 - i, 6 - j);
-    
+	
 	bitboard all_set = 0xffffffffffffffff;
 
-    while(incomplete) {
-        incomplete = false;
-        
-        for(i = 0; i < MAGIC_BISHOP_SIZE ; i++) mask::MagicBishopMoves[square][i] = all_set;
+	while(incomplete) {
+		incomplete = false;
+		
+		for(i = 0; i < MAGIC_BISHOP_SIZE ; i++) mask::MagicBishopMoves[square][i] = all_set;
 		
 		magic = mask::MagicBishopNumbers[square];
 		for(k = 0; k <= ((1i64 << nw)-1); k++){ 
-            for(l = 0; l <= ((1i64 << sw)-1); l++) {
-                for(m = 0; m <= ((1i64 << se)-1); m++) {
-                    for(n = 0; n <= ((1i64 << ne)-1); n++ ) {
-                        nw_occ = 0;
-                        sw_occ = 0;
-                        se_occ = 0;
-                        ne_occ = 0;
+			for(l = 0; l <= ((1i64 << sw)-1); l++) {
+				for(m = 0; m <= ((1i64 << se)-1); m++) {
+					for(n = 0; n <= ((1i64 << ne)-1); n++ ) {
+						nw_occ = 0;
+						sw_occ = 0;
+						se_occ = 0;
+						ne_occ = 0;
 
 						for(o = 0; o <= nw; o++) nw_occ += ((k & (1i64 << o)) << (square + ((6*o) + 7)));
-                        for(o = 0; o <= sw; o++) sw_occ += ((l & (1i64 << o)) << (square - ((10*o) + 9)));
-                        for(o = 0; o <= se; o++) se_occ += ((m & (1i64 << o)) << (square - ((8*o) + 7)));
-                        for(o = 0; o <= ne; o++) ne_occ += ((n & (1i64 << o)) << (square + ((8*o) + 9)));
-                        x = nw_occ + sw_occ + se_occ + ne_occ;
+						for(o = 0; o <= sw; o++) sw_occ += ((l & (1i64 << o)) << (square - ((10*o) + 9)));
+						for(o = 0; o <= se; o++) se_occ += ((m & (1i64 << o)) << (square - ((8*o) + 7)));
+						for(o = 0; o <= ne; o++) ne_occ += ((n & (1i64 << o)) << (square + ((8*o) + 9)));
+						x = nw_occ + sw_occ + se_occ + ne_occ;
 						
 						y = 0;
-                        for(o = square, i = o%8, j = (o-i)/8; (i > 0) && (j < 7) && (((1i64 << o) & x) == 0); i = o % 8, j = (o-i)/8){o += 7; y += (1i64 << o);}
-                        for(o = square, i = o%8, j = (o-i)/8; (i > 0) && (j > 0) && (((1i64 << o) & x) == 0); i = o % 8, j = (o-i)/8){o -= 9; y += (1i64 << o);}
-                        for(o = square, i = o%8, j = (o-i)/8; (i < 7) && (j > 0) && (((1i64 << o) & x) == 0); i = o % 8, j = (o-i)/8){o -= 7; y += (1i64 << o);}
-                        for(o = square, i = o%8, j = (o-i)/8; (i < 7) && (j < 7) && (((1i64 << o) & x) == 0); i = o % 8, j = (o-i)/8){o += 9; y += (1i64 << o);}
-                        
+						for(o = square, i = o%8, j = (o-i)/8; (i > 0) && (j < 7) && (((1i64 << o) & x) == 0); i = o % 8, j = (o-i)/8){o += 7; y += (1i64 << o);}
+						for(o = square, i = o%8, j = (o-i)/8; (i > 0) && (j > 0) && (((1i64 << o) & x) == 0); i = o % 8, j = (o-i)/8){o -= 9; y += (1i64 << o);}
+						for(o = square, i = o%8, j = (o-i)/8; (i < 7) && (j > 0) && (((1i64 << o) & x) == 0); i = o % 8, j = (o-i)/8){o -= 7; y += (1i64 << o);}
+						for(o = square, i = o%8, j = (o-i)/8; (i < 7) && (j < 7) && (((1i64 << o) & x) == 0); i = o % 8, j = (o-i)/8){o += 9; y += (1i64 << o);}
+						
 						
 						if(mask::MagicBishopMoves[square][quickhash(x, magic, bits)] == all_set){
-                           mask::MagicBishopMoves[square][quickhash(x, magic, bits)] = y;
-                        } 
+						   mask::MagicBishopMoves[square][quickhash(x, magic, bits)] = y;
+						} 
 						else if(mask::MagicBishopMoves[square][quickhash(x, magic, bits)] != y) {
-                            cout << "Bummer, dude.  The rook_magic for square " << square << " is not magical after all.\n"; 
-                        }
+							cout << "Bummer, dude.  The rook_magic for square " << square << " is not magical after all.\n"; 
+						}
 						
 					}
 				}
@@ -216,12 +216,12 @@ bitboard findMagicRook(int square, int bits) {
 	//Due to laziness, this was taken with permission from Exacto 0.e source code:
 	
 	// This function populates rook moves table; to have it operate as a find magics file, swap commented portions
-    
-    bitboard magic, x, y, right_occ, left_occ, up_occ, down_occ;
-    bitboard right = 0, left = 0, i, k, l, m, n;
-    int o, up = 0, down = 0;
-    bool incomplete = true;
-    
+	
+	bitboard magic, x, y, right_occ, left_occ, up_occ, down_occ;
+	bitboard right = 0, left = 0, i, k, l, m, n;
+	int o, up = 0, down = 0;
+	bool incomplete = true;
+	
 	bitboard	const	two_to_the[64]				=	{	0x0000000000000001,	0x0000000000000002,	0x0000000000000004,	0x0000000000000008,	
 				0x0000000000000010,	0x0000000000000020,	0x0000000000000040,	0x0000000000000080,	0x0000000000000100,	0x0000000000000200,	
 				0x0000000000000400,	0x0000000000000800,	0x0000000000001000,	0x0000000000002000,	0x0000000000004000,	0x0000000000008000,	
@@ -246,59 +246,59 @@ bitboard findMagicRook(int square, int bits) {
 				0xfbffffffffffffff,	0xf7ffffffffffffff,	0xefffffffffffffff,	0xdfffffffffffffff,	0xbfffffffffffffff,	0x7fffffffffffffff};
 	bitboard	const	all_set						=		0xffffffffffffffff;
 
-    
-    if((square % 8) < 6) left = 6 - (square % 8);
-    if((square % 8) > 1) right = (square % 8) - 1;
-    if(((square - (square % 8)) / 8) < 6) up = 6 - ((square - (square % 8)) / 8);
-    if(((square - (square % 8)) / 8) > 1) down = ((square - (square % 8)) / 8) - 1;
-    
-    while(incomplete) {
-        incomplete = false;
-        
-        for(i = 0; i < MAGIC_ROOK_SIZE ; i++) mask::MagicRookMoves[square][i] = all_set; //(uncomment this line for magic generation)
-        
-        //magic = random64(); //(uncomment this line for magic generation)
-        
+	
+	if((square % 8) < 6) left = 6 - (square % 8);
+	if((square % 8) > 1) right = (square % 8) - 1;
+	if(((square - (square % 8)) / 8) < 6) up = 6 - ((square - (square % 8)) / 8);
+	if(((square - (square % 8)) / 8) > 1) down = ((square - (square % 8)) / 8) - 1;
+	
+	while(incomplete) {
+		incomplete = false;
+		
+		for(i = 0; i < MAGIC_ROOK_SIZE ; i++) mask::MagicRookMoves[square][i] = all_set; //(uncomment this line for magic generation)
+		
+		//magic = random64(); //(uncomment this line for magic generation)
+		
 		magic = mask::MagicRookNumbers[square];  //(comment this line out for magic generation)
-        
-        for(k = 0; k <= (two_to_the[right]-1); k++){
-            for(l = 0; l <= (two_to_the[left]-1); l++) {
-                for(m = 0; m <= (two_to_the[up]-1); m++) {
-                    for(n = 0; n <= (two_to_the[down]-1); n++ ) {
-                        
-                        // Generate all possible occupancy bitboards for the appropriate mask
-                        right_occ = k << ((square - (square % 8)) + 1);
-                        left_occ = l << ((square - (square % 8)) + ((square % 8)+1));
-                        up_occ = 0;
-                        down_occ = 0;
-                        for(o = 0; o <= up; o++) up_occ += ((m & two_to_the[o]) << (square + ((7*o) + 8)));
-                        for(o = 0; o <= down; o++) down_occ += ((n & two_to_the[o]) << (square - ((9*o) + 8)));
-                        x = up_occ + down_occ + right_occ + left_occ;
-                        
-                        // Generate the corresponding attacks bitboard to hash
-                        y = 0;
-                        for(o = square; ((o % 8) < 7) && ((two_to_the[o] & x) == 0);){o++; y += two_to_the[o];}
-                        for(o = square; (((o - (o%8))/8) < 7) && ((two_to_the[o] & x) == 0);){o += 8; y += two_to_the[o];}
-                        for(o = square; ((o % 8) > 0) && ((two_to_the[o] & x) == 0);){o--; y += two_to_the[o];}
-                        for(o = square; (((o - (o%8))/8) > 0) && ((two_to_the[o] & x) == 0);){o -= 8; y += two_to_the[o];}
-                        
-                        if(mask::MagicRookMoves[square][quickhash(x, magic, bits)] == all_set){
-                            // A new hash entry
-                            mask::MagicRookMoves[square][quickhash(x, magic, bits)] = y;
-                        } else if(mask::MagicRookMoves[square][quickhash(x, magic, bits)] != y) {
-                            // A bad collision
-                            //incomplete = true; //(uncomment this line for magic generation)
-                            cout << "Bummer, dude.  The rook_magic for square " << square << " is not magical after all.\n"; //(comment out for generation)
-                            //k = two_to_the[right];
-                            //l = two_to_the[left];
-                            //m = two_to_the[up];
-                            //n = two_to_the[down];
-                        }
-                        
-                    }}}}
-    }
-    return magic;
-    return 0;
+		
+		for(k = 0; k <= (two_to_the[right]-1); k++){
+			for(l = 0; l <= (two_to_the[left]-1); l++) {
+				for(m = 0; m <= (two_to_the[up]-1); m++) {
+					for(n = 0; n <= (two_to_the[down]-1); n++ ) {
+						
+						// Generate all possible occupancy bitboards for the appropriate mask
+						right_occ = k << ((square - (square % 8)) + 1);
+						left_occ = l << ((square - (square % 8)) + ((square % 8)+1));
+						up_occ = 0;
+						down_occ = 0;
+						for(o = 0; o <= up; o++) up_occ += ((m & two_to_the[o]) << (square + ((7*o) + 8)));
+						for(o = 0; o <= down; o++) down_occ += ((n & two_to_the[o]) << (square - ((9*o) + 8)));
+						x = up_occ + down_occ + right_occ + left_occ;
+						
+						// Generate the corresponding attacks bitboard to hash
+						y = 0;
+						for(o = square; ((o % 8) < 7) && ((two_to_the[o] & x) == 0);){o++; y += two_to_the[o];}
+						for(o = square; (((o - (o%8))/8) < 7) && ((two_to_the[o] & x) == 0);){o += 8; y += two_to_the[o];}
+						for(o = square; ((o % 8) > 0) && ((two_to_the[o] & x) == 0);){o--; y += two_to_the[o];}
+						for(o = square; (((o - (o%8))/8) > 0) && ((two_to_the[o] & x) == 0);){o -= 8; y += two_to_the[o];}
+						
+						if(mask::MagicRookMoves[square][quickhash(x, magic, bits)] == all_set){
+							// A new hash entry
+							mask::MagicRookMoves[square][quickhash(x, magic, bits)] = y;
+						} else if(mask::MagicRookMoves[square][quickhash(x, magic, bits)] != y) {
+							// A bad collision
+							//incomplete = true; //(uncomment this line for magic generation)
+							cout << "Bummer, dude.  The rook_magic for square " << square << " is not magical after all.\n"; //(comment out for generation)
+							//k = two_to_the[right];
+							//l = two_to_the[left];
+							//m = two_to_the[up];
+							//n = two_to_the[down];
+						}
+						
+					}}}}
+	}
+	return magic;
+	return 0;
 }
 
 

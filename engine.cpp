@@ -1,136 +1,305 @@
-/*
-#include <vector>
-#include <ctime>
-#include <iomanip>
-#include <algorithm>
-#include <list>
 
+#include "uci.h"
 #include "engine.h"
-#include "bitboards.h"
-#include "board.h"
-#include "move.h"
+#include "precompute.h"
 
-using namespace std;
 
-/*
-void AddToList(list<MOVE> *l, MOVE m) {
-	for (list<MOVE>::iterator it=l->begin() ; it != l->end(); ++it) {
-		if(m.static_value > it->static_value ) {
-			l->insert(it, m);
-			return;
+short SEARCH_INFO::best_score() {
+	short score = 0;
+	for (int i = 0; i < iteration_details.size(); i++) {
+		if (!iteration_details[i].failed  && !iteration_details[i].timed_out) {
+			score = iteration_details[i].score;
 		}
 	}
-	list<MOVE>::iterator it=l->end();
-	l->insert(it, m);
+	return score;
 }
-*/
 
-
-
-
-
-/*
-MOVE UCI_NegaMaxInit(int depth, CHESSBOARD game) {
-// TODO:
-//			-By only checking legal moves at the root, the search can go down a psuedo-legal path and think it can do something that it can't.
-
-
-	//for record keeping:
-	double timer = clock()/(CLOCKS_PER_SEC/1000);
-	NODES = 0;
-
-	list<MOVE> move_list = MoveGen(&game);	
-	MOVE best_move; 
-	int max = -INFINITY;
-
-	//Only consider legal moves:
-	vector<MOVE> legal_move_list;
-	bool inCheck = isInCheck(game); // <---- this is a problem because the search will think that castling is legal and then later be told that it is not.
-	for (int i=0; i < move_list.size(); i++) {
-		if( isMoveLegal(game, move_list.at(i), inCheck) ) {
-			best_move = move_list.at(i); //to prevent no move being chosen.
-			legal_move_list.push_back( move_list.at(i) );
+short SEARCH_INFO::max_depth() {
+	short depth = 0;
+	for (int i = 0; i < iteration_details.size(); i++) {
+		if (iteration_details[i].depth > depth && !iteration_details[i].failed && !iteration_details[i].timed_out) {
+			depth = iteration_details[i].depth;
 		}
 	}
+	return depth;
+}
 
-
-	for (int i=0; i < legal_move_list.size(); i++) {
-		//Go through everything on the movelist:
-		CHESSBOARD subgame = game;
-		subgame.makemove(legal_move_list.at(i));
-		NODES++;
-		int score = -UCI_NegaMax (depth - 1, subgame);
-		if (score > max) {
-			max = score;
-			best_move = legal_move_list.at(i);
+short SEARCH_INFO::max_seldepth() {
+	short seldepth = 0;
+	for (int i = 0; i < iteration_details.size(); i++) {
+		if (iteration_details[i].seldepth > seldepth && !iteration_details[i].failed && !iteration_details[i].timed_out) {
+			seldepth = iteration_details[i].seldepth;
 		}
 	}
+	return seldepth;
+}
+long long SEARCH_INFO::nodes() {
+	long long nodes = 0;
+	for (int i = 0; i < iteration_details.size(); i++) {
+		nodes += iteration_details[i].nodes;
+	}
+	return nodes;
+}
 
-	//UCI Info:
-	game.makemove(best_move);
-	int score = relative_eval(game);
-	timer = clock()/(CLOCKS_PER_SEC/1000) - timer;
-	int nps = (int)(NODES/timer)*1000;
-	cout << "info depth " << depth << " nodes " << NODES << " score cp " << score << " time " << timer << " nps " << nps << "\n";
+long SEARCH_INFO::time_lapsed() {
+	long lapsed = (std::clock() / (CLOCKS_PER_SEC / 1000)) - start_time;
+	return((lapsed < 1) ? 1 : lapsed);
+}
 
+long SEARCH_INFO::nps() {
+	//std::cout << "nodes " << nodes() << std::endl;
+	//std::cout << "time_taken " << time_taken() << std::endl;
+	
+	return ( (nodes() / time_lapsed()) * 1000);
+}
+
+MOVE SEARCH_INFO::best_move() {
+	MOVE best_move;
+	for (int i = 0; i < iteration_details.size(); i++) {
+		if (!iteration_details[i].failed && !iteration_details[i].timed_out)
+			best_move = iteration_details[i].move;
+	}
 	return best_move;
 }
-int UCI_NegaMax(int depth, CHESSBOARD game) {
-	if(depth == 0) {
-		return relative_eval(game); }
-	
-	vector<MOVE> move_list = MoveGen(&game);	
-	int max = -INFINITY;
-	
-	//Go through the legal move list:
-	for (int i=0;  i < move_list.size(); i++) {
-		CHESSBOARD subgame = game;
-		subgame.makemove(move_list.at(i));
-		NODES++;
-		int score = -UCI_NegaMax(depth -1, subgame);
-		if(score > max) {
-			max = score;
+
+std::vector<MOVE> SEARCH_INFO::pv() {
+	std::vector<MOVE> pv;
+	for (int i = 0; i < iteration_details.size(); i++) {
+		if (!iteration_details[i].failed)
+			pv = iteration_details[i].pv;
+	}
+	return pv;
+}
+
+double EBF(SEARCH_INFO * s) {
+	int count = 0;
+	if (s->max_depth() > 1) {
+		double sum = 0;
+		double BF = 0;
+		for (int i = 1; i < s->iteration_details.size(); i++) {
+			BF = ((s->iteration_details[i].nodes * 1.0) / s->iteration_details[i - 1].nodes);
+			if (BF <= 5) {
+				sum += BF;
+				count++;
+			}
+		}
+		BF = (sum / count);
+		uci::send_str("EBF: " + std::to_string(BF) + "\n");
+		return BF;
+	}
+	else
+		return DEFAULT_EBF;
+}
+
+long time_needed( SEARCH_INFO * s) {
+	// long time_needed = (long)ceil(((average_EBF * (double)previous_node_count) / (double)running_nps) * 1000);
+	// time_needed = (time_needed > 0) ? time_needed : 1;
+
+	double average_EBF = EBF(s);
+
+	// get the nodes of the previous successful iteration
+	long long nodes = 0;
+	for (size_t i = s->iteration_details.size() - 1; i >= 0; i--) {
+		if (!s->iteration_details[i].failed) {
+			nodes = s->iteration_details[i].nodes;
+			break;
 		}
 	}
-	return max;
-	
+
+	long time_needed = (long)std::ceil(((average_EBF * nodes) / s->nps()) * 1000);
+	if (time_needed < 0) time_needed = 1;
+	uci::send_str("Time needed for next iteration: " + std::to_string(time_needed) + "\n");
+	return time_needed;
 }
-*/
+
+void set_time(ITERATION_INFO & iteration, SEARCH_INFO * s) {
+	// TODO: super safety time for when there are several fails in a row.
+	
+	iteration.time_allotted = s->time_safety - s->time_lapsed();
+
+	/*
+	// Safety checks:
+	if (s->iteration_details.size() > 1) {
+		ITERATION_INFO prev = s->iteration_details[s->iteration_details.size() - 1];
+		bool failed = (prev.failed || s->iteration_details[s->iteration_details.size() - 2].failed);
+		if (failed && prev.timed_out) {
+			iteration.time_allotted = s->time_safety - s->time_lapsed();
+			uci::send_str("Assigned safety time.\n");
+		}
+	}
+	*/
+	if (iteration.time_allotted < 0) iteration.time_allotted = 0;
+	uci::send_str("Time allotted for iteration: " + std::to_string(iteration.time_allotted) + "\n");
+}
+
+void set_window(ITERATION_INFO & iteration, SEARCH_INFO * s) {
+	// Analyses previous search data to determine the 
+	// depth and aspiration window of the next search
+	
+	// for searches under 6 plies, use a full window:
+	if (s->max_depth() <= 6) {
+		iteration.alpha = -INFTY;
+		iteration.beta = INFTY;
+		iteration.depth = s->max_depth() + 1;
+		return;
+	}
+	
+	// get the score of the previous successful iteration
+	int target = 0;
+	for (size_t i = s->iteration_details.size() - 1; i >= 0; i--) {
+		if (!s->iteration_details[i].failed) {
+			target = s->iteration_details[i].score;
+			break;
+		}
+	}
+
+	ITERATION_INFO prev = s->iteration_details[s->iteration_details.size()-1];
+	// if the last iteration didnt fail, set up the next depth window:
+	if (!prev.failed) {
+		iteration.alpha = target - ASPIRATION_WINDOW;
+		iteration.beta = target + ASPIRATION_WINDOW;
+		iteration.depth = prev.depth + 1;
+	}
+	// failed low, so adjust the bottom window.
+	else if (prev.score <= prev.alpha) {
+		int last_window = target - prev.alpha;
+		iteration.alpha = target - (last_window * 2);
+		iteration.beta = prev.beta;
+		iteration.depth = prev.depth;
+	}
+	else if (prev.score >= prev.beta) {
+		int last_window = prev.beta - target;
+		iteration.alpha = prev.alpha;
+		iteration.beta = prev.beta + (last_window*2);
+		iteration.depth = prev.depth;
+	}
+	uci::send_str("Aspiration window [" + std::to_string(iteration.alpha) + ", " + std::to_string(iteration.beta) + "]\n");
+
+}
+
+void ENGINE::think(SEARCH_INFO & s) {
+	
+	// Set overall search time:
+	s.start_time = std::clock() / (CLOCKS_PER_SEC / 1000) ;
+
+	long time_factor = 120;
+	if (s.moves_to_go <= 2) time_factor = 75;
+
+	long limit = s.time_allowed - (s.time_allowed * (s.moves_to_go - 1) / 40); //absolute limit to think.
+	limit = std::min((limit * 95) / 100, limit - 60);
+	s.time_allotted = s.time_allowed / s.moves_to_go;
+	s.time_allotted = std::min((s.time_allotted * time_factor) / 100, limit);
+	
+	s.time_safety = std::min(limit, s.time_allotted * 4);
+	
+	uci::send_str("Time allotted for whole search: " + std::to_string(s.time_allotted) + "\n");
+
+	// Iterative Deepening:
+	bool abort = false; // flag
+	while (s.max_depth() < MAX_PLY && !abort) {
+		ITERATION_INFO iteration;
+		set_time(iteration, &s);
+		set_window(iteration, &s);
+		
+		SEARCH search(this, &iteration);
+		search.start();
+		s.iteration_details.push_back(iteration); //save the iteration results
+
+		// If the search timed out, figure out what to do:
+		if (iteration.timed_out) {
+			abort = true;
+			uci::send("info string Search timed out (Depth: " + std::to_string(iteration.depth) + ". Time: " + std::to_string(iteration.time_taken) + ")\n"); //tell the gui.
+			// If the previous search failed, then something fishy is going on
+			// so we should search some more to figure it out.
+			//if(!iteration.failed) abort = true;
+			
+			// But if we are too close to time control, dont risk it.
+			//if (s.moves_to_go <= 2) abort = true; 
+		}
+		// Search did not time out:
+		else {
+			uci::send(iteration); //tell the gui
+			//s.iteration_details.push_back(iteration); //save the iteration results
+				
+			// Determine if we should do another iteration:
+			//if ( (time_needed(&s)) >= s.time_remaining()) abort = true;
+			if (s.time_lapsed() >= s.time_allotted / 2) abort = true;
+		}
+	}
+}
+
+void ENGINE::precompute() {
+
+	precompute::rays();
+	precompute::shelter_scores();
+	precompute::rule_of_the_squares();
+	precompute::passed_pawns();
+	precompute::material_adjustments();
+	//precompute::castle_areas();
+	//precompute::castle_pawns();
+	populateMagicBishopArray();
+	populateMagicRookArray();
+
+}
+
+void ENGINE::initialize() {
+	debug = false;
+	ponder = false;
+
+	precompute();
+	hashtable_size = HASH_TABLE_SIZE;
+	hashtable.initialize(hashtable_size);
+	//pawntable.initialize(pawntable_size);
+}
+
+void ENGINE::reset() {
 
 
+}
+
+void ENGINE::save_pgn() {
 
 
+}
+
+void ENGINE::load_pgn() {
+
+
+}
 
 /*
-int AlphaBeta(int depth, CHESSBOARD game, int alpha, int beta) {
-	if(depth == 0) {
-		int eval = relative_eval(game);
-		//cout << "player: " << game.getActivePlayer() << " d0: " << eval << endl;
-		return eval; }
-	
-	vector<MOVE> move_list = MoveGen(&game);	
-	bool foundPV = false;
+	bitboard mask1 = (1i64 << b5) | (1i64 << b6) | (1i64 << c7);
+	bitprint(mask1);
+	bitboard mask2 = (1i64 << b4) | (1i64 << b3) | (1i64 << c2);
+	bitprint(mask2);
+	cout << "trapped_bishop_long[] = {" << mask1 << ", " << mask2 <<endl;
 
-	for (int i=0;  i < move_list.size(); i++) {
-		CHESSBOARD subgame = game;
-		subgame.makemove(move_list.at(i));
-		NODES++;
-		int score =0;
-		//PVS Addition:
-		if(foundPV) {
-			score = -UCI_AlphaBeta(depth -1, subgame, -alpha-1, -alpha);
-			if ( (score > alpha) && (score < beta) ) {
-				score = -UCI_AlphaBeta(depth-1, subgame, -beta, -alpha); }
-		}
-		else {
-			score = -UCI_AlphaBeta(depth -1, subgame, -beta, -alpha); }
-		if( score >= beta ) {
-			return beta; }
-		if(score > alpha) {
-			alpha = score;
-		}
-	}
-	return alpha;
-}
-*/
+	bitboard mask3 = (1i64 << g5) | (1i64 << g6) | (1i64 << f7);
+	bitprint(mask3);
+	bitboard mask4 = (1i64 << g4) | (1i64 << g3) | (1i64 << f2);
+	bitprint(mask4);
+	cout << "trapped_bishop_short[] = {" << mask3 << ", " << mask4 << endl;
+	*/
+	/*
+	bitboard mask1 = (1i64 << a1) | (1i64 << a2) | (1i64 << b1);
+	bitprint(mask1);
+	bitboard mask2 = (1i64 << a8) | (1i64 << a7) | (1i64 << b8);
+	bitprint(mask2);
+	cout << "trapped_rook_long[] = {" << mask1 << ", " << mask2 << " };" << endl;
+	mask1 = (1i64 << b1) | (1i64 << c1);
+	bitprint(mask1);
+	mask2 = (1i64 << b8) | (1i64 << c8);
+	bitprint(mask2);
+	cout << "trapped_rook_long_king[] = { " << mask1 << ", " << mask2 << " };" << endl;
 
+	mask1 = (1i64 << h1) | (1i64 << h2) | (1i64 << g1);
+	bitprint(mask1);
+	mask2 = (1i64 << h8) | (1i64 << h7) | (1i64 << g8);
+	bitprint(mask2);
+	cout << "trapped_rook_short[] = {" << mask1 << ", " << mask2 << " };" << endl;
+	mask1 = (1i64 << f1) | (1i64 << g1);
+	bitprint(mask1);
+	mask2 = (1i64 << f8) | (1i64 << g8);
+	bitprint(mask2);
+	cout << "trapped_rook_short_king[] = { " << mask1 << ", " << mask2 << " };" << endl;
+	*/

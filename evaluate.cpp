@@ -19,11 +19,12 @@ using namespace std;
 PAWNTABLE pawntable;
 
 int contempt(CHESSBOARD * b) {
-	//return DRAW;
-	
+	return DRAW;
+	/*
 	if(b->getMaterialValue(b->getActivePlayer()) >= b->getMaterialValue(!b->getActivePlayer()))
 		return -50;
 	return DRAW;
+	*/
 }
 
 bool insufficientMaterial(CHESSBOARD *b) {

@@ -142,7 +142,7 @@ bool MOVELIST::NextMove() {
 		move_index = 0;
 		move_list_size = 0;
 		nonCaptureGen(linked_game, this);
-		OrderMoves();
+		//OrderMoves();
 	}
 //------
 	if( next_move_phase == NONCAPTURES ) {
@@ -347,7 +347,7 @@ bool MOVELIST::NextRootMove(bool already_generated) {
 			if (!already_generated) {
 				move_list_size = 0;
 				nonCaptureGen(linked_game, this);
-				OrderMoves();
+				//OrderMoves();
 			}
 		}
 	}
@@ -423,7 +423,7 @@ void MOVELIST::addKiller(MOVE killer) {
 }
 
 
-bool QMOVELIST::NextQMove() {
+bool QMOVELIST::NextQMove(bool generate_all) {
 	if( move_phase == INITIATE ) {
 		move_phase = CAPTURES;
 		list_index = 0;
@@ -434,16 +434,30 @@ bool QMOVELIST::NextQMove() {
 
 //------	
 	if( move_phase == CAPTURES ) {
-		if( list_index < list_size 
-			&& move_list[list_index].static_value >=0 ) {
+		if (list_index < list_size
+			&& (generate_all? true : move_list[list_index].static_value > 0)) {
 			//) {
 			//*next_move = move_list[list_index++];
 			pMove = &move_list[list_index++];
 			return true;
 		}
 		else {
-			list_index = 0;
-			list_size = 0;
+			if (generate_all) {
+				list_index = 0;
+				list_size = 0;
+				move_phase = NONCAPTURES;
+				nonCaptureGen(linked_game, this);
+				//OrderMoves();
+			}
+		}
+	}
+	
+	if (move_phase == NONCAPTURES) {
+		if (list_index < list_size) {
+			pMove = &move_list[list_index++];
+			return true;
+		}
+		else {
 			move_phase = BAD_CAPTURES;
 		}
 	}

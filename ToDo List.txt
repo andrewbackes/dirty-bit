@@ -1,6 +1,18 @@
 To Do List:
 ---------------------------------------------
 
+-be careful with the out of time code in the search, it could lead to saying there is a check or stalemate.
+
+-lazy eval
+
+-try recapture extensions
+
+-pawn table still global
+-not recording time controls to the game_info
+-not currently saving search_info
+-a lot of redundant data in the search class.
+-doubles used for the EBF should be removed
+
 -killer castles are just avoided when retrieving them, instead they should be evaluated for validity.
 
 -in NextMove() play the killer that has a higher count.
@@ -46,24 +58,12 @@ To Do List:
 
 -when in check, generate evasions first.
 
--Hash table should not be global. Put this in an engine class.
-
 -try countering the oscilation by doing a one ply search on the last move in the PV
 -also try using the previous odd or even search, if there is under 100 change.
 
 -try different compilers for possible speed increases.
 
 -Try regular alpha-beta for depths 1 and 2.
-
--Do not LMR when:
-	-to close to horizon (within 3 ply??)
-	-can not be in check
-	-move does not check opponent  <- For this, maybe pass to the next search if this was a reduction, then extend 1 more if in check.
-	-non capture / non promotion
-	-already extended
-
--check extensions
-	-If the move checks the opponent, extend the depth by one ply. also, can not reduce depth later or forward prune.
 
 -change makemove capture detection by board[m.to] rather than captured_piece_id, then score en passant kills.
 
@@ -99,11 +99,7 @@ To Do List:
 
 -Pondering!
 -Parrallel search
--magics!
 
--Research futility, limited razoring
-
--Evaluation order: mobility, passed pawn.
 
 -Eval ideas:
 ---> instead of doing a tapered eval. have something like 256 evals and use a pointer in the search class or board class to the eval that will be used in that search, this will have to be changed in MakeMove though, so it may not be worth it.

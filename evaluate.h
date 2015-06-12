@@ -4,13 +4,6 @@
 #include "board.h"
 #include "hash.h"
 
-#define INFTY 2147483647
-#define WIN 2147483647
-#define LOOSE -2147483647
-#define MATE 16384
-#define NEARMATE 15384
-#define DRAW 0
-
 #define ENDGAME 13
 
 short phase_gauge(CHESSBOARD * b);

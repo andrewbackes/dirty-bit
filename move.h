@@ -17,8 +17,8 @@ public:
 	unsigned char	promote_piece_to;
 	bool			color;
 	
-
-	void print(bool verbose = false);
+	std::string		to_str();
+	void			print(bool verbose = false);
 	
 	MOVE::MOVE(unsigned char from, unsigned char to, bool color, unsigned char active_piece_id, unsigned char captured_piece, unsigned char promote_piece_to, short static_value)
 		: from(from), to(to), color(color), active_piece_id(active_piece_id), captured_piece(captured_piece), promote_piece_to(promote_piece_to), static_value(static_value)

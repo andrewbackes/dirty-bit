@@ -42,7 +42,7 @@ public:
 								move_index = 0; move_list_size =0; capture_index=0; capture_list_size = 0; }
 	
 	void			addMove(MOVE m) {		move_list[move_list_size] = m; 
-											move_list[move_list_size].static_value += STE(linked_game, move_list[move_list_size]);
+											//move_list[move_list_size].static_value += STE(linked_game, move_list[move_list_size]);
 											move_list_size++; }
 
 	void			addCapture(MOVE m) {	capture_list[capture_list_size] = m;
@@ -60,7 +60,7 @@ public:
 											}
 											*/
 											capture_list[capture_list_size].static_value += SEE3(linked_game, capture_list[capture_list_size]);
-											capture_list[capture_list_size].static_value += STE(linked_game, capture_list[capture_list_size]);
+											//capture_list[capture_list_size].static_value += STE(linked_game, capture_list[capture_list_size]);
 											capture_list_size++; }
 	MOVE*			move() { return pMove; }
 	unsigned char	capture_size() { return capture_list_size; }
@@ -124,13 +124,16 @@ public:
 	}
 	void linkGame(CHESSBOARD * game) {linked_game = game;}
 
-	bool			NextQMove();
+	bool			NextQMove(bool generate_all = false);
 	unsigned char	phase() {return move_phase;}
 	MOVE*			move() {return pMove;}
 	void			reset() { move_phase = INITIATE; list_index = 0; list_size = 0; }
 	void			addCapture(MOVE m) {	move_list[list_size] = m;
 											move_list[list_size].static_value += SEE3(linked_game, move_list[list_size]);
-											move_list[list_size].static_value += STE(linked_game, move_list[list_size]);
+											//move_list[list_size].static_value += STE(linked_game, move_list[list_size]);
+											list_size++; }
+	void			addMove(MOVE m) {		move_list[list_size] = m; 
+											//move_list[list_size].static_value += STE(linked_game, move_list[list_size]);
 											list_size++; }
 	unsigned char	size() { return list_size; }
 	void			OrderCaptures();

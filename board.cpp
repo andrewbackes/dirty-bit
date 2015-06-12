@@ -4,14 +4,16 @@
 #include <stdlib.h>
 #include <ctype.h>
 
+#include "macros.h"
 #include "bitboards.h"
+#include "move.h"
 #include "board.h"
 #include "hash.h"
-#include "move.h"
+
 #include "evaluate.h"
 #include "utilities.h"
 
-#include "macros.h"
+
 
 using namespace std;
 
