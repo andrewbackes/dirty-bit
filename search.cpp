@@ -297,6 +297,15 @@ int SEARCH::Hard_PVS(unsigned char depth, unsigned char ply, CHESSBOARD * game, 
 	bool checked = game->isInCheck();
 
 /**************************************************************************************
+	Forward Pruning.
+***************************************************************************************/
+
+	#ifdef ENABLE_FUTILITY_PRUNING
+	bool fPrune = false;
+
+
+	#endif
+/**************************************************************************************
 	Null move if it is not a King/pawn game and the previous move want a null move.
 ***************************************************************************************/
 	#ifdef ENABLE_NULLMOVE
