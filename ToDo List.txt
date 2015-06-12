@@ -1,12 +1,11 @@
 To Do List:
 ---------------------------------------------
 
-
 -add checking moves to the captures list in the qsearch.
 
 -revamp HASH class. do not need an entire MOVE in there, just to/from. Also, score does not need to be an int, it can be a short. 
 
--revamp MOVE, to take out score and do score in MOVELIST instead.
+-revamp MOVE, to take out score and do score in MOVELIST instead. --> resulted in 2.5m NPS to 2.0 NPS drop at the same node count.
 
 -In NextMove(), do not return the dublicate of the hash move and the killers
 
