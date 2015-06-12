@@ -58,8 +58,12 @@ void CHESSBOARD::MakeMove(MOVE m) {
 		//adjust BBs for a capture occuring.
 		pieceBB[!active_player][m.captured_piece] ^= (1i64 << m.to);
 		occupiedBB[!active_player] ^= (1i64 << m.to);
+		
 		//Remove the captured piece from the Zobrist Key:
 		gamestate[current_ply].zobrist_key ^= zobrist::pieces[!active_player][m.captured_piece][m.to];
+		//Remove a captured pawn from the pawn key:
+		if(m.captured_piece == nPawn)
+			gamestate[current_ply].pawn_key ^= (phash_lock)zobrist::pieces[!active_player][nPawn][m.to];
 
 		//Adjust material score:
 		material_score[!active_player] -= nPieceValue[m.captured_piece];
@@ -68,9 +72,12 @@ void CHESSBOARD::MakeMove(MOVE m) {
 
 		//Reset the 50 half move rule:
 		gamestate[current_ply].half_move_rule = 0;
-		//clearHistory();
 	}
 	if(m.active_piece_id == nPawn) {
+		//Adjust the pawn key:
+		gamestate[current_ply].pawn_key ^= (phash_lock)zobrist::pieces[active_player][nPawn][m.to];
+		gamestate[current_ply].pawn_key ^= (phash_lock)zobrist::pieces[active_player][nPawn][m.from];
+		
 		//set enPassant if needed.
 		if( ((1i64 << m.from) & mask::pawns_spawn[active_player]) 
 					&& ((1i64 << m.to) & mask::pawn_double_jump[active_player]) ) {
@@ -85,6 +92,9 @@ void CHESSBOARD::MakeMove(MOVE m) {
 			unsigned char removedPieceIndex = bitscan_msb(mask::pawn_advances[!active_player][m.to]);
 			board[removedPieceIndex] = 0;
 			gamestate[current_ply].zobrist_key ^= zobrist::pieces[!active_player][nPawn][removedPieceIndex];
+			//Adjust pawn key:
+			gamestate[current_ply].pawn_key ^= (phash_lock)zobrist::pieces[!active_player][nPawn][removedPieceIndex];
+
 			//Adjust Material score:
 			material_score[!active_player] -= nPieceValue[nPawn];
 			//Adjust position score:
@@ -97,7 +107,8 @@ void CHESSBOARD::MakeMove(MOVE m) {
 			pieceBB[active_player][m.promote_piece_to] ^= (1i64 << m.to);
 			gamestate[current_ply].zobrist_key ^= zobrist::pieces[active_player][nPawn][m.to];
 			gamestate[current_ply].zobrist_key ^= zobrist::pieces[active_player][m.promote_piece_to][m.to];
-
+			//Remove the promoted pawn from the pawn key:
+			gamestate[current_ply].pawn_key ^= (phash_lock)zobrist::pieces[active_player][nPawn][m.to];
 			//Adjust material score:
 			material_score[active_player] += (nPieceValue[m.promote_piece_to] - nPieceValue[nPawn]);
 			//Adjust position score:
@@ -111,13 +122,13 @@ void CHESSBOARD::MakeMove(MOVE m) {
 	else if(m.active_piece_id == nRook) {
 		//Cancel some castling posibilities:
 		if(~occupiedBB[active_player] & mask::kRook_spawn[active_player]) {
-			if(gamestate[current_ply-1].castling_rights[active_player][KING_SIDE] == true) { //this check is m.to prevent un-needed application of XOR'ing the key
+			if(gamestate[current_ply-1].castling_rights[active_player][KING_SIDE] == true) { //this check is to prevent un-needed application of XOR'ing the key
 				gamestate[current_ply].castling_rights[active_player][KING_SIDE] = false;
 				gamestate[current_ply].zobrist_key ^= zobrist::castling[active_player][KING_SIDE];
 			}
 		}
 		if(~occupiedBB[active_player] & mask::qRook_spawn[active_player]) {
-			if(gamestate[current_ply -1].castling_rights[active_player][QUEEN_SIDE] == true) { //this check is m.to prevent un-needed application of XOR'ing the key
+			if(gamestate[current_ply -1].castling_rights[active_player][QUEEN_SIDE] == true) { //this check is to prevent un-needed application of XOR'ing the key
 				gamestate[current_ply].castling_rights[active_player][QUEEN_SIDE] = false;
 				gamestate[current_ply].zobrist_key ^= zobrist::castling[active_player][QUEEN_SIDE];
 			}
@@ -125,11 +136,11 @@ void CHESSBOARD::MakeMove(MOVE m) {
 	}
 	else if(m.active_piece_id == nKing) {
 		//Cancel castling posibilities:
-		if(gamestate[current_ply-1].castling_rights[active_player][KING_SIDE] == true) { //this check is m.to prevent un-needed application of XOR'ing the key
+		if(gamestate[current_ply-1].castling_rights[active_player][KING_SIDE] == true) { //this check is to prevent un-needed application of XOR'ing the key
 			gamestate[current_ply].castling_rights[active_player][KING_SIDE] = false;
 			gamestate[current_ply].zobrist_key ^= zobrist::castling[active_player][KING_SIDE];
 		}
-		if(gamestate[current_ply -1].castling_rights[active_player][QUEEN_SIDE] == true) { //this check is m.to prevent un-needed application of XOR'ing the key
+		if(gamestate[current_ply -1].castling_rights[active_player][QUEEN_SIDE] == true) { //this check is to prevent un-needed application of XOR'ing the key
 			gamestate[current_ply].castling_rights[active_player][QUEEN_SIDE] = false;
 			gamestate[current_ply].zobrist_key ^= zobrist::castling[active_player][QUEEN_SIDE];
 		}
@@ -162,6 +173,16 @@ void CHESSBOARD::MakeMove(MOVE m) {
 
 	occupiedBB[2] = occupiedBB[0] | occupiedBB[1]; //done separately for the sake of castling.
 	
+	/*
+	//DEBUG:
+	if(getPawnKey() != generatePawnKey()) {
+		cout << "MAKEMOVE: PAWN KEYS DONT MATCH " << endl;
+		cout << "Pawn BBs:" << endl;
+		bitprint(getPieceBB(WHITE,nPawn));
+		bitprint(getPieceBB(BLACK,nPawn));
+		system("PAUSE"); 
+	}
+	*/
 	/*
 	//Debugging:
 	if(materialScore(this) != material_score[WHITE] - material_score[BLACK]) {
@@ -336,10 +357,12 @@ void CHESSBOARD::qMakeMove(MOVE m) {
 	// Queit Make Move - Does not keep track of irreversable gamestate data nor zobrist keys.
 	// Intended to be used with qSearch.
 
-
 	//Move count:
 	current_ply++;
-
+	#ifdef ENABLE_PAWN_HASH
+	gamestate[current_ply].pawn_key = gamestate[current_ply-1].pawn_key;
+	#endif
+	
 	//Handle en passant b/c it is a type of capture.
 	gamestate[current_ply].en_passant_index = 64;
 	
@@ -359,17 +382,28 @@ void CHESSBOARD::qMakeMove(MOVE m) {
 
 		//Adjust material score:
 		material_score[!active_player] -= nPieceValue[m.captured_piece];
+		
+		//Adjust the pawn key:
+		if(m.captured_piece == nPawn)
+			gamestate[current_ply].pawn_key ^= (phash_lock)zobrist::pieces[!active_player][nPawn][m.to];
+			
 	}
 	if(m.active_piece_id == nPawn) {
+		//Adjust the pawn key:
+		gamestate[current_ply].pawn_key ^=(phash_lock) zobrist::pieces[active_player][nPawn][m.from];
+		gamestate[current_ply].pawn_key ^=(phash_lock) zobrist::pieces[active_player][nPawn][m.to];
+
 		//check for an enPassant capture:
 		if (m.to == gamestate[current_ply-1].en_passant_index) {
 			pieceBB[!active_player][nPawn] ^= mask::pawn_advances[!active_player][m.to];
 			occupiedBB[!active_player] ^= mask::pawn_advances[!active_player][m.to];
 			unsigned char removedPieceIndex = bitscan_msb(mask::pawn_advances[!active_player][m.to]);
 			board[removedPieceIndex] = 0;
-			gamestate[current_ply].zobrist_key ^= zobrist::pieces[!active_player][nPawn][removedPieceIndex];
+			//gamestate[current_ply].zobrist_key ^= zobrist::pieces[!active_player][nPawn][removedPieceIndex];
 			//Adjust Material score:
 			material_score[!active_player] -= nPieceValue[nPawn];
+			//Adjust the pawn key:
+			gamestate[current_ply].pawn_key ^= (phash_lock)zobrist::pieces[!active_player][nPawn][removedPieceIndex];
 		}
 		/*
 		//Check for pawn promotion:
@@ -412,7 +446,7 @@ void CHESSBOARD::qUnMakeMove(MOVE m) {
 	occupiedBB[active_player] ^= mask;
 	
 	//Undo en passant capture:
-	if( (m.active_piece_id == nPawn) && (m.to == gamestate[current_ply].en_passant_index) ) {
+	if( (m.to == gamestate[current_ply].en_passant_index) && (m.active_piece_id == nPawn)) {
 		//cout << ".";
 		if(active_player == WHITE) {
 			//this means a black pawn was captured.

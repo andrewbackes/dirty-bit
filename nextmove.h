@@ -14,6 +14,8 @@ public:
 
 					next_move_phase = HASH_MOVE; 
 					move_phase = HASH_MOVE;
+					
+					moves_searched_counter = 0;
 
 					move_index = 0; 
 					capture_index = 0;
@@ -29,8 +31,9 @@ public:
 	}
 	void linkGame(CHESSBOARD * game) {linked_game = game;}
 
+	short			PopulateCompleteList();
 	bool			NextMove();
-	bool			NextRootMove();
+	bool			NextRootMove(bool already_generated = false);
 	unsigned char	phase() {return move_phase;}
 	
 	void			reset() {	next_move_phase = HASH_MOVE; hash_suggestion.from = 64; 
@@ -60,6 +63,9 @@ public:
 	MOVE*			move() { return pMove; }
 	unsigned char	capture_size() { return capture_list_size; }
 	unsigned char	move_size() { return move_list_size; }
+	
+	unsigned char	moves_searched() { return moves_searched_counter; }
+	void			move_searched() { moves_searched_counter++; }
 
 	void			OrderMoves();
 	void			OrderCaptures();
@@ -97,6 +103,7 @@ private:
 	
 	unsigned char capture_list_size;
 	unsigned char move_list_size;
+	unsigned char moves_searched_counter;
 
 	unsigned char move_index;
 	unsigned char capture_index;

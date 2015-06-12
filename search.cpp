@@ -110,9 +110,9 @@ int SEARCH::Hard_qSearch(CHESSBOARD * game, int alpha, int beta, int qPly) {
 
 	//Exhaust all of the capture moves:
 	while(q_move_list[qPly].NextQMove()) {
-		node_count++;
 		game->qMakeMove(*q_move_list[qPly].move());
 		if(!game->isInCheck(!game->getActivePlayer())) {
+			node_count++;
 			value = -Hard_qSearch(game, -beta, -alpha, qPly+1);
 			game->qUnMakeMove(*q_move_list[qPly].move());
 			if( value >= beta ) {
@@ -125,6 +125,15 @@ int SEARCH::Hard_qSearch(CHESSBOARD * game, int alpha, int beta, int qPly) {
 		else {
 			game->qUnMakeMove(*q_move_list[qPly].move());
 		}
+
+		/*****************************************************
+			Quit searching if the allotted time is up.
+		*****************************************************/
+		if (node_count % NODES_FOR_TIME_CHECK == 0) {
+			if (isOutOfTime())
+				break;
+		}
+
 	}
 	return alpha;
 }
@@ -172,8 +181,14 @@ void SEARCH::Hard_PVS_Root() {
 	move_list[ply].addHash(hash_suggestion);
 	move_list[ply].clearKillers();
 	move_list[ply + 1].clearKillers();
+	//short move_list_size = move_list[ply].PopulateCompleteList();
 	
+
+
 	while( move_list[ply].NextRootMove() ) {
+	//#pragma omp for
+	//for ( short i = 0 ; i < move_list_size ; i++) {
+		//move_list[ply].NextRootMove(true);
 		root_game->MakeMove(*move_list[ply].move());
 		if(!root_game->isInCheck(!root_game->getActivePlayer())) {
 			node_count++;
@@ -186,24 +201,36 @@ void SEARCH::Hard_PVS_Root() {
 			}
 			#endif
 				
-			#ifdef ENABLE_LMR		
-			/*
-			//LMR:
-			if( move_list[ply].phase() == NONCAPTURES	// Only reduce noncaptures
-				&& move_count >= LMR_THRESHOLD			// Wait for LATE moves
-				//&& hashe_flag != HASH_EXACT			// Do not reduce PV nodes
-				&& root_depth >= LMR_HORIZON			// Do not reduce too close to the horizon
-				&& !checked								// Do not reduce if in check
-				&& depth_adjustment == 0				// Do not reduce if already extended (also makes sure opponent is not in check)
-				&& (root_depth - depth) == ply			// Do not reduce if previously extended
-														// TODO: do not extend if this moves checks the opponent.
-				) {
-				depth_adjustment = -1;
+			#ifdef ENABLE_ROOT_LMR
+			//PVS with LMR
+			if (move_count == 0)
+				score = -Hard_PVS(root_depth - 1 + depth_adjustment, ply + 1, root_game, -beta, -alpha, false);
+			else {
+				score = alpha + 1; //recommended hack.
+
+				if (	move_list[ply].phase() == NONCAPTURES			// Do not reduce or prune winning captures or killers
+					&&	!checked										// Do not reduce or prune if in check
+					&&	depth_adjustment == 0							// Do not reduce or prune if already extended aka oppenent in check
+					&&	move_list[ply].move()->promote_piece_to == 0	// No promotions
+					&&	move_count >= LMR_THRESHOLD						// Wait for LATE moves
+					&&	root_depth >= LMR_HORIZON						// Do not reduce too close to the horizon
+					&& (move_list[ply].move()->active_piece_id != PAWN_VALUE || //Do not reduce passed pawns
+					(root_game->getPieceBB(!move_list[ply].move()->color, nPawn) & mask::passed_pawn[move_list[ply].move()->color][move_list[ply].move()->to]))
+					){
+						score = -Hard_PVS(root_depth - 1 - LMR_REDUCTION/*-((parent_moves_searched>=4&&root_depth>=3)?1:0)*/, ply + 1, root_game, -(alpha + 1), -alpha, false);
+					
+				}
+
+				if (score > alpha) { //research
+					score = -Hard_PVS(root_depth - 1 + depth_adjustment, ply + 1, root_game, -(alpha + 1), -alpha, false);
+					if (score > alpha && score < beta) {
+						score = -Hard_PVS(root_depth - 1 + depth_adjustment, ply + 1, root_game, -beta, -alpha, false);
+					}
+				}
 			}
-			*/
-			#endif			
-			move_count++;
-				
+			#endif		
+
+			#ifndef ENABLE_ROOT_LMR			
 			//PVS:
 			if(hashe_flag == HASH_EXACT && root_depth > PVS_HORIZON) { //equivalent to being a PV node.
 				score = -Hard_PVS(root_depth -1 + depth_adjustment, ply+1, root_game, -alpha-1, -alpha);
@@ -217,8 +244,9 @@ void SEARCH::Hard_PVS_Root() {
 					score = -Hard_PVS(root_depth -1, ply+1, root_game, -beta, -alpha); //should + depth_adjustment?
 				}
 			}
-
+			#endif
 			//Normal Alpha-Beta:
+			move_count++;
 			root_game->unMakeMove(*move_list[ply].move());
 			if( score >= beta ) {
 				#ifdef SEARCH_STATS
@@ -233,22 +261,26 @@ void SEARCH::Hard_PVS_Root() {
 				best_score = score;
 				break; 
 			}
+			
 			if(score > alpha) {
 				alpha = score;
 				hashe_flag = HASH_EXACT;
 				best_move = *move_list[ply].move();
 				best_score = score;
+				
 			}
 		}
 		else {
-			root_game->unMakeMove(*move_list[ply].move()); }
+			root_game->unMakeMove(*move_list[ply].move()); 
+		}
 
 		/*****************************************************
 			Quit searching if the allotted time is up.
 		*****************************************************/
-		if(node_count % 2000000 == 0) {
-			if(isOutOfTime())
+		if(node_count % NODES_FOR_TIME_CHECK == 0) {
+			if (isOutOfTime()) {
 				break;
+			}
 		}
 	}
 
@@ -266,18 +298,23 @@ void SEARCH::Hard_PVS_Root() {
 	}
 }
 
-int SEARCH::Hard_PVS(unsigned char depth, unsigned char ply, CHESSBOARD * game, int alpha, int beta, bool fNulled) {
+int SEARCH::Hard_PVS(unsigned char depth, unsigned char ply, CHESSBOARD * game, int alpha, int beta, bool fNulled/*, unsigned char parent_moves_searched*/) {
 
 	//Draw by 50 move rule or 3 fold repition:
 	if(game->getHalfMovesRule() >=4) {
-		//check for 3 fold:
-		if(game->checkThreeFold())
-			return contempt(game);
-		//check for 50 move:
-		if(game->getHalfMovesRule() >= 100)
+		//check for 3 fold and/or check for 50 move:
+		if (game->checkThreeFold() || (game->getHalfMovesRule() >= 100))
 			return contempt(game);
 	}
-
+	/*
+	#ifdef INSUFFICIENT_MATERIAL_CHECK
+	else {
+		if(insufficientMaterial(game)) {
+			return contempt(game);
+		}
+	}
+	#endif
+	*/
 	//Hashe table Check:
 	MOVE hash_suggestion;	
 	int score = hashtable->SearchHash(game->getKey(), depth, alpha, beta, &hash_suggestion);
@@ -297,22 +334,13 @@ int SEARCH::Hard_PVS(unsigned char depth, unsigned char ply, CHESSBOARD * game, 
 	bool checked = game->isInCheck();
 
 /**************************************************************************************
-	Forward Pruning.
-***************************************************************************************/
-
-	#ifdef ENABLE_FUTILITY_PRUNING
-	bool fPrune = false;
-
-
-	#endif
-/**************************************************************************************
 	Null move if it is not a King/pawn game and the previous move want a null move.
 ***************************************************************************************/
 	#ifdef ENABLE_NULLMOVE
 	
 	if(	!fNulled				//Do not null if we just nulled
 	&&	!checked				//Do not null in check, thats stupid
-	//&&	hash_score!=alpha	//Do not null if the hash table says that we might get a fail low.
+	//&&	hash_score!=alpha	//Do not null if the hash table says that we might get a fail low. (BUG: that is NOT what the condition written actually does!)
 	//Do not null in a King/Pawn game:
 	&& ( (game->getPieceBB(game->getActivePlayer(), nPawn) | game->getPieceBB(game->getActivePlayer(), nKing)) 
 		   != game->getOccupiedBB(game->getActivePlayer())) ) 
@@ -323,8 +351,7 @@ int SEARCH::Hard_PVS(unsigned char depth, unsigned char ply, CHESSBOARD * game, 
 			score = -Hard_PVS(depth - 1 - NULL_REDUCTION, ply+1, game, -beta,-beta+1, true);
 		}
 		else {
-			score = -Hard_qSearch(game, -beta, -beta+1,0);
-			//score = -Hard_PVS(0, game, -beta,-beta+1, true);
+			score = -Hard_qSearch(game, -beta, -beta+1, 0);
 		}
 		game->unNullMove(); //unmake nullmove!
 		if (score >=beta) {
@@ -332,23 +359,30 @@ int SEARCH::Hard_PVS(unsigned char depth, unsigned char ply, CHESSBOARD * game, 
 			return beta; }
 	}
 	#endif
+
 /**************************************************************************************
 	IID: If there is no hash suggestion, try to generate one with a lower depth search.
 ***************************************************************************************/	
-
 	move_list[ply].reset();
 	move_list[ply+1].clearKillers();
+	
 	#ifdef ENABLE_IID	
-	if((hash_suggestion.from == 64) && (depth >= IID_HORIZON) && !fNulled && alpha != beta -1){
-		int t = Hard_PVS(depth-IID_REDUCTION, ply+1, game, 
-			((root_depth-depth)&1) ? root_alpha : -root_beta,
-			((root_depth-depth)&1) ? root_beta  : -root_alpha,
-			false);
+	if((hash_suggestion.from == 64) 
+	&& (depth >= IID_HORIZON) 
+	&& !fNulled 
+	&& ply > 1
+	&& ((ply&1) ? root_alpha : -root_beta) == alpha
+	&& ((ply&1) ? root_beta  : -root_alpha)== beta
+	//&& alpha != beta -1
+	){
+		
+		score = Hard_PVS(depth-IID_REDUCTION, ply+1, game, alpha, beta, false);
+
 
 		//if(t <= alpha) 
 		//	cout << "alpha cutoff!\n";
 		// Recheck the hash table to get what the lower depth search generated:
-		//score = hashtable->SearchHash(game->getKey(), depth, -INFINITY, beta, &hash_suggestion);
+		//score = hashtable->SearchHash(game->getKey(), depth, -INFTY, beta, &hash_suggestion);
 		hash_suggestion = hashtable->getHashMove(game->getKey());
 		/*
 		if(hash_suggestion.from == 64 )
@@ -360,13 +394,12 @@ int SEARCH::Hard_PVS(unsigned char depth, unsigned char ply, CHESSBOARD * game, 
 	#endif
 	move_list[ply].addHash(hash_suggestion);
 
-
 /**************************************************************************************
 	Search
 ***************************************************************************************/
 	char hashe_flag = HASH_ALPHA;
 	MOVE best_local_move;
-	short move_count = 0;	
+	unsigned char move_count = 0;	
 	
 	#ifdef SEARCH_STATS
 		short last_alpha = 0;
@@ -374,54 +407,54 @@ int SEARCH::Hard_PVS(unsigned char depth, unsigned char ply, CHESSBOARD * game, 
 	#endif
 
 	while( move_list[ply].NextMove() ) {
-
 		game->MakeMove(*move_list[ply].move());
 		if(!game->isInCheck(!game->getActivePlayer())) {
 			node_count++;
-			short depth_adjustment = 0;
-				
+
+			short depth_adjustment = 0;	
 			#ifdef ENABLE_CHECK_EXTENSIONS
 			//Check extension:
 			if(game->isInCheck(game->getActivePlayer())) {
 				depth_adjustment = 1; //INCREASE the search depth by 1. Implies that opponent is in check.
 			}
 			#endif
-			
-			
-			#ifdef ENABLE_OLD_LMR
-			
-			if( move_list[ply].phase() >= NONCAPTURES		// Do not reduce captures
-				&& move_count >= LMR_THRESHOLD				// Wait for LATE moves
-				//&& hashe_flag != HASH_EXACT				// Do not reduce PV nodes
-				&& depth >= LMR_HORIZON						// Do not reduce too close to the horizon
-				&& !checked									// Do not reduce if in check
-				&& depth_adjustment == 0					// Do not reduce if already extended (also makes sure opponent is not in check)
-				&& !game->isInCheck(game->getActivePlayer())
-			) {
-				depth_adjustment = -1;
-			}
-			
-			#endif
+
 			#ifdef ENABLE_LMR
 			//PVS with LMR
 			if(move_count == 0)
 				score = -Hard_PVS(depth-1 + depth_adjustment, ply+1, game, -beta, -alpha, false);
 			else {
-
-				if( move_list[ply].phase() == NONCAPTURES	// Do not reduce captures
-				&& move_count >= LMR_THRESHOLD				// Wait for LATE moves
-				//&& hashe_flag != HASH_EXACT				// Do not reduce PV nodes
-				&& depth >= LMR_HORIZON						// Do not reduce too close to the horizon
-				&& !checked									// Do not reduce if in check
-				&& depth_adjustment == 0					// Do not reduce if already extended (also makes sure opponent is not in check)
-				&& !game->isInCheck(game->getActivePlayer())// Do not reduce if this move checks the oponent
-				) {
-					//LMR:
-					score = -Hard_PVS(depth-2, ply+1, game, -(alpha+1), -alpha, false);
-				}
-				else
-					score = alpha+1; //recommended hack.
+				score = alpha+1; //recommended hack.
 				
+				//LMR and Futility Conditions:
+				if( move_list[ply].phase() == NONCAPTURES			// Do not reduce or prune winning captures or killers
+				&&	!checked										// Do not reduce or prune if in check
+				&&	depth_adjustment == 0							// Do not reduce or prune if already extended aka oppenent in check
+				&&	(move_list[ply].move()->promote_piece_to==0)	// No promotions
+				) {
+					#ifdef ENABLE_FUTILITY_PRUNING
+					//Futility Pruning:
+					if (depth <= FUTILITY_DEPTH
+						//&& (game->getMaterialValue(!game->getActivePlayer()) - game->getMaterialValue(game->getActivePlayer())) 
+						&& -game->getRelativeMaterialValue()
+							+ futility_margin[depth] < alpha	//Futility condition
+						) {
+						move_count++;
+						game->unMakeMove(*move_list[ply].move());
+						continue;
+					}
+					#endif					
+					
+					//LMR:
+					if(	move_count >= LMR_THRESHOLD				// Wait for LATE moves
+					&&	depth >= LMR_HORIZON					// Do not reduce too close to the horizon
+					&& ( move_list[ply].move()->active_piece_id != PAWN_VALUE || //Do not reduce passed pawns
+							(game->getPieceBB(!move_list[ply].move()->color,nPawn) & mask::passed_pawn[move_list[ply].move()->color][move_list[ply].move()->to]) )
+					){
+						score = -Hard_PVS(depth-1-LMR_REDUCTION/*-((parent_moves_searched>=4&&depth>=3)?1:0)*/, ply+1, game, -(alpha+1), -alpha, false);
+					}
+				}
+					
 				if(score > alpha) { //research
 					score = -Hard_PVS(depth-1+depth_adjustment, ply+1, game, -(alpha+1), -alpha, false);
 					if(score > alpha && score < beta) {
@@ -429,7 +462,9 @@ int SEARCH::Hard_PVS(unsigned char depth, unsigned char ply, CHESSBOARD * game, 
 					}
 				}
 			}
-			#else
+			#endif
+
+			#ifndef ENABLE_LMR
 			//PVS:
 			if(hashe_flag == HASH_EXACT && depth > PVS_HORIZON) {
 				score = -Hard_PVS(depth-1 + depth_adjustment, ply+1, game, -alpha-1, -alpha, false);
@@ -438,9 +473,6 @@ int SEARCH::Hard_PVS(unsigned char depth, unsigned char ply, CHESSBOARD * game, 
 			}
 			else {
 				score = -Hard_PVS(depth-1 + depth_adjustment, ply+1, game, -beta, -alpha, false); 
-				//Research at full depth if need be:
-				if(depth_adjustment < 0 && score > alpha)
-					score = -Hard_PVS(depth-1, ply+1, game, -beta, -alpha, false);
 			}
 			#endif
 
@@ -448,9 +480,11 @@ int SEARCH::Hard_PVS(unsigned char depth, unsigned char ply, CHESSBOARD * game, 
 			game->unMakeMove(*move_list[ply].move());
 			//Normal Alpha-Beta:
 			if( score >= beta ) {
+				#ifdef ENABLE_KILLER_MOVES
 				if(move_list[ply].phase() == NONCAPTURES) {
 					move_list[ply].addKiller(*move_list[ply].move());
 				}
+				#endif
 				#ifdef SEARCH_STATS
 					cutoff_phase[move_list[ply].current_phase ]++;
 					cutoff_move[move_count]++;
@@ -475,7 +509,7 @@ int SEARCH::Hard_PVS(unsigned char depth, unsigned char ply, CHESSBOARD * game, 
 		/*****************************************************
 			Quit searching if the allotted time is up.
 		*****************************************************/
-		if(node_count % 2000000 == 0) {
+		if (node_count % NODES_FOR_TIME_CHECK == 0) {
 			if(isOutOfTime())
 				break;
 		}

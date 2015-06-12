@@ -219,3 +219,158 @@ LMR + R=3:
 	Midgame 2               15      11.995
 	King-Pawn               29      8.824
 
+No PVS below depth 2:
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   14      8.022
+	Midgame 1               15      12.801
+	Midgame 2               15      11.868
+	King-Pawn               29      8.615
+
+Reducing loosing captures:
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   15      15.935
+	Midgame 1               15      11.46
+	Midgame 2               15      11.125
+	King-Pawn               29      8.69i l
+
+????
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   15      16.331
+	Midgame 1               15      11.587
+	Midgame 2               15      9.238
+	King-Pawn               29      8.848
+
+LMR horizon 2
+Position               Depth    Time
+	-------------------------------------------------
+	Start                   15      12.089
+	Midgame 1               15      9.938
+	Midgame 2               15      7.566
+	King-Pawn               29      8.564
+
+
+LMR reducing by 2 when parents searched 2 moves. 
+LMR horizon also 2
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   15      9.29
+	Midgame 1               15      9.684
+	Midgame 2               16      16.414
+	King-Pawn               29      10.014
+
+Reverted all LMR changes.
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   14      7.247
+	Midgame 1               15      10.556
+	Midgame 2               15      10.241
+	King-Pawn               30      12.931
+
+change toMove in eval to WHITE and BLACK
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   14      6.638
+	Midgame 1               15      9.743
+	Midgame 2               15      9.648
+	King-Pawn               30      12.774
+
+Changing hash table sizes to a power of 2 and replacing modulo with &
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   14      5.978
+	Midgame 1               15      8.639
+	Midgame 2               15      8.321
+	King-Pawn               29      11.397
+
+
+
+Eval: before changing to local occ boards:
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   14      8.153
+	Midgame 1               14      7.671
+	Midgame 2               14      6.197
+	King-Pawn               25      10.973
+
+Latest (0.37):
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   14      8.405
+	Midgame 1               15      12.279
+	Midgame 2               15      9.778
+	King-Pawn               29      10.001
+
+Latest (0.37) - VS2013:
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   14      8.204
+	Midgame 1               15      11.971
+	Midgame 2               15      9.567
+	King-Pawn               29      9.609
+
+Enabled Root LMR:
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   15      15.737
+	Midgame 1               15      9.308
+	Midgame 2               16      28.131
+	King-Pawn               29      8.721
+
+Futility 375/550/1025 (short)
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   15      14.95
+	Midgame 1               15      7.382
+	Midgame 2               16      24.474
+	King-Pawn               29      9.016
+
+Futility 375/375/550/550
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   15      14.447
+	Midgame 1               16      11.766
+	Midgame 2               16      21.224
+	King-Pawn               29      8.963
+
+Futility 190/190/375/375
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   15      8.355
+	Midgame 1               16      10.136
+	Midgame 2               16      16.994
+	King-Pawn               29      8.362
+
+Futility 120/120/310/310
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   15      12.037
+	Midgame 1               16      9.974
+	Midgame 2               16      11.194
+	King-Pawn               29      8.901
+
+PST 127
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   15      12.152
+	Midgame 1               16      11.618
+	Midgame 2               16      9.202
+	King-Pawn               29      9.131
+
+NO 127
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   15      12.125
+	Midgame 1               16      11.62
+	Midgame 2               16      9.184
+	King-Pawn               30      12.628
+
+qSearch node check:
+	Position               Depth    Time
+	-------------------------------------------------
+	Start                   15      11.893
+	Midgame 1               16      11.418
+	Midgame 2               16      8.943
+	King-Pawn               30      12.426

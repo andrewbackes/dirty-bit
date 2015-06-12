@@ -17,11 +17,11 @@ public:
 	SEARCH(int depth, CHESSBOARD * game, HASHTABLE * h, long time )
 	{	root_depth = depth; root_game = game; q_max_ply = 0; selective_depth = 0;
 		start_time =0; end_time = 0; allotted_time = time; fTimeOut = false;
-		node_count =0; best_score = -INFINITY; 
+		node_count =0; best_score = -INFTY; 
 		hashtable = h; 
 		//move_list = new MOVELIST[root_depth+1];
 		//for(int i =0; i<=root_depth; i++) {
-		for(int i =0; i<MAX_PLY; i++) {
+		for(int i =0; i < MAX_PLY; i++) {
 			move_list[i].linkGame(root_game);
 		}
 		for(int i =0; i < Q_CUTOFF; i++ ) {
@@ -45,10 +45,10 @@ public:
 		//delete move_list;
 	}
 
-	void	start(int alpha_bound = -INFINITY, int beta_bound = INFINITY);
+	void	start(int alpha_bound = -INFTY, int beta_bound = INFTY);
 	
 	void	Hard_PVS_Root();
-	int		Hard_PVS(unsigned char depth, unsigned char ply, CHESSBOARD * game, int alpha, int beta, bool fNulled = false);
+	int		Hard_PVS(unsigned char depth, unsigned char ply, CHESSBOARD * game, int alpha, int beta, bool fNulled = false/*, unsigned char parent_moves_searched = 0*/);
 	int		Hard_qSearch(CHESSBOARD * game, int alpha, int beta, int qPly);
 
 	bool	isOutOfTime();

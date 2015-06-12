@@ -6,7 +6,67 @@
 
 #include "parameters.h"
 
- 
+
+/*******************************************************************************
+	Pawn Hash Table:
+*******************************************************************************/
+
+struct PAWNHASH {
+	//Note: all scores are from the POV of white
+	//		who is to move is not recorded
+	//bitboard key;
+	phash_lock key;
+	short opening_value;
+	short ending_value;
+};
+
+class PAWNTABLE {
+public:
+	// Construction/Deconstruction:
+	PAWNTABLE()		{	initialize();	}
+	~PAWNTABLE()	{	deinitialize(); }
+	void initialize() {
+		bytes = (PAWN_HASH_TABLE_SIZE * 1048576);
+		// 4mg = 4194304 bytes. /16=262144. 2^21 = 2097152.
+		size = 2097152;
+		//size = bytes / sizeof(PAWNHASH);
+		table = new PAWNHASH[size]; 
+	}
+	void deinitialize() { delete table; }
+	void reinitialize() {
+		deinitialize();	initialize();	}
+
+	//Getters and setters:
+	bool getScores(phash_lock key, short &opening_v, short &ending_v) {
+		//PAWNHASH * pEntry = &table[key % size];
+		PAWNHASH * pEntry = &table[key & 2097151];
+		if( pEntry->key == key) {
+			opening_v = pEntry->opening_value;
+			ending_v  = pEntry->ending_value;
+			return true;
+		}
+		return false;
+	}
+	void saveScore(phash_lock key, short opening_v, short ending_v) {
+		//PAWNHASH * pEntry = &table[key % size];
+		PAWNHASH * pEntry = &table[key & 2097151];
+
+		pEntry->key = key;
+		pEntry->opening_value = opening_v;
+		pEntry->ending_value = ending_v;
+	}
+
+private:
+	PAWNHASH * table;
+	long long size; //number of entries
+	long long bytes; //size of the hashe table
+};
+
+
+/*******************************************************************************
+	Transposition Hash Table:
+*******************************************************************************/
+
 struct HASH {
 	//24 bytes
 	bitboard key;

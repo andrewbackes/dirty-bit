@@ -8,9 +8,10 @@ using namespace std;
 
 #pragma intrinsic(_BitScanReverse64)
 #pragma intrinsic(_BitScanForward64)
+#pragma intrinsic(__popcnt64)
 
-bitboard mask::MagicRookMoves[64][16384];
-bitboard mask::MagicBishopMoves[64][2048];
+bitboard mask::MagicRookMoves[64][MAGIC_ROOK_SIZE];	//16384
+bitboard mask::MagicBishopMoves[64][MAGIC_BISHOP_SIZE];	//2048
 
 bitboard quickhash(bitboard bb, bitboard key, int bits){
 	//Taken with permission from Exacto 0.e source code:
@@ -41,7 +42,7 @@ void generateMagicBishopVariations(bitboard ** &varMask, bitboard ** &varAttacks
 			int b = bitscan_msb(temp);
 			MaskBits.push_back(b);
 			temp^=b; }
-		bitCount[bit] = bitcnt(mask);
+		bitCount[bit] = bitcount(mask);
 
 		varCount = (1i64 << bitCount[bit]);
 		for(i=0; i < varCount; i++) {
@@ -168,7 +169,7 @@ bitboard findMagicBishop(int square, int bits) {
     while(incomplete) {
         incomplete = false;
         
-        for(i = 0; i <= 2047 ; i++) mask::MagicBishopMoves[square][i] = all_set;
+        for(i = 0; i < MAGIC_BISHOP_SIZE ; i++) mask::MagicBishopMoves[square][i] = all_set;
 		
 		magic = mask::MagicBishopNumbers[square];
 		for(k = 0; k <= ((1i64 << nw)-1); k++){ 
@@ -254,7 +255,7 @@ bitboard findMagicRook(int square, int bits) {
     while(incomplete) {
         incomplete = false;
         
-        for(i = 0; i <= 16383 ; i++) mask::MagicRookMoves[square][i] = all_set; //(uncomment this line for magic generation)
+        for(i = 0; i < MAGIC_ROOK_SIZE ; i++) mask::MagicRookMoves[square][i] = all_set; //(uncomment this line for magic generation)
         
         //magic = random64(); //(uncomment this line for magic generation)
         
@@ -384,15 +385,17 @@ bool bitcheck(bitboard bb, unsigned char index) {
 }
 
 
-unsigned char bitcnt(bitboard bb) {
+unsigned char bitcount(bitboard bb) {
 //Try:
 // return pc_table[MASK_POP_COUNT & bb] + pc_table[MASK_POP_COUNT & (bb >> 16)] + pc_table[MASK_POP_COUNT & (bb >> 32)] + pc_table[MASK_POP_COUNT & (bb >> 48)];
-	
+	/*
 	unsigned char count = 0;
 	while(bb) {
 		count++;
 		bb ^= (1i64 << bitscan_msb(bb) );
 	}
 	return count;
-	
+	*/
+	return (unsigned char)(__popcnt64(bb));
+
 }

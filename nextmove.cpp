@@ -84,7 +84,7 @@ bool MOVELIST::NextMove() {
 		if( move_index < move_list_size ) {
 			move_index++;
 			if(	linked_game->getBoard(getKiller(0).from) == getKiller(0).active_piece_id
-			&&	linked_game->getBoard(getKiller(0).to)	== getKiller(0).captured_piece 
+			//&&	linked_game->getBoard(getKiller(0).to)	== getKiller(0).captured_piece 
 			&&	getKiller(0).color == linked_game->getActivePlayer() 
 			) {
 				/*
@@ -113,7 +113,7 @@ bool MOVELIST::NextMove() {
 		if( move_index < move_list_size ) {
 			move_index++;
 			if(	linked_game->getBoard(getKiller(1).from) == getKiller(1).active_piece_id
-			&&	linked_game->getBoard(getKiller(1).to)	== getKiller(1).captured_piece 
+			//&&	linked_game->getBoard(getKiller(1).to)	== getKiller(1).captured_piece 
 			&&	getKiller(1).color == linked_game->getActivePlayer() 
 			) {
 				/*
@@ -280,24 +280,48 @@ void MOVELIST::OrderMoves() {
 	}
 }
 
-bool MOVELIST::NextRootMove() {
-	if( next_move_phase == HASH_MOVE ) {
-		if( move_index < move_list_size ) {
+short MOVELIST::PopulateCompleteList() {
+	//returns the total number of moves generated.
+	short total_list_size = 0;
+	if (!empty_move(hash_suggestion)) {
+		total_list_size++;
+	}
+	
+	capture_index = 0;
+	capture_list_size = 0;
+	CaptureGen(linked_game, this);
+	OrderCaptures();
+	total_list_size += capture_list_size;
+	
+	move_index = 0;
+	move_list_size = 0;
+	nonCaptureGen(linked_game, this);
+	OrderMoves();
+	total_list_size += move_list_size;
+
+	return total_list_size;
+}
+
+bool MOVELIST::NextRootMove(bool already_generated) {
+	if (next_move_phase == HASH_MOVE) {
+		if (move_index < move_list_size) {
 			move_index++;
-			if(hash_suggestion.from != 64) {
+			if (hash_suggestion.from != 64) {
 				pMove = &hash_suggestion;
 				move_phase = HASH_MOVE;
 				#ifdef SEARCH_STATS
-					current_phase = HASH_MOVE;
+				current_phase = HASH_MOVE;
 				#endif
 				return true;
 			}
 		}
 		next_move_phase = CAPTURES;
 		capture_index = 0;
-		capture_list_size = 0;
-		CaptureGen(linked_game, this);
-		OrderCaptures();
+		if (!already_generated) {
+			capture_list_size = 0;
+			CaptureGen(linked_game, this);
+			OrderCaptures();
+		}
 	}
 //------	
 	if( next_move_phase == CAPTURES ) {
@@ -315,9 +339,11 @@ bool MOVELIST::NextRootMove() {
 		else {
 			next_move_phase = NONCAPTURES;
 			move_index = 0;
-			move_list_size = 0;
-			nonCaptureGen(linked_game, this);
-			OrderMoves();
+			if (!already_generated) {
+				move_list_size = 0;
+				nonCaptureGen(linked_game, this);
+				OrderMoves();
+			}
 		}
 	}
 //------
