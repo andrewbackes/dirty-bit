@@ -187,6 +187,7 @@ void SEARCH::Hard_PVS_Root() {
 			#endif
 				
 			#ifdef ENABLE_LMR		
+			/*
 			//LMR:
 			if( move_list[ply].phase() == NONCAPTURES	// Only reduce noncaptures
 				&& move_count >= LMR_THRESHOLD			// Wait for LATE moves
@@ -199,6 +200,7 @@ void SEARCH::Hard_PVS_Root() {
 				) {
 				depth_adjustment = -1;
 			}
+			*/
 			#endif			
 			move_count++;
 				
@@ -369,15 +371,16 @@ int SEARCH::Hard_PVS(unsigned char depth, unsigned char ply, CHESSBOARD * game, 
 			node_count++;
 			short depth_adjustment = 0;
 				
-#ifdef ENABLE_CHECK_EXTENSIONS
+			#ifdef ENABLE_CHECK_EXTENSIONS
 			//Check extension:
 			if(game->isInCheck(game->getActivePlayer())) {
 				depth_adjustment = 1; //INCREASE the search depth by 1. Implies that opponent is in check.
 			}
-#endif
+			#endif
 			
-			//LMR:
-#ifdef ENABLE_LMR
+			
+			#ifdef ENABLE_OLD_LMR
+			
 			if( move_list[ply].phase() >= NONCAPTURES		// Do not reduce captures
 				&& move_count >= LMR_THRESHOLD				// Wait for LATE moves
 				//&& hashe_flag != HASH_EXACT				// Do not reduce PV nodes
@@ -388,8 +391,36 @@ int SEARCH::Hard_PVS(unsigned char depth, unsigned char ply, CHESSBOARD * game, 
 			) {
 				depth_adjustment = -1;
 			}
-#endif
-			move_count++;
+			
+			#endif
+			#ifdef ENABLE_LMR
+			//PVS with LMR
+			if(move_count == 0)
+				score = -Hard_PVS(depth-1 + depth_adjustment, ply+1, game, -beta, -alpha, false);
+			else {
+
+				if( move_list[ply].phase() == NONCAPTURES	// Do not reduce captures
+				&& move_count >= LMR_THRESHOLD				// Wait for LATE moves
+				//&& hashe_flag != HASH_EXACT				// Do not reduce PV nodes
+				&& depth >= LMR_HORIZON						// Do not reduce too close to the horizon
+				&& !checked									// Do not reduce if in check
+				&& depth_adjustment == 0					// Do not reduce if already extended (also makes sure opponent is not in check)
+				&& !game->isInCheck(game->getActivePlayer())// Do not reduce if this move checks the oponent
+				) {
+					//LMR:
+					score = -Hard_PVS(depth-2, ply+1, game, -(alpha+1), -alpha, false);
+				}
+				else
+					score = alpha+1; //recommended hack.
+				
+				if(score > alpha) { //research
+					score = -Hard_PVS(depth-1+depth_adjustment, ply+1, game, -(alpha+1), -alpha, false);
+					if(score > alpha && score < beta) {
+						score = -Hard_PVS(depth-1+depth_adjustment, ply+1, game, -beta, -alpha, false);
+					}
+				}
+			}
+			#else
 			//PVS:
 			if(hashe_flag == HASH_EXACT && depth > PVS_HORIZON) {
 				score = -Hard_PVS(depth-1 + depth_adjustment, ply+1, game, -alpha-1, -alpha, false);
@@ -402,7 +433,9 @@ int SEARCH::Hard_PVS(unsigned char depth, unsigned char ply, CHESSBOARD * game, 
 				if(depth_adjustment < 0 && score > alpha)
 					score = -Hard_PVS(depth-1, ply+1, game, -beta, -alpha, false);
 			}
-			
+			#endif
+
+			move_count++;
 			game->unMakeMove(*move_list[ply].move());
 			//Normal Alpha-Beta:
 			if( score >= beta ) {
