@@ -17,38 +17,38 @@ int main(int argv, char* argc[])
 
 	
 	/*
-	bitboard mask1 = (1i64 << b5) | (1i64 << b6) | (1i64 << c7);
+	bitboard mask1 = (((bitboard)1) << b5) | (((bitboard)1) << b6) | (((bitboard)1) << c7);
 	bitprint(mask1);
-	bitboard mask2 = (1i64 << b4) | (1i64 << b3) | (1i64 << c2);
+	bitboard mask2 = (((bitboard)1) << b4) | (((bitboard)1) << b3) | (((bitboard)1) << c2);
 	bitprint(mask2);
 	cout << "trapped_bishop_long[] = {" << mask1 << ", " << mask2 <<endl;
 
-	bitboard mask3 = (1i64 << g5) | (1i64 << g6) | (1i64 << f7);
+	bitboard mask3 = (((bitboard)1) << g5) | (((bitboard)1) << g6) | (((bitboard)1) << f7);
 	bitprint(mask3);
-	bitboard mask4 = (1i64 << g4) | (1i64 << g3) | (1i64 << f2);
+	bitboard mask4 = (((bitboard)1) << g4) | (((bitboard)1) << g3) | (((bitboard)1) << f2);
 	bitprint(mask4);
 	cout << "trapped_bishop_short[] = {" << mask3 << ", " << mask4 << endl;
 	*/
 	/*
-	bitboard mask1 = (1i64 << a1) | (1i64 << a2) | (1i64 << b1);
+	bitboard mask1 = (((bitboard)1) << a1) | (((bitboard)1) << a2) | (((bitboard)1) << b1);
 	bitprint(mask1);
-	bitboard mask2 = (1i64 << a8) | (1i64 << a7) | (1i64 << b8);
+	bitboard mask2 = (((bitboard)1) << a8) | (((bitboard)1) << a7) | (((bitboard)1) << b8);
 	bitprint(mask2);
 	cout << "trapped_rook_long[] = {" << mask1 << ", " << mask2 << " };" << endl;
-	mask1 = (1i64 << b1) | (1i64 << c1);
+	mask1 = (((bitboard)1) << b1) | (((bitboard)1) << c1);
 	bitprint(mask1);
-	mask2 = (1i64 << b8) | (1i64 << c8);
+	mask2 = (((bitboard)1) << b8) | (((bitboard)1) << c8);
 	bitprint(mask2);
 	cout << "trapped_rook_long_king[] = { " << mask1 << ", " << mask2 << " };" << endl;
 
-	mask1 = (1i64 << h1) | (1i64 << h2) | (1i64 << g1);
+	mask1 = (((bitboard)1) << h1) | (((bitboard)1) << h2) | (((bitboard)1) << g1);
 	bitprint(mask1);
-	mask2 = (1i64 << h8) | (1i64 << h7) | (1i64 << g8);
+	mask2 = (((bitboard)1) << h8) | (((bitboard)1) << h7) | (((bitboard)1) << g8);
 	bitprint(mask2);
 	cout << "trapped_rook_short[] = {" << mask1 << ", " << mask2 << " };" << endl;
-	mask1 = (1i64 << f1) | (1i64 << g1);
+	mask1 = (((bitboard)1) << f1) | (((bitboard)1) << g1);
 	bitprint(mask1);
-	mask2 = (1i64 << f8) | (1i64 << g8);
+	mask2 = (((bitboard)1) << f8) | (((bitboard)1) << g8);
 	bitprint(mask2);
 	cout << "trapped_rook_short_king[] = { " << mask1 << ", " << mask2 << " };" << endl;
 	*/

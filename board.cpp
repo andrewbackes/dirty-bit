@@ -21,13 +21,13 @@ void CHESSBOARD::quickCapture(MOVE attacker) {
 	// Do not update the zobrist key, material value, etc.
 
 	//Turn off the attackees bit:
-	pieceBB[!attacker.color][attacker.captured_piece] ^= (1i64 << attacker.to);
-	occupiedBB[!attacker.color] ^= (1i64 << attacker.to);
+	pieceBB[!attacker.color][attacker.captured_piece] ^= (((bitboard)1) << attacker.to);
+	occupiedBB[!attacker.color] ^= (((bitboard)1) << attacker.to);
 
 	//Swap the attackers bit:
-	pieceBB[attacker.color][attacker.active_piece_id] ^= ( (1i64 << attacker.from) | (1i64 << attacker.to) );
-	occupiedBB[attacker.color] ^= ( (1i64 << attacker.from) | (1i64 << attacker.to) );
-	occupiedBB[BOTH] ^= (1i64 << attacker.from);
+	pieceBB[attacker.color][attacker.active_piece_id] ^= ( (((bitboard)1) << attacker.from) | (((bitboard)1) << attacker.to) );
+	occupiedBB[attacker.color] ^= ( (((bitboard)1) << attacker.from) | (((bitboard)1) << attacker.to) );
+	occupiedBB[BOTH] ^= (((bitboard)1) << attacker.from);
 
 	//Adjust the mailbox board representation:
 	board[attacker.to] = attacker.active_piece_id;
@@ -40,13 +40,13 @@ void CHESSBOARD::quickCapture(CAPTURER attacker) {
 	// Do not update the zobrist key, material value, etc.
 
 	//Turn off the attackees bit:
-	pieceBB[!attacker.color][attacker.captured_id] ^= (1i64 << attacker.to);
-	occupiedBB[!attacker.color] ^= (1i64 << attacker.to);
+	pieceBB[!attacker.color][attacker.captured_id] ^= (((bitboard)1) << attacker.to);
+	occupiedBB[!attacker.color] ^= (((bitboard)1) << attacker.to);
 
 	//Swap the attackers bit:
-	pieceBB[attacker.color][attacker.piece_id] ^= ( (1i64 << attacker.from) | (1i64 << attacker.to) );
-	occupiedBB[attacker.color] ^= ( (1i64 << attacker.from) | (1i64 << attacker.to) );
-	occupiedBB[BOTH] ^= (1i64 << attacker.from);
+	pieceBB[attacker.color][attacker.piece_id] ^= ( (((bitboard)1) << attacker.from) | (((bitboard)1) << attacker.to) );
+	occupiedBB[attacker.color] ^= ( (((bitboard)1) << attacker.from) | (((bitboard)1) << attacker.to) );
+	occupiedBB[BOTH] ^= (((bitboard)1) << attacker.from);
 
 	//Adjust the mailbox board representation:
 	board[attacker.to] = attacker.piece_id;
@@ -63,13 +63,13 @@ void CHESSBOARD::quickUnCapture(MOVE attacker) {
 	board[attacker.from] = attacker.active_piece_id;
 
 	//Turn on the attackees bit:
-	pieceBB[!attacker.color][attacker.captured_piece] ^= (1i64 << attacker.to);
-	occupiedBB[!attacker.color] ^= (1i64 << attacker.to);
+	pieceBB[!attacker.color][attacker.captured_piece] ^= (((bitboard)1) << attacker.to);
+	occupiedBB[!attacker.color] ^= (((bitboard)1) << attacker.to);
 
 	//Swap the attackers bit:
-	pieceBB[attacker.color][attacker.active_piece_id] ^= ( (1i64 << attacker.from) | (1i64 << attacker.to) );
-	occupiedBB[attacker.color] ^= ( (1i64 << attacker.from) | (1i64 << attacker.to) );
-	occupiedBB[BOTH] ^= (1i64 << attacker.from);
+	pieceBB[attacker.color][attacker.active_piece_id] ^= ( (((bitboard)1) << attacker.from) | (((bitboard)1) << attacker.to) );
+	occupiedBB[attacker.color] ^= ( (((bitboard)1) << attacker.from) | (((bitboard)1) << attacker.to) );
+	occupiedBB[BOTH] ^= (((bitboard)1) << attacker.from);
 
 }
 */
@@ -82,13 +82,13 @@ void CHESSBOARD::quickUnCapture(CAPTURER attacker) {
 	board[attacker.from] = attacker.piece_id;
 
 	//Turn on the attackees bit:
-	pieceBB[!attacker.color][attacker.captured_id] ^= (1i64 << attacker.to);
-	occupiedBB[!attacker.color] ^= (1i64 << attacker.to);
+	pieceBB[!attacker.color][attacker.captured_id] ^= (((bitboard)1) << attacker.to);
+	occupiedBB[!attacker.color] ^= (((bitboard)1) << attacker.to);
 
 	//Swap the attackers bit:
-	pieceBB[attacker.color][attacker.piece_id] ^= ( (1i64 << attacker.from) | (1i64 << attacker.to) );
-	occupiedBB[attacker.color] ^= ( (1i64 << attacker.from) | (1i64 << attacker.to) );
-	occupiedBB[BOTH] ^= (1i64 << attacker.from);
+	pieceBB[attacker.color][attacker.piece_id] ^= ( (((bitboard)1) << attacker.from) | (((bitboard)1) << attacker.to) );
+	occupiedBB[attacker.color] ^= ( (((bitboard)1) << attacker.from) | (((bitboard)1) << attacker.to) );
+	occupiedBB[BOTH] ^= (((bitboard)1) << attacker.from);
 
 }
 
@@ -120,14 +120,14 @@ bool CHESSBOARD::isAttacked(bool player, unsigned char square_index) {
 	if(opponent == WHITE) {
 		pieceDB =	((pieceBB[opponent][nPawn] & ~FileMask(a)) << 9)  
 				  |	((pieceBB[opponent][nPawn] & ~FileMask(h)) << 7); 
-		if(pieceDB & (1i64 << square_index) ) {
+		if(pieceDB & (((bitboard)1) << square_index) ) {
 			return true;
 		}
 	}
 	else {
 		pieceDB =	((pieceBB[opponent][nPawn] & ~FileMask(h)/*~mask::file[h]*/) >> 9) 
 				  |	((pieceBB[opponent][nPawn] & ~FileMask(a)/*~mask::file[a]*/) >> 7);
-		if(pieceDB & (1i64 << square_index) ) {
+		if(pieceDB & (((bitboard)1) << square_index) ) {
 			return true;
 		}
 	}
@@ -275,75 +275,75 @@ void CHESSBOARD::position(string fen)
 		//pawn=1, knight=2, king=3, bishop=5, rook=6 and queen=7
 		char piece = fen_board.at(pos);
 		if(piece == 'P') {
-			pieceBB[0][nPawn] |= (1i64 << index);
+			pieceBB[0][nPawn] |= (((bitboard)1) << index);
 			board[index] = nPawn;
 			material_score[WHITE] += nPieceValue[nPawn];
 			gamestate[0].zobrist_key ^= zobrist::pieces[WHITE][nPawn][index];
 			gamestate[0].pawn_key	 ^= (phash_lock)zobrist::pieces[WHITE][nPawn][index];
 		}
 		else if(piece == 'N') {
-			pieceBB[0][nKnight] |= (1i64 << index);
+			pieceBB[0][nKnight] |= (((bitboard)1) << index);
 			board[index] = nKnight;
 			material_score[WHITE] += nPieceValue[nKnight];
 			gamestate[0].zobrist_key ^= zobrist::pieces[WHITE][nKnight][index];
 		}
 		else if(piece == 'K') {
-			pieceBB[0][nKing] |= (1i64 << index);
+			pieceBB[0][nKing] |= (((bitboard)1) << index);
 			board[index] = nKing;
 			material_score[WHITE] += nPieceValue[nKing];
 			gamestate[0].zobrist_key ^= zobrist::pieces[WHITE][nKing][index];
 		}
 		else if(piece == 'B') {
-			pieceBB[0][nBishop] |= (1i64 << index);
+			pieceBB[0][nBishop] |= (((bitboard)1) << index);
 			board[index] = nBishop;
 			material_score[WHITE] += nPieceValue[nBishop];
 			gamestate[0].zobrist_key ^= zobrist::pieces[WHITE][nBishop][index];
 		}
 		else if(piece == 'R') {
-			pieceBB[0][nRook] |= (1i64 << index);
+			pieceBB[0][nRook] |= (((bitboard)1) << index);
 			board[index] = nRook;
 			material_score[WHITE] += nPieceValue[nRook];
 			gamestate[0].zobrist_key ^= zobrist::pieces[WHITE][nRook][index];
 		}
 		else if(piece == 'Q') {
-			pieceBB[0][nQueen] |= (1i64 << index);
+			pieceBB[0][nQueen] |= (((bitboard)1) << index);
 			board[index] = nQueen;
 			material_score[WHITE] += nPieceValue[nQueen];
 			gamestate[0].zobrist_key ^= zobrist::pieces[WHITE][nQueen][index];
 		}
 		else if(piece == 'p') {
-			pieceBB[1][nPawn] |= (1i64 << index);
+			pieceBB[1][nPawn] |= (((bitboard)1) << index);
 			board[index] = nPawn;
 			material_score[BLACK] += nPieceValue[nPawn];
 			gamestate[0].zobrist_key ^= zobrist::pieces[BLACK][nPawn][index];
 			gamestate[0].pawn_key	 ^= (phash_lock)zobrist::pieces[BLACK][nPawn][index];
 		}
 		else if(piece == 'n') {
-			pieceBB[1][nKnight] |= (1i64 << index);
+			pieceBB[1][nKnight] |= (((bitboard)1) << index);
 			board[index] = nKnight;
 			material_score[BLACK] += nPieceValue[nKnight];
 			gamestate[0].zobrist_key ^= zobrist::pieces[BLACK][nKnight][index];
 		}
 		else if(piece == 'k') {
-			pieceBB[1][nKing] |= (1i64 << index);
+			pieceBB[1][nKing] |= (((bitboard)1) << index);
 			board[index] = nKing;
 			material_score[BLACK] += nPieceValue[nKing];
 			gamestate[0].zobrist_key ^= zobrist::pieces[BLACK][nKing][index];
 		}
 		else if(piece == 'b') {
-			pieceBB[1][nBishop] |= (1i64 << index);
+			pieceBB[1][nBishop] |= (((bitboard)1) << index);
 			board[index] = nBishop;
 			material_score[BLACK] += nPieceValue[nBishop];
 			gamestate[0].zobrist_key ^= zobrist::pieces[BLACK][nBishop][index];
 		}
 		else if(piece == 'r') {
-			pieceBB[1][nRook] |= (1i64 << index);
+			pieceBB[1][nRook] |= (((bitboard)1) << index);
 			board[index] = nRook;
 			material_score[BLACK] += nPieceValue[nRook];
 			gamestate[0].zobrist_key ^= zobrist::pieces[BLACK][nRook][index];
 		}
 		else if(piece == 'q') {
-			pieceBB[1][nQueen] |= (1i64 << index);
+			pieceBB[1][nQueen] |= (((bitboard)1) << index);
 			board[index] = nQueen;
 			material_score[BLACK] += nPieceValue[nQueen];
 			gamestate[0].zobrist_key ^= zobrist::pieces[BLACK][nQueen][index];
@@ -421,29 +421,29 @@ void CHESSBOARD::print()
 	for(int i=63; i>=0; i--) 
 	{
 		cout << " |";
-		if( (1i64 << i) & pieceBB[0][nPawn] )
+		if( (((bitboard)1) << i) & pieceBB[0][nPawn] )
 			cout << " P";
-		else if( (1i64 << i) & pieceBB[1][nPawn] )
+		else if( (((bitboard)1) << i) & pieceBB[1][nPawn] )
 			cout << " p";
-		else if( (1i64 << i) & pieceBB[0][nKnight] )
+		else if( (((bitboard)1) << i) & pieceBB[0][nKnight] )
 			cout << " N";
-		else if( (1i64 << i) & pieceBB[1][nKnight] )
+		else if( (((bitboard)1) << i) & pieceBB[1][nKnight] )
 			cout << " n";
-		else if( (1i64 << i) & pieceBB[0][nKing] )
+		else if( (((bitboard)1) << i) & pieceBB[0][nKing] )
 			cout << " K";
-		else if( (1i64 << i) & pieceBB[1][nKing] )
+		else if( (((bitboard)1) << i) & pieceBB[1][nKing] )
 			cout << " k";
-		else if( (1i64 << i) & pieceBB[0][nBishop] )
+		else if( (((bitboard)1) << i) & pieceBB[0][nBishop] )
 			cout << " B";
-		else if( (1i64 << i) & pieceBB[1][nBishop] )
+		else if( (((bitboard)1) << i) & pieceBB[1][nBishop] )
 			cout << " b";
-		else if( (1i64 << i) & pieceBB[0][nRook] )
+		else if( (((bitboard)1) << i) & pieceBB[0][nRook] )
 			cout << " R";
-		else if( (1i64 << i) & pieceBB[1][nRook] )
+		else if( (((bitboard)1) << i) & pieceBB[1][nRook] )
 			cout << " r";
-		else if( (1i64 << i) & pieceBB[0][nQueen] )
+		else if( (((bitboard)1) << i) & pieceBB[0][nQueen] )
 			cout << " Q";
-		else if( (1i64 << i) & pieceBB[1][nQueen] )
+		else if( (((bitboard)1) << i) & pieceBB[1][nQueen] )
 			cout << " q";
 		else
 			cout << "  ";
@@ -525,7 +525,7 @@ bitboard CHESSBOARD::generateKey() {
 		short piece = getBoard(i);
 		if( piece ) {
 			bool color = BLACK;
-			if( getOccupiedBB(WHITE) & (1i64 << i) )
+			if( getOccupiedBB(WHITE) & (((bitboard)1) << i) )
 				color = WHITE;
 			key ^= zobrist::pieces[color][piece][i];
 		}
@@ -542,7 +542,7 @@ phash_lock CHESSBOARD::generatePawnKey() {
 		short piece = getBoard(i);
 		if( piece == nPawn ) {
 			bool color = BLACK;
-			if( getPieceBB(WHITE,nPawn) & (1i64 << i) )
+			if( getPieceBB(WHITE,nPawn) & (((bitboard)1) << i) )
 				color = WHITE;
 			key ^= (phash_lock)zobrist::pieces[color][nPawn][i];
 		}
@@ -553,13 +553,13 @@ phash_lock CHESSBOARD::generatePawnKey() {
 	while(pieceDB) {
 		int square = bitscan_msb(pieceDB);
 		key ^= zobrist::pieces[WHITE][nPawn][square];
-		pieceDB ^= (1i64 << square);
+		pieceDB ^= (((bitboard)1) << square);
 	}
 	pieceDB = getPieceBB(BLACK,nPawn);
 	while(pieceDB) {
 		int square = bitscan_msb(pieceDB);
 		key ^= zobrist::pieces[BLACK][nPawn][square];
-		pieceDB ^= (1i64 << square);
+		pieceDB ^= (((bitboard)1) << square);
 	}
 	*/
 	return key;

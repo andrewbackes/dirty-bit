@@ -83,9 +83,9 @@ In order:
 			move_list->addMove( MOVE(from,to,toMove,nPawn,b->getBoard(to), nKnight, N_PROMOTE_CAPTURE) );
 			move_list->addMove( MOVE(from,to,toMove,nPawn,b->getBoard(to), nBishop, B_PROMOTE_CAPTURE) );
 			move_list->addMove( MOVE(from,to,toMove,nPawn,b->getBoard(to), nRook, R_PROMOTE_CAPTURE) );
-			promote_kills ^= (1i64 << to);
+			promote_kills ^= (((bitboard)1) << to);
 		}
-		pieceDB ^= (1i64 << from); //remove bit from DB
+		pieceDB ^= (((bitboard)1) << from); //remove bit from DB
 		
 		//Promotion via advancement to Queen only:
 		if(promote) {
@@ -110,9 +110,9 @@ In order:
 			move_list->addMove( MOVE(from,to,toMove,nPawn, 0, nKnight, N_PROMOTE) );
 			move_list->addMove( MOVE(from,to,toMove,nPawn, 0, nBishop, B_PROMOTE) );
 			move_list->addMove( MOVE(from,to,toMove,nPawn, 0, nRook, R_PROMOTE) );
-			promote ^= (1i64 << to);
+			promote ^= (((bitboard)1) << to);
 		}
-		pieceDB ^= (1i64 << from); //remove bit from DB
+		pieceDB ^= (((bitboard)1) << from); //remove bit from DB
 	}
 	*/
 /*	-------------------------------------
@@ -126,9 +126,9 @@ In order:
 		 while(validMoveDB) {
 			 unsigned char target = bitscan_msb(validMoveDB);
 			 move_list->addMove(MOVE(from,target,toMove, nKnight, 0));
-			 validMoveDB ^= (1i64 << target);
+			 validMoveDB ^= (((bitboard)1) << target);
 		 }
-		 pieceDB ^= (1i64 << from); //remove bit from DB
+		 pieceDB ^= (((bitboard)1) << from); //remove bit from DB
 	 }
 	 
 /*	-------------------------------------
@@ -143,9 +143,9 @@ In order:
 		while(toDB) {
 			unsigned char target = getMostAdvanced(toMove, &toDB);
 			move_list->addMove(MOVE(from,target,toMove,b->getBoard(from), 0));
-			toDB^=(1i64<<target);
+			toDB^=(((bitboard)1)<<target);
 		}
-		pieceDB^=(1i64<<from);
+		pieceDB^=(((bitboard)1)<<from);
 	}
 	
 
@@ -161,9 +161,9 @@ In order:
 		while(toDB) {
 			unsigned char target = getMostAdvanced(toMove, &toDB);
 			move_list->addMove(MOVE(from,target,toMove,b->getBoard(from), 0));
-			toDB^=(1i64<<target);
+			toDB^=(((bitboard)1)<<target);
 		}
-		pieceDB^=(1i64<<from);
+		pieceDB^=(((bitboard)1)<<from);
 	}
 
 	
@@ -180,7 +180,7 @@ In order:
 		while(toDB) {
 			unsigned char target = getMostAdvanced(toMove, &toDB);
 			move_list->addMove(MOVE(from,target,toMove,nQueen, 0));
-			toDB^=(1i64<<target);
+			toDB^=(((bitboard)1)<<target);
 		}
 		/*
 		toDB =	mask::MagicBishopMoves[from][((b->getOccupiedBB(BOTH)&mask::MagicBishopMask[from]) * mask::MagicBishopNumbers[from])>>mask::MagicBishopShift[]] 
@@ -188,10 +188,10 @@ In order:
 		while(toDB) {
 			unsigned char target = getMostAdvanced(toMove, &toDB);
 			move_list->addMove(MOVE(from,target,toMove,nQueen, 0));
-			toDB^=(1i64<<target);
+			toDB^=(((bitboard)1)<<target);
 		}
 		*/
-		pieceDB^=(1i64<<from);
+		pieceDB^=(((bitboard)1)<<from);
 	}
 	
 	
@@ -205,7 +205,7 @@ In order:
 	while(validMoveDB) {
 		int target = bitscan_msb(validMoveDB);
 		move_list->addMove(MOVE(from,target,toMove,nKing, 0));
-		validMoveDB ^= (1i64 << target);
+		validMoveDB ^= (((bitboard)1) << target);
 	}
 	
 /*	-------------------------------------
@@ -231,7 +231,7 @@ In order:
 				move_list->addMove(MOVE(from,to,toMove, nPawn));
 			}
 		}
-		pieceDB ^= (1i64 << from); //remove bit from DB
+		pieceDB ^= (((bitboard)1) << from); //remove bit from DB
 	}
 
 }

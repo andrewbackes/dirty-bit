@@ -13,18 +13,18 @@ bool valid_killer(MOVE killer, CHESSBOARD * linked_game) {
 // Todo: worry about castles
 
 	// First check the source and destination squares:
-	if ( linked_game->getOccupiedBB(killer.color)&(1i64 << killer.from) ) {
-	//if (linked_game->getPieceBB(killer.color,killer.active_piece_id) & (1i64 << killer.from)) {
+	if ( linked_game->getOccupiedBB(killer.color)&(((bitboard)1) << killer.from) ) {
+	//if (linked_game->getPieceBB(killer.color,killer.active_piece_id) & (((bitboard)1) << killer.from)) {
 		
 		// For knights, we just check the destination square
 		if (killer.active_piece_id == nKnight) {
-			return ( (linked_game->getOccupiedBB(BOTH)&(1i64 << killer.to)) == 0 );
+			return ( (linked_game->getOccupiedBB(BOTH)&(((bitboard)1) << killer.to)) == 0 );
 		}
 
 		// For Kings, destination matters and we avoid castles.
 		else if (killer.active_piece_id == nKing) {
-			if ( mask::king_moves[killer.from] & (1i64 << killer.from) )
-				return ((linked_game->getOccupiedBB(BOTH)&(1i64 << killer.to)) == 0);
+			if ( mask::king_moves[killer.from] & (((bitboard)1) << killer.from) )
+				return ((linked_game->getOccupiedBB(BOTH)&(((bitboard)1) << killer.to)) == 0);
 		}
 
 		// For sliders, we have to check the entire path along the way.

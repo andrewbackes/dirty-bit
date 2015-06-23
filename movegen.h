@@ -43,9 +43,9 @@ Generates captures and promotions. In order:
 		 while(attackMoveDB) {
 			 unsigned char target = bitscan_msb(attackMoveDB);
 			 capture_list->addCapture(MOVE(from,target,toMove, nKnight, b->getBoard(target)));
-			 attackMoveDB ^= (1i64 << target);
+			 attackMoveDB ^= (((bitboard)1) << target);
 		 }
-		 pieceDB ^= (1i64 << from); //remove bit from DB
+		 pieceDB ^= (((bitboard)1) << from); //remove bit from DB
 	 }
 
 /*	-------------------------------------
@@ -59,9 +59,9 @@ Generates captures and promotions. In order:
 		while(toDB) {
 			unsigned char target = getMostAdvanced(toMove, &toDB);
 			capture_list->addCapture(MOVE(from,target,toMove,nBishop, b->getBoard(target)));
-			toDB^=(1i64<<target);
+			toDB^=(((bitboard)1)<<target);
 		}
-		pieceDB^=(1i64<<from);
+		pieceDB^=(((bitboard)1)<<from);
 	}
 
 	
@@ -78,9 +78,9 @@ Generates captures and promotions. In order:
 		while(toDB) {
 			unsigned char target = getMostAdvanced(toMove, &toDB);
 			capture_list->addCapture(MOVE(from,target,toMove,nRook, b->getBoard(target)));
-			toDB^=(1i64<<target);
+			toDB^=(((bitboard)1)<<target);
 		}
-		pieceDB^=(1i64<<from);
+		pieceDB^=(((bitboard)1)<<from);
 	}
 
 	
@@ -98,7 +98,7 @@ Generates captures and promotions. In order:
 		while(toDB) {
 			unsigned char target = getMostAdvanced(toMove, &toDB);
 			capture_list->addCapture(MOVE(from,target,toMove,nQueen, b->getBoard(target)));
-			toDB^=(1i64<<target);
+			toDB^=(((bitboard)1)<<target);
 		}
 		/*
 		toDB =	mask::MagicRookMoves[from][((b->getOccupiedBB(BOTH) & mask::MagicRookMask[from]) * mask::MagicRookNumbers[from])>>mask::MagicRookShift[]] 
@@ -106,10 +106,10 @@ Generates captures and promotions. In order:
 		while(toDB) {
 			unsigned char target = getMostAdvanced(toMove, &toDB);
 			capture_list->addCapture(MOVE(from,target,toMove,nQueen, b->getBoard(target)));
-			toDB^=(1i64<<target);
+			toDB^=(((bitboard)1)<<target);
 		}
 		*/
-		pieceDB^=(1i64<<from);
+		pieceDB^=(((bitboard)1)<<from);
 	}
 	
 	
@@ -122,7 +122,7 @@ Generates captures and promotions. In order:
 	while(validMoveDB) {
 		unsigned char target = bitscan_msb(validMoveDB);
 		capture_list->addCapture(MOVE(from ,target, toMove, nKing, b->getBoard(target)));
-		validMoveDB ^= (1i64 << target);
+		validMoveDB ^= (((bitboard)1) << target);
 	}
 	 
 /*	-------------------------------------
@@ -139,7 +139,7 @@ Generates captures and promotions. In order:
 		while(kill_list) {
 			int index = bitscan_msb(kill_list);
 			capture_list->addCapture(MOVE(from,index,toMove, nPawn,b->getBoard(index)) );
-			kill_list ^= (1i64 << index);
+			kill_list ^= (((bitboard)1) << index);
 		}
 		//En passant kills:
 		kill_list = mask::pawn_captures[toMove][from] & mask::square[b->getEnPassantIndex()];
@@ -148,7 +148,7 @@ Generates captures and promotions. In order:
 			capture_list->addCapture(MOVE(from,index,toMove, nPawn,0,0,nPieceValue[nPawn]));
 		}
 
-		pieceDB ^= (1i64 << from); //remove bit from DB
+		pieceDB ^= (((bitboard)1) << from); //remove bit from DB
 	}
 
 	//Pawn Promotions To Queen or Capture Promotions:
@@ -165,9 +165,9 @@ Generates captures and promotions. In order:
 			//capture_list->addCapture( MOVE(from,to,toMove,nPawn,b->getBoard(to), nKnight, N_PROMOTE_CAPTURE) );
 			//capture_list->addCapture( MOVE(from,to,toMove,nPawn,b->getBoard(to), nBishop, B_PROMOTE_CAPTURE) );
 			//capture_list->addCapture( MOVE(from,to,toMove,nPawn,b->getBoard(to), nRook, R_PROMOTE_CAPTURE) );
-			promote_kills ^= (1i64 << to);
+			promote_kills ^= (((bitboard)1) << to);
 		}
-		pieceDB ^= (1i64 << from); //remove bit from DB
+		pieceDB ^= (((bitboard)1) << from); //remove bit from DB
 		
 		//Promotion via advancement to Queen only:
 		if(promote) {

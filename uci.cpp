@@ -9,6 +9,7 @@
 #include <vector>
 #include <list>
 #include <ctime>
+#include <cmath>
 
 #include "uci.h"
 
@@ -867,7 +868,7 @@ int UCI_loop()
 			cout << active_game.isInCheck() << endl; }
 		else if(command == "attacked") {
 			for (int i=0; i < 64;i++)
-				if(active_game.getOccupiedBB(active_game.getActivePlayer()) & (1i64<<i))
+				if(active_game.getOccupiedBB(active_game.getActivePlayer()) & (((bitboard)1)<<i))
 					cout << i << ":" << (active_game.isAttacked(active_game.getActivePlayer(), i)) << ". ";
 		}
 		else if(command == "skip") {
