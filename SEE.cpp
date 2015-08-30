@@ -45,11 +45,11 @@ void findAttackingSquares(bitboard &attackers, CHESSBOARD *b, unsigned char squa
 	
 	//First check for black attacking pawns:
 	if(square < 48) {
-		attackers = ( ((1i64 << (square+9)) & ~FileMask(h)) | ((1i64 << (square+7)) & ~FileMask(a)) ) & b->getPieceBB(BLACK,nPawn);
+		attackers = ( ((((bitboard)1) << (square+9)) & ~FileMask(h)) | ((((bitboard)1) << (square+7)) & ~FileMask(a)) ) & b->getPieceBB(BLACK,nPawn);
 	}
 	//Next check for white attacking pawns:
 	if(square > 15) {
-		attackers |= ( ((1i64 << (square-9)) & ~FileMask(a)) | ((1i64 << (square-7)) & ~FileMask(h)) ) & b->getPieceBB(WHITE,nPawn);
+		attackers |= ( ((((bitboard)1) << (square-9)) & ~FileMask(a)) | ((((bitboard)1) << (square-7)) & ~FileMask(h)) ) & b->getPieceBB(WHITE,nPawn);
 	}
 
 	//Store the bits of diagonal attackers to xray through:
@@ -85,7 +85,7 @@ short findSmallestAttacker(CHESSBOARD *b, bitboard &attackers, bool color ) {
 	//pawns:
 	if( (bit = bitscan_msb(attackers & b->getPieceBB(color, nPawn))) != 64  ) {
 		//turn off the bit:
-		attackers ^= (1i64 << bit);
+		attackers ^= (((bitboard)1) << bit);
 		//Return the piece value:
 		return nPieceValue[nPawn];
 	}
@@ -93,7 +93,7 @@ short findSmallestAttacker(CHESSBOARD *b, bitboard &attackers, bool color ) {
 	//knights:
 	if( (bit = bitscan_msb(attackers & b->getPieceBB(color, nKnight))) != 64  ) {
 		//turn off the bit:
-		attackers ^= (1i64 << bit);
+		attackers ^= (((bitboard)1) << bit);
 		//Return the piece value:
 		return nPieceValue[nKnight];
 	}
@@ -101,7 +101,7 @@ short findSmallestAttacker(CHESSBOARD *b, bitboard &attackers, bool color ) {
 	//bishops:
 	if( (bit = bitscan_msb(attackers & b->getPieceBB(color, nBishop))) != 64  ) {
 		//turn off the bit:
-		attackers ^= (1i64 << bit);
+		attackers ^= (((bitboard)1) << bit);
 		//Return the piece value:
 		return nPieceValue[nBishop];
 	}
@@ -109,7 +109,7 @@ short findSmallestAttacker(CHESSBOARD *b, bitboard &attackers, bool color ) {
 	//rooks:
 	if( (bit = bitscan_msb(attackers & b->getPieceBB(color, nRook))) != 64  ) {
 		//turn off the bit:
-		attackers ^= (1i64 << bit);
+		attackers ^= (((bitboard)1) << bit);
 		//Return the piece value:
 		return nPieceValue[nRook];
 	}
@@ -117,7 +117,7 @@ short findSmallestAttacker(CHESSBOARD *b, bitboard &attackers, bool color ) {
 	//queens:
 	if( (bit = bitscan_msb(attackers & b->getPieceBB(color, nQueen))) != 64  ) {
 		//turn off the bit:
-		attackers ^= (1i64 << bit);
+		attackers ^= (((bitboard)1) << bit);
 		//Return the piece value:
 		return nPieceValue[nQueen];
 	}
@@ -125,7 +125,7 @@ short findSmallestAttacker(CHESSBOARD *b, bitboard &attackers, bool color ) {
 	//king:
 	if( (bit = bitscan_msb(attackers & b->getPieceBB(color, nKing))) != 64  ) {
 		//turn off the bit:
-		attackers ^= (1i64 << bit);
+		attackers ^= (((bitboard)1) << bit);
 		//Return the piece value:
 		return nPieceValue[nKing];
 	}
@@ -255,16 +255,16 @@ CAPTURER getSmallestAttacker( unsigned char toSquare, bool toMove, CHESSBOARD * 
 	bitboard pieceDB =0;
 	//Pawn check:
 	if(toMove == WHITE && toSquare < 48) {
-		pieceDB = (1i64 << (toSquare+9)) & ~FileMask(h); //~mask::file[h]; 
-		pieceDB|= (1i64 << (toSquare+7)) & ~FileMask(a); //~mask::file[a];
+		pieceDB = (((bitboard)1) << (toSquare+9)) & ~FileMask(h); //~mask::file[h]; 
+		pieceDB|= (((bitboard)1) << (toSquare+7)) & ~FileMask(a); //~mask::file[a];
 		pieceDB &= b->getPieceBB(!toMove,nPawn);
 		if(pieceDB) {
 			return(CAPTURER(nPawn, b->getBoard(toSquare), bitscan_msb(pieceDB), toSquare, !toMove));
 		}
 	}
 	if(toMove == BLACK && toSquare > 15) {
-		pieceDB = (1i64 << (toSquare-9)) & ~FileMask(a); //~mask::file[h];  
-		pieceDB|= (1i64 << (toSquare-7)) & ~FileMask(h); //~mask::file[a];
+		pieceDB = (((bitboard)1) << (toSquare-9)) & ~FileMask(a); //~mask::file[h];  
+		pieceDB|= (((bitboard)1) << (toSquare-7)) & ~FileMask(h); //~mask::file[a];
 		pieceDB &= b->getPieceBB(!toMove,nPawn);
 		if(pieceDB) {
 			return(CAPTURER(nPawn, b->getBoard(toSquare), bitscan_msb(pieceDB), toSquare, !toMove));

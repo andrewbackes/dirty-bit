@@ -1,14 +1,17 @@
 
 #include "bitboards.h"
 
-#include <intrin.h>
 #include <iostream>
 
 using namespace std;
 
-#pragma intrinsic(_BitScanReverse64)
-#pragma intrinsic(_BitScanForward64)
-#pragma intrinsic(__popcnt64)
+#ifdef _MSC_VER
+    #include <intrin.h>
+    #pragma intrinsic(_BitScanReverse64)
+    #pragma intrinsic(_BitScanForward64)
+    #pragma intrinsic(__popcnt64)
+#endif
+
 
 bitboard mask::MagicRookMoves[64][MAGIC_ROOK_SIZE];	//16384
 bitboard mask::MagicBishopMoves[64][MAGIC_BISHOP_SIZE];	//2048
@@ -44,7 +47,7 @@ void generateMagicBishopVariations(bitboard ** &varMask, bitboard ** &varAttacks
 			temp^=b; }
 		bitCount[bit] = bitcount(mask);
 
-		varCount = (1i64 << bitCount[bit]);
+		varCount = (((bitboard)1) << bitCount[bit]);
 		for(i=0; i < varCount; i++) {
 			varMask[bit][i] = 0;
 			
@@ -54,17 +57,17 @@ void generateMagicBishopVariations(bitboard ** &varMask, bitboard ** &varAttacks
 				IndexBits.push_back(b);
 				t^=b; }
 			for(int j=0; j < IndexBits.size(); j++) {
-				varMask[bit][(int)i] |= (1i64 << MaskBits[IndexBits[j]]);
+				varMask[bit][(int)i] |= (((bitboard)1) << MaskBits[IndexBits[j]]);
 			}
 			int j;
-			for (j=bit+9; j%8!=7 && j%8!=0 && j<=55 && (varMask[bit][i] & (1i64 << j)) == 0; j+=9);
-				if (j>=0 && j<=63) varAttacksMask[bit][i] |= (1i64 << j);
-            for (j=bit-9; j%8!=7 && j%8!=0 && j>=8 && (varMask[bit][i] & (1i64 << j)) == 0; j-=9);
-				if (j>=0 && j<=63) varAttacksMask[bit][i] |= (1i64 << j);
-            for (j=bit+7; j%8!=7 && j%8!=0 && j<=55 && (varMask[bit][i] & (1i64 << j)) == 0; j+=7);
-				if (j>=0 && j<=63) varAttacksMask[bit][i] |= (1i64 << j);
-            for (j=bit-7; j%8!=7 && j%8!=0 && j>=8 && (varMask[bit][i] & (1i64 << j)) == 0; j-=7);
-				if (j>=0 && j<=63) varAttacksMask[bit][i] |= (1i64 << j);
+			for (j=bit+9; j%8!=7 && j%8!=0 && j<=55 && (varMask[bit][i] & (((bitboard)1) << j)) == 0; j+=9);
+				if (j>=0 && j<=63) varAttacksMask[bit][i] |= (((bitboard)1) << j);
+            for (j=bit-9; j%8!=7 && j%8!=0 && j>=8 && (varMask[bit][i] & (((bitboard)1) << j)) == 0; j-=9);
+				if (j>=0 && j<=63) varAttacksMask[bit][i] |= (((bitboard)1) << j);
+            for (j=bit+7; j%8!=7 && j%8!=0 && j<=55 && (varMask[bit][i] & (((bitboard)1) << j)) == 0; j+=7);
+				if (j>=0 && j<=63) varAttacksMask[bit][i] |= (((bitboard)1) << j);
+            for (j=bit-7; j%8!=7 && j%8!=0 && j>=8 && (varMask[bit][i] & (((bitboard)1) << j)) == 0; j-=7);
+				if (j>=0 && j<=63) varAttacksMask[bit][i] |= (((bitboard)1) << j);
 			
 
 		}
@@ -97,10 +100,10 @@ void initializeMagicBishops() {
 		while(temp) {
 			int b = bitscan_msb(temp);
 			MaskBits.push_back(b);
-			temp^=(1i64 << b); }
+			temp^=(((bitboard)1) << b); }
 		bitCount[bit] = bitcnt(mask);
 
-		varCount = (1i64 << bitCount[bit]);
+		varCount = (((bitboard)1) << bitCount[bit]);
 		for(i=0; i < varCount; i++) {
 			varMask[bit][i] = 0;
 			
@@ -108,19 +111,19 @@ void initializeMagicBishops() {
 			while(t) {
 				int b = bitscan_msb(t);
 				IndexBits.push_back(b);
-				t^=(1i64 << b); }
+				t^=(((bitboard)1) << b); }
 			for(int j=0; j < IndexBits.size(); j++) {
-				varMask[bit][(int)i] |= (1i64 << MaskBits[IndexBits[j]]);
+				varMask[bit][(int)i] |= (((bitboard)1) << MaskBits[IndexBits[j]]);
 			}
 			int j;
-			for (j=bit+9; j%8!=7 && j%8!=0 && j<=55 && (varMask[bit][i] & (1i64 << j)) == 0; j+=9);
-				if (j>=0 && j<=63) varAttacksMask[bit][i] |= (1i64 << j);
-            for (j=bit-9; j%8!=7 && j%8!=0 && j>=8 && (varMask[bit][i] & (1i64 << j)) == 0; j-=9);
-				if (j>=0 && j<=63) varAttacksMask[bit][i] |= (1i64 << j);
-            for (j=bit+7; j%8!=7 && j%8!=0 && j<=55 && (varMask[bit][i] & (1i64 << j)) == 0; j+=7);
-				if (j>=0 && j<=63) varAttacksMask[bit][i] |= (1i64 << j);
-            for (j=bit-7; j%8!=7 && j%8!=0 && j>=8 && (varMask[bit][i] & (1i64 << j)) == 0; j-=7);
-				if (j>=0 && j<=63) varAttacksMask[bit][i] |= (1i64 << j);
+			for (j=bit+9; j%8!=7 && j%8!=0 && j<=55 && (varMask[bit][i] & (((bitboard)1) << j)) == 0; j+=9);
+				if (j>=0 && j<=63) varAttacksMask[bit][i] |= (((bitboard)1) << j);
+            for (j=bit-9; j%8!=7 && j%8!=0 && j>=8 && (varMask[bit][i] & (((bitboard)1) << j)) == 0; j-=9);
+				if (j>=0 && j<=63) varAttacksMask[bit][i] |= (((bitboard)1) << j);
+            for (j=bit+7; j%8!=7 && j%8!=0 && j<=55 && (varMask[bit][i] & (((bitboard)1) << j)) == 0; j+=7);
+				if (j>=0 && j<=63) varAttacksMask[bit][i] |= (((bitboard)1) << j);
+            for (j=bit-7; j%8!=7 && j%8!=0 && j>=8 && (varMask[bit][i] & (((bitboard)1) << j)) == 0; j-=7);
+				if (j>=0 && j<=63) varAttacksMask[bit][i] |= (((bitboard)1) << j);
 		}
 
 	}
@@ -133,16 +136,16 @@ void initializeMagicBishops() {
 
 	for(bit=0; bit<=63; bit++) {
 		count = bitcnt(mask::MagicBishopMask[bit]);
-		var = 1i64 << count;
+		var = ((bitboard)1) << count;
 
 		for(i=0; i < var; i++) {
 			validmoves = 0;
 			magicIndex = (int)(varMask[bit][i] * mask::MagicBishopNumbers[bit]) >> mask::MagicBishopShift[bit];
 			
-			for(j = bit+9; j%8!=0 && j<=63;j+=9) {validmoves |= (1i64 << j); if ((varMask[bit][i] &(1i64 << j))!=0) break; }
-			for(j = bit-9; j%8!=7 && j>=0; j-=9) { validmoves |= (1i64 << j); if ((varMask[bit][i] & (1i64 << j)) != 0) break; }
-			for (j=bit+7; j%8!=7 && j<=63; j+=7) { validmoves |= (1i64 << j); if ((varMask[bit][i] & (1i64 << j)) != 0) break; }
-			for (j=bit-7; j%8!=0 && j>=0; j-=7) { validmoves |= (1i64 << j); if ((varMask[bit][i] & (1i64 << j)) != 0) break; }
+			for(j = bit+9; j%8!=0 && j<=63;j+=9) {validmoves |= (((bitboard)1) << j); if ((varMask[bit][i] &(((bitboard)1) << j))!=0) break; }
+			for(j = bit-9; j%8!=7 && j>=0; j-=9) { validmoves |= (((bitboard)1) << j); if ((varMask[bit][i] & (((bitboard)1) << j)) != 0) break; }
+			for (j=bit+7; j%8!=7 && j<=63; j+=7) { validmoves |= (((bitboard)1) << j); if ((varMask[bit][i] & (((bitboard)1) << j)) != 0) break; }
+			for (j=bit-7; j%8!=0 && j>=0; j-=7) { validmoves |= (((bitboard)1) << j); if ((varMask[bit][i] & (((bitboard)1) << j)) != 0) break; }
 			mask::MagicBishopMoves[bit][magicIndex] = validmoves;
 
 		}
@@ -172,26 +175,26 @@ bitboard findMagicBishop(int square, int bits) {
         for(i = 0; i < MAGIC_BISHOP_SIZE ; i++) mask::MagicBishopMoves[square][i] = all_set;
 		
 		magic = mask::MagicBishopNumbers[square];
-		for(k = 0; k <= ((1i64 << nw)-1); k++){ 
-            for(l = 0; l <= ((1i64 << sw)-1); l++) {
-                for(m = 0; m <= ((1i64 << se)-1); m++) {
-                    for(n = 0; n <= ((1i64 << ne)-1); n++ ) {
+		for(k = 0; k <= ((((bitboard)1) << nw)-1); k++){ 
+            for(l = 0; l <= ((((bitboard)1) << sw)-1); l++) {
+                for(m = 0; m <= ((((bitboard)1) << se)-1); m++) {
+                    for(n = 0; n <= ((((bitboard)1) << ne)-1); n++ ) {
                         nw_occ = 0;
                         sw_occ = 0;
                         se_occ = 0;
                         ne_occ = 0;
 
-						for(o = 0; o <= nw; o++) nw_occ += ((k & (1i64 << o)) << (square + ((6*o) + 7)));
-                        for(o = 0; o <= sw; o++) sw_occ += ((l & (1i64 << o)) << (square - ((10*o) + 9)));
-                        for(o = 0; o <= se; o++) se_occ += ((m & (1i64 << o)) << (square - ((8*o) + 7)));
-                        for(o = 0; o <= ne; o++) ne_occ += ((n & (1i64 << o)) << (square + ((8*o) + 9)));
+						for(o = 0; o <= nw; o++) nw_occ += ((k & (((bitboard)1) << o)) << (square + ((6*o) + 7)));
+                        for(o = 0; o <= sw; o++) sw_occ += ((l & (((bitboard)1) << o)) << (square - ((10*o) + 9)));
+                        for(o = 0; o <= se; o++) se_occ += ((m & (((bitboard)1) << o)) << (square - ((8*o) + 7)));
+                        for(o = 0; o <= ne; o++) ne_occ += ((n & (((bitboard)1) << o)) << (square + ((8*o) + 9)));
                         x = nw_occ + sw_occ + se_occ + ne_occ;
 						
 						y = 0;
-                        for(o = square, i = o%8, j = (o-i)/8; (i > 0) && (j < 7) && (((1i64 << o) & x) == 0); i = o % 8, j = (o-i)/8){o += 7; y += (1i64 << o);}
-                        for(o = square, i = o%8, j = (o-i)/8; (i > 0) && (j > 0) && (((1i64 << o) & x) == 0); i = o % 8, j = (o-i)/8){o -= 9; y += (1i64 << o);}
-                        for(o = square, i = o%8, j = (o-i)/8; (i < 7) && (j > 0) && (((1i64 << o) & x) == 0); i = o % 8, j = (o-i)/8){o -= 7; y += (1i64 << o);}
-                        for(o = square, i = o%8, j = (o-i)/8; (i < 7) && (j < 7) && (((1i64 << o) & x) == 0); i = o % 8, j = (o-i)/8){o += 9; y += (1i64 << o);}
+                        for(o = square, i = o%8, j = (o-i)/8; (i > 0) && (j < 7) && (((((bitboard)1) << o) & x) == 0); i = o % 8, j = (o-i)/8){o += 7; y += (((bitboard)1) << o);}
+                        for(o = square, i = o%8, j = (o-i)/8; (i > 0) && (j > 0) && (((((bitboard)1) << o) & x) == 0); i = o % 8, j = (o-i)/8){o -= 9; y += (((bitboard)1) << o);}
+                        for(o = square, i = o%8, j = (o-i)/8; (i < 7) && (j > 0) && (((((bitboard)1) << o) & x) == 0); i = o % 8, j = (o-i)/8){o -= 7; y += (((bitboard)1) << o);}
+                        for(o = square, i = o%8, j = (o-i)/8; (i < 7) && (j < 7) && (((((bitboard)1) << o) & x) == 0); i = o % 8, j = (o-i)/8){o += 9; y += (((bitboard)1) << o);}
                         
 						
 						if(mask::MagicBishopMoves[square][quickhash(x, magic, bits)] == all_set){
@@ -348,42 +351,44 @@ void bitprint(bitboard bb)
 //AMD - Counts the number of leading zeros in a 64-byte integer.
 //		unsigned __int64 __lzcnt64(unsigned __int64 value);
 
-
-
 unsigned char bitscan_lsb(bitboard bb)
 {
 	if(bb == 0)
 		return 64;
-	
 	unsigned long index =0;
+#ifdef _MSC_VER
 	_BitScanForward64(&index, bb);
-	//if (index != __lzcnt64(bb)) 
+#else
+    return __builtin_ffsll(bb) - 1;
+#endif
+	//if (index != __lzcnt64(bb))
 	//	cout << "_Bit: " << index << ", lz: " << __lzcnt64(bb) << endl;
 	return((unsigned char)index);
-	
 }
 
 unsigned char bitscan_msb(bitboard bb)
 {
 	if(bb == 0)
 		return 64;
-	
 	/*
 	unsigned long index =0;
 	_BitScanReverse64(&index, bb);
 	return((unsigned char)index);
 	*/
-
+#ifdef _MSC_VER
 	return (unsigned char)(63 -__lzcnt64(bb));
+#else
+    return (unsigned char)(63 - __builtin_clzll(bb));
+#endif
+
 }
 
 bool bitcheck(bitboard bb, unsigned char index) {
-	if( bb & (1i64 << index))
+	if( bb & (((bitboard)1) << index))
 		return true;
 	else
 		return false;
 }
-
 
 unsigned char bitcount(bitboard bb) {
 //Try:
@@ -392,10 +397,13 @@ unsigned char bitcount(bitboard bb) {
 	unsigned char count = 0;
 	while(bb) {
 		count++;
-		bb ^= (1i64 << bitscan_msb(bb) );
+		bb ^= (((bitboard)1) << bitscan_msb(bb) );
 	}
 	return count;
 	*/
+#ifdef _MSC_VER
 	return (unsigned char)(__popcnt64(bb));
-
+#else
+    return (unsigned char)(__builtin_popcountll(bb));
+#endif   
 }
