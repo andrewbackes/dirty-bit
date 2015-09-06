@@ -1,16 +1,6 @@
 #ifndef parameters_h
 #define parameters_h
 
-/*******************************************************************************
-
-General Info:
-
-*******************************************************************************/
-
-#define ID_NAME		"DirtyBit"
-#define ID_VERSION	"0.39.5"
-#define ID_AUTHOR	"Andrew Backes"
-
 
 /*******************************************************************************
 
@@ -303,5 +293,17 @@ const char queen_mobility[] =			{ -5, -4, -3, -2, -1, 1, 2, 3, 4, 5, 6, 8, 8, 9,
 #define TRAPPED_BISHOP					100//170
 #define TRAPPED_ROOK					50//60
 
+/*******************************************************************************
+
+General Info:
+
+*******************************************************************************/
+
+#define ID_NAME		"DirtyBit"
+#define QU(x) #x
+#define QUH(x) QU(x)
+#define ID_MAJOR_VERSION "0.39.5 "
+#define ID_VERSION	QUH(ID_MAJOR_VERSION) " pawn " QUH(PAWN_VALUE)
+#define ID_AUTHOR	"Andrew Backes"
 
 #endif

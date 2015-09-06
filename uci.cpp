@@ -342,7 +342,7 @@ int uci_go(CHESSBOARD * game, string go_string, BOOK * book, string move_history
 			if(!fFailHigh && !fFailLow) {
 				best_move = search.getBestMove(); 
 				best_score = search.getScore();
-				if(pv[1].from != 64) 
+				if( pv.size() > 1 && pv[1].from != 64)
 					ponder_move = pv[1];
 				if(fQuitOnNext)
 					break;
