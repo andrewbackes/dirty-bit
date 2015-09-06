@@ -150,11 +150,11 @@ void uci_setoption(string cmd_input) {
 
 
 }
+
 // TODO: make more descriptive variable names:
 //			- time_on_clock
 //			- time_for_move
 //			- time_for_iteration
-
 int uci_go(CHESSBOARD * game, string go_string, BOOK * book, string move_history) {
 // Uses Iterative Deepening to pick a best move. 
 // Then prints it out in UCI format.
@@ -169,8 +169,6 @@ int uci_go(CHESSBOARD * game, string go_string, BOOK * book, string move_history
 	long time_remaining[2] = {300000,300000};
 	int time_increment[2] = {0,0};
 	int moves_till_time_control = 30; //first value used was 35
-	int move_num = min( game->getMoveCount(), 10 ); //TODO: change move count to moves out of the book.
-	double time_factor = 2 -  move_num / 10;
 	bool ponder = false;
 	
 	//30 second default time for moves:
@@ -212,6 +210,8 @@ int uci_go(CHESSBOARD * game, string go_string, BOOK * book, string move_history
 	}
 
 	// Crude time management:
+	int move_num = min( game->getMoveCount(), 10 ); //TODO: change move count to moves out of the book.
+	double time_factor = 2 -  move_num / 10;
 	double time_target = time_remaining[game->getActivePlayer()]  / moves_till_time_control;
 	long time_allotted   = (long)( time_factor * time_target ) - 10;
 	time_allotted = min(time_allotted, time_remaining[game->getActivePlayer()] - 10 );
