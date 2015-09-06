@@ -142,7 +142,7 @@ int SEARCH::Hard_qSearch(CHESSBOARD * game, int alpha, int beta, int qPly) {
 		/*****************************************************
 			Quit searching if the allotted time is up.
 		*****************************************************/
-		if (node_count % NODES_FOR_TIME_CHECK == 0) {
+		if (node_count & nodes_for_time_check_ == 0) {
 			if (isOutOfTime())
 				break;
 		}
@@ -290,7 +290,7 @@ void SEARCH::Hard_PVS_Root() {
 		/*****************************************************
 			Quit searching if the allotted time is up.
 		*****************************************************/
-		if(node_count % NODES_FOR_TIME_CHECK == 0) {
+		if(node_count & nodes_for_time_check_ == 0) {
 			if (isOutOfTime()) {
 				break;
 			}
@@ -549,7 +549,7 @@ int SEARCH::Hard_PVS(unsigned char depth, unsigned char ply, CHESSBOARD * game, 
 		/*****************************************************
 			Quit searching if the allotted time is up.
 		*****************************************************/
-		if (node_count % NODES_FOR_TIME_CHECK == 0) {
+		if (node_count & nodes_for_time_check_ == 0) {
 			if(isOutOfTime())
 				break;
 		}

@@ -18,7 +18,7 @@ Debug:
 
 *******************************************************************************/
 
-//#define DEBUG_TIME
+#define DEBUG_TIME
 //#define DEBUG_SEARCH
 //#define SEARCH_STATS
 //#define DEBUG_ZOBRIST

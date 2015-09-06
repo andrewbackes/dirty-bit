@@ -150,6 +150,10 @@ void uci_setoption(string cmd_input) {
 
 
 }
+// TODO: make more descriptive variable names:
+//			- time_on_clock
+//			- time_for_move
+//			- time_for_iteration
 
 int uci_go(CHESSBOARD * game, string go_string, BOOK * book, string move_history) {
 // Uses Iterative Deepening to pick a best move. 
@@ -209,7 +213,8 @@ int uci_go(CHESSBOARD * game, string go_string, BOOK * book, string move_history
 
 	// Crude time management:
 	double time_target = time_remaining[game->getActivePlayer()]  / moves_till_time_control;
-	long time_allotted   = (long)( time_factor * time_target );
+	long time_allotted   = (long)( time_factor * time_target ) - 10;
+	time_allotted = min(time_allotted, time_remaining[game->getActivePlayer()] - 10 );
 	
 	//Safety hack so not to use all of the remaining time if there is only 1 move left:
 	if (moves_till_time_control == 1)
@@ -221,18 +226,6 @@ int uci_go(CHESSBOARD * game, string go_string, BOOK * book, string move_history
 
 	//Begin deciding which move to make:
 	
-	/*
-	//Check the Book:
-	if(!book->OutOfBook()) {
-		string book_move = book->recommendedMove(game, move_history);
-		if(book_move != "") {
-			cout << "bestmove ";
-			cout << book_move;
-			cout << "\n";
-			return;
-		}
-	}
-	*/
 
 	//Iterative Deepening:
 	MOVE best_move;
@@ -269,7 +262,14 @@ int uci_go(CHESSBOARD * game, string go_string, BOOK * book, string move_history
 		vector<MOVE> pv;
 		bool fFailHigh = false;
 		bool fFailLow = false;
-		SEARCH search(depth, game, &hashtable, (long)floor(time_left * ((moves_till_time_control == 1)? 1:TIME_WIGGLE_ROOM)));
+		unsigned long long check_time_on_node = floor_2n( (((unsigned long long)time_left) * (unsigned long long)running_nps/1000) )/8 - 1;
+		if(check_time_on_node <= 1) check_time_on_node = 1024 - 1;
+		#ifdef DEBUG_TIME
+			cout << "\tCheck time every " << check_time_on_node << " nodes.";
+			cout << "\tRunning NPS: " << running_nps;
+			cout << "\tCan not exceed: " << (long)floor(time_left * ((moves_till_time_control == 1)? 1:TIME_WIGGLE_ROOM)) << endl;
+		#endif
+		SEARCH search(depth, game, &hashtable, (long)floor(time_left * ((moves_till_time_control == 1)? 1:TIME_WIGGLE_ROOM)),check_time_on_node);
 		//Aspiration window:
 		string fFailed = "";
 		#ifdef DEBUG_TIME
@@ -451,7 +451,7 @@ int uci_go(CHESSBOARD * game, string go_string, BOOK * book, string move_history
 void uci_search(CHESSBOARD * game, int depth) {
 	//Specific depth search.
 	
-	SEARCH search(depth, game, &hashtable, INFTY);
+	SEARCH search(depth, game, &hashtable, INFTY, NODES_FOR_TIME_CHECK);
 	search.start();
 
 	//Print the UCI info:
@@ -498,7 +498,7 @@ void uci_iterativeDeepening(CHESSBOARD * game, int depth) {
 	previous_score = 0;
 	while(d <= depth)
 	{
-		SEARCH search(d, game, &hashtable, INFTY);
+		SEARCH search(d, game, &hashtable, INFTY, NODES_FOR_TIME_CHECK);
 		
 		//Aspiration window:
 		string fFailed = "";
