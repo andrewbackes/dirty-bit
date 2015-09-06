@@ -204,8 +204,8 @@ int uci_go(CHESSBOARD * game, string go_string, BOOK * book, string move_history
 		}
 		else if(command == "infinite" || command == "INFINITE") {
 			//give 1 hour for each move.
-			time_remaining[WHITE] = (long)floor((3600000 * moves_till_time_control) / time_factor);
-			time_remaining[BLACK] = (long)floor((3600000 * moves_till_time_control) / time_factor);
+			time_remaining[WHITE] = (long)3600000;
+			time_remaining[BLACK] = (long)3600000;
 		}
 	}
 
