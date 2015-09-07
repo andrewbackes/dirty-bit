@@ -24,7 +24,7 @@ bool SEARCH::isOutOfTime() {
 
 	if(clock()/(CLOCKS_PER_SEC/1000) - start_time >= allotted_time ) {
 		#ifdef DEBUG_TIME
-			cout << "\tOut of time in search."  << << endl;
+			cout << "\tOut of time in search."  << endl;
 			cout << "\tTime Now - Start: " << clock()/(CLOCKS_PER_SEC/1000) << endl;
 			cout << "\tAlotted Time: " << allotted_time << endl;
 		#endif
