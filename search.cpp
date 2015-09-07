@@ -25,7 +25,7 @@ bool SEARCH::isOutOfTime() {
 	if( (clock()/(CLOCKS_PER_SEC/1000) - start_time >= allotted_time) || fTimeOut ) {
 		#ifdef DEBUG_TIME
 			cout << "\tSearch timed out."  
-				 << "\tNow-Start: " 		<< clock()/(CLOCKS_PER_SEC/1000) 
+				 << "\tNow-Start: " 		<< clock()/(CLOCKS_PER_SEC/1000) - start_time
 				 << "\tAlotted: " 			<< allotted_time << endl;
 			cout << "\tNode: " << node_count << endl;
 		#endif
