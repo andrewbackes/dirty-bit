@@ -24,9 +24,10 @@ bool SEARCH::isOutOfTime() {
 
 	if(clock()/(CLOCKS_PER_SEC/1000) - start_time >= allotted_time ) {
 		#ifdef DEBUG_TIME
-			cout << "\tOut of time in search."  << endl;
-			cout << "\tTime Now - Start: " << clock()/(CLOCKS_PER_SEC/1000) << endl;
-			cout << "\tAlotted Time: " << allotted_time << endl;
+			cout << "\tSearch timed out."  
+				 << "\tNow-Start: " 		<< clock()/(CLOCKS_PER_SEC/1000) 
+				 << "\tAlotted: " 			<< allotted_time << endl;
+			cout << "\tNode: " << node_count << endl
 		#endif
 		fTimeOut = true;
 		return true;
@@ -147,7 +148,7 @@ int SEARCH::Hard_qSearch(CHESSBOARD * game, int alpha, int beta, int qPly) {
 		/*****************************************************
 			Quit searching if the allotted time is up.
 		*****************************************************/
-		if (node_count & nodes_for_time_check_ == 0) {
+		if ( (node_count & nodes_for_time_check_) == 0) {
 			if (isOutOfTime())
 				break;
 		}
@@ -295,7 +296,7 @@ void SEARCH::Hard_PVS_Root() {
 		/*****************************************************
 			Quit searching if the allotted time is up.
 		*****************************************************/
-		if(node_count & nodes_for_time_check_ == 0) {
+		if( (node_count & nodes_for_time_check_) == 0) {
 			if (isOutOfTime()) {
 				break;
 			}
@@ -554,7 +555,7 @@ int SEARCH::Hard_PVS(unsigned char depth, unsigned char ply, CHESSBOARD * game, 
 		/*****************************************************
 			Quit searching if the allotted time is up.
 		*****************************************************/
-		if (node_count & nodes_for_time_check_ == 0) {
+		if ( (node_count & nodes_for_time_check_) == 0) {
 			if(isOutOfTime())
 				break;
 		}
