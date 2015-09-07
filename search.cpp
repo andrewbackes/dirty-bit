@@ -22,12 +22,12 @@ void SEARCH::setHasheTable(HASHTABLE * t) {
 
 bool SEARCH::isOutOfTime() {
 
-	if(clock()/(CLOCKS_PER_SEC/1000) - start_time >= allotted_time ) {
+	if( (clock()/(CLOCKS_PER_SEC/1000) - start_time >= allotted_time) || fTimeOut ) {
 		#ifdef DEBUG_TIME
 			cout << "\tSearch timed out."  
 				 << "\tNow-Start: " 		<< clock()/(CLOCKS_PER_SEC/1000) 
 				 << "\tAlotted: " 			<< allotted_time << endl;
-			cout << "\tNode: " << node_count << endl
+			cout << "\tNode: " << node_count << endl;
 		#endif
 		fTimeOut = true;
 		return true;
