@@ -22,7 +22,13 @@ void SEARCH::setHasheTable(HASHTABLE * t) {
 
 bool SEARCH::isOutOfTime() {
 
-	if(clock()/(CLOCKS_PER_SEC/1000) - start_time >= allotted_time ) {
+	if( (clock()/(CLOCKS_PER_SEC/1000) - start_time >= allotted_time) || fTimeOut ) {
+		#ifdef DEBUG_TIME
+			cout << "\tSearch timed out."  
+				 << "\tNow-Start: " 		<< clock()/(CLOCKS_PER_SEC/1000) - start_time
+				 << "\tAlotted: " 			<< allotted_time << endl;
+			cout << "\tNode: " << node_count << endl;
+		#endif
 		fTimeOut = true;
 		return true;
 	}
@@ -142,7 +148,7 @@ int SEARCH::Hard_qSearch(CHESSBOARD * game, int alpha, int beta, int qPly) {
 		/*****************************************************
 			Quit searching if the allotted time is up.
 		*****************************************************/
-		if (node_count % NODES_FOR_TIME_CHECK == 0) {
+		if ( (node_count & nodes_for_time_check_) == 0) {
 			if (isOutOfTime())
 				break;
 		}
@@ -290,7 +296,7 @@ void SEARCH::Hard_PVS_Root() {
 		/*****************************************************
 			Quit searching if the allotted time is up.
 		*****************************************************/
-		if(node_count % NODES_FOR_TIME_CHECK == 0) {
+		if( (node_count & nodes_for_time_check_) == 0) {
 			if (isOutOfTime()) {
 				break;
 			}
@@ -549,7 +555,7 @@ int SEARCH::Hard_PVS(unsigned char depth, unsigned char ply, CHESSBOARD * game, 
 		/*****************************************************
 			Quit searching if the allotted time is up.
 		*****************************************************/
-		if (node_count % NODES_FOR_TIME_CHECK == 0) {
+		if ( (node_count & nodes_for_time_check_) == 0) {
 			if(isOutOfTime())
 				break;
 		}

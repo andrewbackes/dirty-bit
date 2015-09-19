@@ -14,8 +14,10 @@
 
 class SEARCH {
 public:
-	SEARCH(int depth, CHESSBOARD * game, HASHTABLE * h, long time )
-	{	root_depth = depth; root_game = game; q_max_ply = 0; selective_depth = 0;
+	SEARCH(int depth, CHESSBOARD * game, HASHTABLE * h, long time, unsigned long long nodes_for_time_check)
+	{	
+		nodes_for_time_check_ = nodes_for_time_check;
+		root_depth = depth; root_game = game; q_max_ply = 0; selective_depth = 0;
 		start_time =0; end_time = 0; allotted_time = time; fTimeOut = false;
 		node_count =0; best_score = -INFTY; 
 		hashtable = h; side_to_move = game->getActivePlayer();
@@ -136,7 +138,7 @@ private:
 	long start_time;
 	long allotted_time;
 	long end_time;
-
+	unsigned long long nodes_for_time_check_;
 	int root_alpha;
 	int root_beta;
 

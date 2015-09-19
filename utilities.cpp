@@ -3,6 +3,7 @@
 #include <sstream>
 
 #include "utilities.h"
+#include "bitboards.h"
 
 using namespace std;
 
@@ -28,6 +29,15 @@ int str_to_int(string str) {
 	istringstream ( str ) >> numb;
 
 	return numb;
+}
+
+// floor_2n returns the closest power of 2 not greater than l
+unsigned long long floor_2n(unsigned long long l) {
+	unsigned char biggest_bit = bitscan_msb(l);
+	if(biggest_bit == 64) {
+		return 0;
+	}
+	return ((unsigned long long)1 << biggest_bit);
 }
 
 /*

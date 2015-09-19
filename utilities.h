@@ -19,7 +19,7 @@ private:
 std::string index_to_alg(int index);
 int alg_to_index(std::string alg);
 int str_to_int(std::string s);
-
+unsigned long long floor_2n(unsigned long long l);
 
 //bitboard Perft(CHESSBOARD * game, int depth);
 
