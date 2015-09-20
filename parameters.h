@@ -163,6 +163,7 @@ Engine:
 #define DEFAULT_NPS				2500000	// For when the current NPS has not yet been calculated.
 #define DEFAULT_EBF				3.75	//3.75
 #define TIME_WIGGLE_ROOM		1.25	//25% time buffer.
+#define DEPTH_CUTOFF			100
 
 #define ENABLE_PONDERING		false
 
