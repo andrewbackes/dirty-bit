@@ -8,7 +8,7 @@ General Info:
 *******************************************************************************/
 
 #define ID_NAME		"DirtyBit"
-#define ID_VERSION	"0.39.5"
+#define ID_VERSION	"0.39.7 (issue 8b dev)"
 #define ID_AUTHOR	"Andrew Backes"
 
 

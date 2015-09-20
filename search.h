@@ -53,22 +53,22 @@ public:
 	int		Hard_PVS(unsigned char depth, unsigned char ply, CHESSBOARD * game, int alpha, int beta, bool fNulled = false/*, unsigned char parent_moves_searched = 0*/);
 	int		Hard_qSearch(CHESSBOARD * game, int alpha, int beta, int qPly);
 
-	bool	isOutOfTime();
-	bool	TimedOut()		{return fTimeOut;}
+	bool	isOutOfTime() 	;
+	bool	TimedOut()		const {return fTimeOut;}
 
 	void	setHasheTable(HASHTABLE * t);
 
-	int		getNodes()		{return node_count;}
-	int		getNPS()		{return ((int)(node_count/getRunTime()) * 1000);}
-	int		getDepth()		{return root_depth; }
-	int		getSelDepth()	{return selective_depth; }
-	int		getQDepth()		{return q_max_ply;}
-	double	getRunTime()	{return end_time - start_time;}
-	MOVE	getBestMove()	{return best_move;};
-	int		getScore()		{return best_score; }
+	int		getNodes() 		const	{return node_count;}
+	int		getNPS() 		const	{return ((int)(node_count/getRunTime()) * 1000);}
+	int		getDepth() 		const	{return root_depth; }
+	int		getSelDepth() 	const	{return selective_depth; }
+	int		getQDepth() 	const	{return q_max_ply;}
+	double	getRunTime() 	const	{return end_time - start_time;}
+	MOVE	getBestMove() 	const	{return best_move;};
+	int		getScore() 		const	{return best_score; }
 
 	void	collectPV();
-	std::vector<MOVE> getPV() {return pv; }
+	std::vector<MOVE> getPV() const {return pv; }
 
 	#ifdef SEARCH_STATS
 		void print_stats() {

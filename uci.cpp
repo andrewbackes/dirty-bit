@@ -10,6 +10,7 @@
 #include <list>
 #include <ctime>
 #include <cmath>
+#include <functional>
 
 #include "uci.h"
 
@@ -127,7 +128,6 @@ void benchmark(CHESSBOARD b, int depth, string label) {
 void uci_setoption(string cmd_input) {
 	//ex: setoption name Hash value 32
 
-
 	stringstream command_stream(cmd_input);
 	string parameter;
 	string name;
@@ -147,8 +147,6 @@ void uci_setoption(string cmd_input) {
 		hashetable_size = atoi(value.c_str());
 		cout << "Set " << name << " to " << hashetable_size << endl;
 	}
-
-
 }
 
 void parse_go_command( string go_string, bool player,
@@ -167,42 +165,38 @@ void parse_go_command( string go_string, bool player,
 			command_stream >> value;
 		}
 
-		if(command == "wtime"){
-			time_remaining[WHITE] = str_to_int(value);
+		if ( command == "wtime" && player == WHITE ){
+			*time_on_clock = str_to_int(value);
 		}
-		else if(command == "btime") {
-			time_remaining[BLACK] = str_to_int(value);
+		else if(command == "btime" && player == BLACK ) {
+			*time_on_clock = str_to_int(value);
 		}
-		else if(command == "winc") {
-			time_inc[WHITE] = str_to_int(value);
+		else if(command == "winc" && player == WHITE ) {
+			*time_increment = str_to_int(value);
 		}
-		else if(command == "binc") {
-			time_inc[BLACK] = str_to_int(value);
+		else if(command == "binc" && player == BLACK ) {
+			*time_increment = str_to_int(value);
 		}
 		else if(command == "movestogo") {
 			*moves_to_go = str_to_int(value);
 		}
 		else if(command == "infinite" || command == "INFINITE") {
 			//give 1 hour for each move.
-			time_remaining[WHITE] = (long)3600000;
-			time_remaining[BLACK] = (long)3600000;
+			*time_on_clock = (long)3600000;
 		}
 	}
-	*time_on_clock = time_remaining[player];
-	*time_increment = time_increment[player];
 }
 
 long get_time_for_move( long time_on_clock, long moves_to_go, long moves_completed ) {
 
 	// Crude time management:
-	int move_num = min( game->getMoveCount(), 10 ); //TODO: change move count to moves out of the book.
-	double time_factor = 2 -  move_num / 10;
-	double time_target = time_remaining[game->getActivePlayer()]  / moves_till_time_control;
+	double time_factor = 2 -  moves_completed / 10; // TODO: change this to moves out of book.
+	double time_target = time_on_clock  / moves_to_go;
 	long time_allotted   = (long)( time_factor * time_target ) - 10;
-	time_allotted = min(time_allotted, time_remaining[game->getActivePlayer()] - 10 );
+	time_allotted = min(time_allotted, time_on_clock - 10 );
 
 	//Safety hack so not to use all of the remaining time if there is only 1 move left:
-	if (moves_till_time_control == 1)
+	if (moves_to_go == 1)
 		time_allotted = (long)(time_allotted * 0.75);
 
 	#ifdef DEBUG_TIME
@@ -212,44 +206,53 @@ long get_time_for_move( long time_on_clock, long moves_to_go, long moves_complet
 	return time_allotted;
 }
 
-uint64 get_check_count_on_node( uint64 time_left, uint64 running_nps ) {
+uint64 get_check_count_on_node( long start_time, long time_for_move, uint64 total_node_count ) {
+	long time_lapsed = clock()/(CLOCKS_PER_SEC/1000) - start_time;
+	time_lapsed = time_lapsed>0 ? time_lapsed : 1;
+	
+	long running_nps = (long)floor((double)total_node_count / ((double)time_lapsed/1000));
+	running_nps = (running_nps>0)? running_nps : DEFAULT_NPS;
+	
+	long time_left = time_for_move - time_lapsed;
+	time_left = time_left > 1 ? time_left : 1; 
+	
 	uint64 check_time_on_node = floor_2n( ((time_left) * running_nps/1000) )/8 - 1;
 	if(check_time_on_node <= 1) check_time_on_node = 1024 - 1;
 	#ifdef DEBUG_TIME
 		cout << "\tCheck time every " << check_time_on_node << " nodes.";
 		cout << "\tRunning NPS: " << running_nps;
-		cout << "\tCan not exceed: " << (long)floor(time_left * ((moves_till_time_control == 1)? 1:TIME_WIGGLE_ROOM)) << endl;
+		cout << endl;
 	#endif
 	return check_time_on_node;
 }
 
-void uci_print_search( const SEARCH * search, int alpha_window, int beta_window ) {
+void uci_print_search( const SEARCH & search, int alpha_window, int beta_window ) {
 	vector<MOVE> pv;
 	//Print the UCI info:
-	cout 	<< "info depth " << search->getDepth()
-			<< " seldepth " << search->getSelDepth() //search->getDepth() + search->getQDepth()
-			<< " nodes " << search->getNodes()
+	cout 	<< "info depth " << search.getDepth()
+			<< " seldepth " << search.getSelDepth() //search.getDepth() + search.getQDepth()
+			<< " nodes " << search.getNodes()
 			<< " score";
 	//Print Mate in X:
-	if (search->getScore() >= MATE - 1000) {
-		cout << " mate " << (MATE - search->getScore() + 1) / 2;
-	} else if (search->getScore() <= -MATE + 1000) {
-		cout << " mate -" << (MATE + search->getScore()) / 2;
+	if (search.getScore() >= MATE - 1000) {
+		cout << " mate " << (MATE - search.getScore() + 1) / 2;
+	} else if (search.getScore() <= -MATE + 1000) {
+		cout << " mate -" << (MATE + search.getScore()) / 2;
 	} else {
-		cout << " cp " << search->getScore(); 
+		cout << " cp " << search.getScore(); 
 	}
 	
-	if ( search->getScore() <= alpha_window ) {
+	if ( search.getScore() <= alpha_window ) {
 		cout << " lowerbound ";
-	} else if ( search->getScore() >= beta_window ) {
+	} else if ( search.getScore() >= beta_window ) {
 		cout << " upperbound ";
 	}
 	
-	cout << " time " << search->getRunTime() <<
-			" nps " << search->getNPS() <<
+	cout << " time " << search.getRunTime() <<
+			" nps " << search.getNPS() <<
 			" pv " ;
 	//Print the PV:
-	pv = search->getPV();
+	pv = search.getPV();
 	for(int i=0; i < pv.size(); i++) {
 		if( pv.at(i).from != 64 ) {
 			pv.at(i).print();
@@ -285,31 +288,34 @@ void set_aspiration_window( int previous_depth_score, int fail_low_count, int fa
 			*beta_window = INFTY; 
 			break;
 	}
+	#ifdef DEBUG_TIME
+		cout << "\tAspiration window: [" << *alpha_window << ", " << *beta_window << "]" << endl;
+	#endif
 }
 
-bool terminated_normally( const SEARCH * search, int fail_low_count, int fail_high_count ) {
+bool terminated_normally( const SEARCH & search, int fail_low_count, int fail_high_count ) {
 	return ( !search.TimedOut() && !fail_low_count && !fail_high_count );
 }
 
-bool enough_time_left( long average_EBF, long previous_node_count, long running_node_count, long start_time ) {
+bool enough_time_left( long average_EBF, long previous_node_count, long running_node_count, long start_time, long time_for_move ) {
 	long time_lapsed = clock()/(CLOCKS_PER_SEC/1000) - start_time;
 	time_lapsed = time_lapsed>0 ? time_lapsed : 1;
 	
 	long running_nps = (long)floor((double)running_node_count / ((double)time_lapsed/1000));
 	running_nps = (running_nps>0)? running_nps : DEFAULT_NPS;
 	
-	long time_needed = (long) ceil( ( (average_EBF * (double)previous_node_count ) / (double)running_nps * 1000 );
+	long time_needed = (long) ceil( (average_EBF * (double)previous_node_count ) / (double)running_nps * 1000 );
 	time_needed = (time_needed > 0) ? time_needed : 1;
 	
 	return ( time_lapsed + time_needed < time_for_move );
 }
 
-void update_move_choice( const SEARCH * search, int * best_score, MOVE * best_move, MOVE * ponder_move) {
-	*best_move = search->getBestMove();
-	*best_score = search->getScore();
-	
-	if(pv[1].from != 64)
-		ponder_move = pv[1];
+void update_move_choice( const SEARCH & search, int * best_score, MOVE * best_move, MOVE * ponder_move) {
+	*best_move = search.getBestMove();
+	*best_score = search.getScore();
+	vector<MOVE> pv = search.getPV();
+	if( pv.size() >= 2 && pv[1].from != 64)
+		*ponder_move = pv[1];
 }
 
 void uci_print_time_stats( long start_time, long time_for_move, long total_node_count ) {
@@ -330,15 +336,21 @@ void uci_print_bestmove( MOVE best_move, MOVE ponder_move ) {
 	cout << endl;
 }
 
-bool can_force_research( const SEARCH * search, long fail_low_count, long fail_high_count,
+bool can_force_research( bool failed, long fail_low_count, long fail_high_count,
 	long start_time, long time_for_move, long time_on_clock  ) {
 	
 	long time_lapsed = clock()/(CLOCKS_PER_SEC/1000) - start_time;
 	time_lapsed = time_lapsed>0 ? time_lapsed : 1;
 	
+	bool timed_out = (time_lapsed >= time_for_move);
+	
+	if( !timed_out && failed ) {
+		return true;
+	}
+	
 	// out of allotted time but failed high and low. this is a risky situation,
 	// so check if we have time left on the clock.
-	if ( fail_low_count && fail_high_count ) {
+	if ( timed_out && fail_low_count && fail_high_count ) {
 		if ( time_on_clock/5 > time_lapsed  ) {
 			#ifdef DEBUG_TIME
 				cout << "\tForcing research." << endl;
@@ -354,7 +366,22 @@ bool can_force_research( const SEARCH * search, long fail_low_count, long fail_h
 	return false;
 }
 
-int new_go(CHESSBOARD * game, string go_string, BOOK * book, string move_history) {
+void update_iteration_stats( const SEARCH & search, int alpha_window, int beta_window, 
+		long * total_node_count, int * fail_low_count, int * fail_high_count ) {
+	
+	*total_node_count += search.getNodes();
+	if ( search.getScore() <= alpha_window ) {
+		(*fail_low_count)++;
+	} else if ( search.getScore() >= beta_window ) {
+		(*fail_high_count)++;
+	}
+}
+
+bool search_failed( const SEARCH & search, int alpha_window, int beta_window ) {
+	return (search.getScore() <= alpha_window ) || ( search.getScore() >= beta_window );
+}
+
+int uci_go(CHESSBOARD * game, string go_string, BOOK * book, string move_history) {
 	long start_time = clock()/(CLOCKS_PER_SEC/1000);
     
 	// constraints:
@@ -364,50 +391,50 @@ int new_go(CHESSBOARD * game, string go_string, BOOK * book, string move_history
 	parse_go_command( go_string, game->getActivePlayer(), &ponder, &time_on_clock, &time_increment, &moves_to_go );
 
 	// figure out how much time should be allowed for this move:
-	long time_for_move = get_time_for_move( time_on_clock, , moves_to_go, game->getMoveCount() );
-	auto out_of_time = [ ] ( ) {
-		return ( (clock()/(CLOCKS_PER_SEC/1000) - start_time) >= time_for_move);
-	}
+	long time_for_move = get_time_for_move( time_on_clock, moves_to_go, game->getMoveCount() );
 
 	// Return values:
 	MOVE best_move, ponder_move; // TODO: need to initialize this to a valid move.
-	short best_score = 0;		 // if there aren't any valid moves, then the game is over.
+	int best_score = -INFTY;		 // if there aren't any valid moves, then the game is over.
 
 	double average_EBF = DEFAULT_EBF;
-	long running_node_count = 1, previous_node_count = 1, previous_depth_score = 0;
+	long total_node_count = 1, previous_node_count = 1, previous_depth_score = 0;
 
 	//Iterative Deepening:
 	int depth = 1;
 	for ( ; depth < DEPTH_CUTOFF; depth++) {
 		bool search_complete = false;
 		// Check if we have time to do this iteration
-		if ( ! enough_time_left( average_EBF, previous_node_count, running_node_count, start_time ) 
-		|| out_of_time() ) {
+		if ( ! enough_time_left( average_EBF, previous_node_count, total_node_count, start_time, time_for_move ) 
+		|| ((clock()/(CLOCKS_PER_SEC/1000) - start_time) >= time_for_move) ) {
 			break;
 		}
 		// Search this depth until we have not failed high or low:
 		int fail_high_count = 0, fail_low_count = 0;
 		while ( ! search_complete ) {
+			int alpha_window = -INFTY, beta_window = INFTY;
 			// Pick aspiration window:
 			set_aspiration_window( previous_depth_score, fail_low_count, fail_high_count, 
 				&alpha_window, &beta_window );
 			long time_left = time_for_move - (clock()/(CLOCKS_PER_SEC/1000) - start_time); // time allowed - time lapsed
 			long allowed_search_time = (long)floor(time_left * ((moves_to_go == 1)? 1:TIME_WIGGLE_ROOM));
+			uint64 check_time_on_node = get_check_count_on_node( start_time, time_for_move, (uint64)total_node_count );
 			// Do the search:
 			SEARCH search( depth, game, &hashtable, allowed_search_time, check_time_on_node );
-			search.start(alpha_window, beta_window);
-			// Print search results to the screen:
-			uci_print_search( &search, alpha_window, beta_window );	
+			search.start( alpha_window, beta_window );
 			// Update stats required for iterative deepening:
-			running_node_count += search.getNodes();
-			// Figure out if any action is needed to be taken after the search:
-			if ( terminated_normally( &search, fail_low_count, fail_high_count ) ) {
+			update_iteration_stats( search, alpha_window, beta_window, &total_node_count, &fail_low_count, &fail_high_count );
+			// Print search results to the screen:
+			if ( !search.TimedOut() ) uci_print_search( search, alpha_window, beta_window );
+			// Handle a possible failed search:
+			bool failed = search_failed( search, alpha_window, beta_window );
+			if ( !search.TimedOut() && !failed ) {
 				// search finished normally
 				search_complete = true;
-				update_move_choice( &search, &best_move, &ponder_move );
+				update_move_choice( search, &best_score, &best_move, &ponder_move );
 				previous_depth_score = search.getScore();
-			} else if ( ! can_force_research() ) {
-				break;
+			} else if ( ! can_force_research( failed, fail_low_count, fail_high_count, start_time, time_for_move, time_on_clock ) ) {
+				search_complete = true;
 			}
 		}
 	}
