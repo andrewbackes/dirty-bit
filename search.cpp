@@ -129,6 +129,15 @@ int SEARCH::Hard_qSearch(CHESSBOARD * game, int alpha, int beta, int qPly) {
 
 	//Exhaust all of the capture moves:
 	while(q_move_list[qPly].NextQMove()) {
+		
+		/*****************************************************
+			Quit searching if the allotted time is up.
+		*****************************************************/
+		if ( (node_count & nodes_for_time_check_) == 0) {
+			if (isOutOfTime())
+				break;
+		}
+		
 		game->qMakeMove(*q_move_list[qPly].move());
 		if(!game->isInCheck(!game->getActivePlayer())) {
 			node_count++;
@@ -144,15 +153,6 @@ int SEARCH::Hard_qSearch(CHESSBOARD * game, int alpha, int beta, int qPly) {
 		else {
 			game->qUnMakeMove(*q_move_list[qPly].move());
 		}
-
-		/*****************************************************
-			Quit searching if the allotted time is up.
-		*****************************************************/
-		if ( (node_count & nodes_for_time_check_) == 0) {
-			if (isOutOfTime())
-				break;
-		}
-
 	}
 	return alpha;
 }
@@ -202,9 +202,17 @@ void SEARCH::Hard_PVS_Root() {
 	move_list[ply + 1].clearKillers();
 	//short move_list_size = move_list[ply].PopulateCompleteList();
 	
-
-
 	while( move_list[ply].NextRootMove() ) {
+		
+		/*****************************************************
+			Quit searching if the allotted time is up.
+		*****************************************************/
+		if( (node_count & nodes_for_time_check_) == 0) {
+			if (isOutOfTime()) {
+				break;
+			}
+		}
+		
 	//#pragma omp for
 	//for ( short i = 0 ; i < move_list_size ; i++) {
 		//move_list[ply].NextRootMove(true);
@@ -291,15 +299,6 @@ void SEARCH::Hard_PVS_Root() {
 		}
 		else {
 			root_game->unMakeMove(*move_list[ply].move()); 
-		}
-
-		/*****************************************************
-			Quit searching if the allotted time is up.
-		*****************************************************/
-		if( (node_count & nodes_for_time_check_) == 0) {
-			if (isOutOfTime()) {
-				break;
-			}
 		}
 	}
 
@@ -428,6 +427,15 @@ int SEARCH::Hard_PVS(unsigned char depth, unsigned char ply, CHESSBOARD * game, 
 	move_list[ply + 1].clearKillers();
 	
 	while( move_list[ply].NextMove() ) {
+		
+		/*****************************************************
+			Quit searching if the allotted time is up.
+		*****************************************************/
+		if ( (node_count & nodes_for_time_check_) == 0) {
+			if(isOutOfTime())
+				break;
+		}
+		
 		game->MakeMove(*move_list[ply].move());
 
 		#ifdef DEBUG_ZOBRIST
@@ -551,14 +559,6 @@ int SEARCH::Hard_PVS(unsigned char depth, unsigned char ply, CHESSBOARD * game, 
 		}
 		else {
 			game->unMakeMove(*move_list[ply].move()); }
-
-		/*****************************************************
-			Quit searching if the allotted time is up.
-		*****************************************************/
-		if ( (node_count & nodes_for_time_check_) == 0) {
-			if(isOutOfTime())
-				break;
-		}
 	}
 
 	//Return scores:
