@@ -185,6 +185,9 @@ void parse_go_command( string go_string, bool player,
 			*time_on_clock = (long)3600000;
 		}
 	}
+	#ifdef DEBUG_TIME
+		cout << "\tTime on clock: " << *time_on_clock << endl;
+	#endif
 }
 
 long get_time_for_move( long time_on_clock, long moves_to_go, long moves_completed ) {
@@ -200,7 +203,7 @@ long get_time_for_move( long time_on_clock, long moves_to_go, long moves_complet
 		time_allotted = (long)(time_allotted * 0.75);
 
 	#ifdef DEBUG_TIME
-		cout << "Allotted time: " << time_allotted << endl;
+		cout << "\tTime allotted for move: " << time_allotted << endl;
 	#endif
 	
 	return time_allotted;
@@ -407,7 +410,7 @@ int uci_go(CHESSBOARD * game, string go_string, BOOK * book, string move_history
     
 	// constraints:
 	bool ponder = false;
-	long time_on_clock = 0, time_increment = 0, moves_to_go = 30;
+	long time_on_clock = 10, time_increment = 0, moves_to_go = 30;
 
 	parse_go_command( go_string, game->getActivePlayer(), &ponder, &time_on_clock, &time_increment, &moves_to_go );
 
@@ -432,7 +435,7 @@ int uci_go(CHESSBOARD * game, string go_string, BOOK * book, string move_history
 	}
 	
 	//Iterative Deepening:
-	int depth = 1;
+	int depth = 2;
 	for ( ; depth < DEPTH_CUTOFF; depth++) {
 		bool search_complete = false;
 		// Check if we have time to do this iteration
