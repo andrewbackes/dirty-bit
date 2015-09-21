@@ -419,11 +419,9 @@ int uci_go(CHESSBOARD * game, string go_string, BOOK * book, string move_history
 
 	double average_EBF = DEFAULT_EBF;
 	long total_node_count = 1, previous_node_count = 1, previous_depth_score = 0;
-	// is game over:
-	
 	
 	// Do depth 1 seperately:
-	SEARCH shallow_search( depth, game, &hashtable, time_on_clock - 10, 1023 );
+	SEARCH shallow_search( 1, game, &hashtable, time_on_clock - 10, 1023 );
 	shallow_search.start( -INFTY, INFTY );
 	MOVE best_move = shallow_search.getBestMove();
 	MOVE ponder_move; // maybe not so good to not explicitly initialize this.
