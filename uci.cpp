@@ -413,10 +413,8 @@ int uci_go(CHESSBOARD * game, string go_string, BOOK * book, string move_history
 
 	// figure out how much time should be allowed for this move:
 	long time_for_move = get_time_for_move( time_on_clock, moves_to_go, game->getMoveCount() );
-
-	// Return values:
 	
-
+	// Stats:
 	double average_EBF = DEFAULT_EBF;
 	long total_node_count = 1, previous_node_count = 1, previous_depth_score = 0;
 	
