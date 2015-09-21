@@ -191,16 +191,17 @@ void parse_go_command( string go_string, bool player,
 }
 
 long get_time_for_move( long time_on_clock, long moves_to_go, long moves_completed ) {
-
+	
 	// Crude time management:
-	double time_factor = 2 -  moves_completed / 10; // TODO: change this to moves out of book.
+	int move_num = min( moves_completed, 10 );
+	double time_factor = 2 -  move_num / 10; // TODO: change this to moves out of book.
 	double time_target = time_on_clock  / moves_to_go;
 	long time_allotted   = (long)( time_factor * time_target ) - 10;
 	time_allotted = min(time_allotted, time_on_clock - 10 );
 
 	//Safety hack so not to use all of the remaining time if there is only 1 move left:
 	if (moves_to_go == 1)
-		time_allotted = (long)(time_allotted * 0.75);
+		time_allotted = (time_allotted * 3)/4;
 
 	#ifdef DEBUG_TIME
 		cout << "\tTime allotted for move: " << time_allotted << endl;
