@@ -381,6 +381,23 @@ bool search_failed( const SEARCH & search, int alpha_window, int beta_window ) {
 	return (search.getScore() <= alpha_window ) || ( search.getScore() >= beta_window );
 }
 
+long get_allowed_search_time( long time_on_clock, long time_for_move, long start_time, long moves_to_go,
+		int fail_low_count, int fail_high_count ) {
+	
+	long time_lapsed  = clock()/(CLOCKS_PER_SEC/1000) - start_time;
+	long time_left = time_for_move - time_lapsed;
+	bool out_of_time = (time_left <= 0);
+	
+	long time_allotted = 1;
+	time_allotted = (long)floor(time_left * ((moves_to_go == 1)? 1:TIME_WIGGLE_ROOM));
+	// failing both high and low is risky, so maybe we should search longer.
+	if( fail_low_count && fail_low_count ) {
+		time_allotted = (time_on_clock - time_lapsed) / 5;	
+	}
+	
+	return time_allotted;
+}
+
 int uci_go(CHESSBOARD * game, string go_string, BOOK * book, string move_history) {
 	long start_time = clock()/(CLOCKS_PER_SEC/1000);
     
@@ -416,8 +433,8 @@ int uci_go(CHESSBOARD * game, string go_string, BOOK * book, string move_history
 			// Pick aspiration window:
 			set_aspiration_window( previous_depth_score, fail_low_count, fail_high_count, 
 				&alpha_window, &beta_window );
-			long time_left = time_for_move - (clock()/(CLOCKS_PER_SEC/1000) - start_time); // time allowed - time lapsed
-			long allowed_search_time = (long)floor(time_left * ((moves_to_go == 1)? 1:TIME_WIGGLE_ROOM));
+			long allowed_search_time = get_allowed_search_time( time_on_clock, time_for_move, start_time, moves_to_go,
+				fail_low_count, fail_high_count );
 			uint64 check_time_on_node = get_check_count_on_node( start_time, time_for_move, (uint64)total_node_count );
 			// Do the search:
 			SEARCH search( depth, game, &hashtable, allowed_search_time, check_time_on_node );
