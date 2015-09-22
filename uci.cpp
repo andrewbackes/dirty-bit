@@ -193,7 +193,7 @@ void parse_go_command( string go_string, bool player,
 long get_time_for_move( long time_on_clock, long moves_to_go, long moves_completed ) {
 	
 	// Crude time management:
-	int move_num = min( moves_completed, 10 );
+	int move_num = min( (int)moves_completed, 10 );
 	double time_factor = 2 -  move_num / 10; // TODO: change this to moves out of book.
 	double time_target = time_on_clock  / moves_to_go;
 	long time_allotted   = (long)( time_factor * time_target ) - GUI_LAG;
