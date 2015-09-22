@@ -164,6 +164,7 @@ Engine:
 #define DEFAULT_EBF				3.75	//3.75
 #define TIME_WIGGLE_ROOM		1.25	//25% time buffer.
 #define DEPTH_CUTOFF			100
+#define GUI_LAG					70
 
 #define ENABLE_PONDERING		false
 

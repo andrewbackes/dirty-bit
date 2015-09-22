@@ -196,8 +196,8 @@ long get_time_for_move( long time_on_clock, long moves_to_go, long moves_complet
 	int move_num = min( moves_completed, 10 );
 	double time_factor = 2 -  move_num / 10; // TODO: change this to moves out of book.
 	double time_target = time_on_clock  / moves_to_go;
-	long time_allotted   = (long)( time_factor * time_target ) - 10;
-	time_allotted = min(time_allotted, time_on_clock - 10 );
+	long time_allotted   = (long)( time_factor * time_target ) - GUI_LAG;
+	time_allotted = min(time_allotted, time_on_clock - GUI_LAG );
 
 	//Safety hack so not to use all of the remaining time if there is only 1 move left:
 	if (moves_to_go == 1)
@@ -340,11 +340,14 @@ void uci_print_bestmove( MOVE best_move, MOVE ponder_move ) {
 	cout << endl;
 }
 
-bool can_force_research( bool failed, long fail_low_count, long fail_high_count,
-	long start_time, long time_for_move, long time_on_clock  ) {
+bool force_research( bool failed, long fail_low_count, long fail_high_count,
+	long start_time, long time_for_move, long time_on_clock, long moves_to_go  ) {
+	
+	if ( moves_to_go <= 1) {
+		return false;
+	}
 	
 	long time_lapsed = clock()/(CLOCKS_PER_SEC/1000) - start_time;
-	time_lapsed = time_lapsed>0 ? time_lapsed : 1;
 	
 	bool timed_out = (time_lapsed >= time_for_move);
 	
@@ -423,7 +426,7 @@ int uci_go(CHESSBOARD * game, string go_string, BOOK * book, string move_history
 	long total_node_count = 1, previous_node_count = 1, previous_depth_score = 0;
 	
 	// Do depth 1 seperately:
-	SEARCH shallow_search( 1, game, &hashtable, time_on_clock - 10, 1023 );
+	SEARCH shallow_search( 1, game, &hashtable, time_on_clock, 1023 );
 	shallow_search.start( -INFTY, INFTY );
 	MOVE best_move = shallow_search.getBestMove();
 	MOVE ponder_move; // maybe not so good to not explicitly initialize this.
@@ -468,7 +471,7 @@ int uci_go(CHESSBOARD * game, string go_string, BOOK * book, string move_history
 				search_complete = true;
 				update_move_choice( search, &best_score, &best_move, &ponder_move );
 				previous_depth_score = search.getScore();
-			} else if ( ! can_force_research( failed, fail_low_count, fail_high_count, start_time, time_for_move, time_on_clock ) ) {
+			} else if ( ! force_research( failed, fail_low_count, fail_high_count, start_time, time_for_move, time_on_clock, moves_to_go ) ) {
 				search_complete = true;
 			}
 		}
