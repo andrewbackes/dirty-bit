@@ -443,8 +443,11 @@ int uci_go(CHESSBOARD * game, string go_string, BOOK * book, string move_history
 	for ( ; depth < DEPTH_CUTOFF; depth++) {
 		bool search_complete = false;
 		// Check if we have time to do this iteration
-		if ( ! enough_time_left( average_EBF, previous_node_count, total_node_count, start_time, time_for_move ) 
+		if ( ( ! enough_time_left( average_EBF, previous_node_count, total_node_count, start_time, time_for_move ) )
 		|| ((clock()/(CLOCKS_PER_SEC/1000) - start_time) >= time_for_move) ) {
+			#ifdef DEBUG_TIME
+				cout << "Not enough time for another iteration." << endl;
+			#endif
 			break;
 		}
 		// Search this depth until we have not failed high or low:
@@ -464,7 +467,7 @@ int uci_go(CHESSBOARD * game, string go_string, BOOK * book, string move_history
 			update_iteration_stats( search, alpha_window, beta_window, &total_node_count, &fail_low_count, &fail_high_count );
 			// Print search results to the screen:
 			if ( !search.TimedOut() ) uci_print_search( search, alpha_window, beta_window );
-			// Handle a possible failed search:
+			// Handle a possible failed/timed out search:
 			bool failed = search_failed( search, alpha_window, beta_window );
 			if ( !search.TimedOut() && !failed ) {
 				// search finished normally
