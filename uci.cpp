@@ -315,7 +315,7 @@ bool enough_time_left( long average_EBF, long previous_node_count, long running_
 	long time_needed = (long) ceil( (average_EBF * (double)previous_node_count ) / (double)running_nps * 1000 );
 	time_needed = (time_needed > 0) ? time_needed : 1;
 	
-	return ( time_lapsed + time_needed < time_for_move );
+	return ( time_lapsed + time_needed <= time_for_move );
 }
 
 void update_move_choice( const SEARCH & search, int * best_score, MOVE * best_move, MOVE * ponder_move) {
@@ -403,7 +403,7 @@ long get_allowed_search_time( long time_on_clock, long time_for_move, long start
 	time_allotted = (long)floor(time_left * ((moves_to_go == 1)? 1:TIME_WIGGLE_ROOM));
 	// failing both high and low is risky, so maybe we should search longer.
 	if( fail_low_count && fail_low_count ) {
-		time_allotted = (time_on_clock - time_lapsed) / 5;	
+		time_allotted = max( time_allotted, (long)(time_on_clock - time_lapsed) / 5 );	
 	}
 	
 	return time_allotted;
