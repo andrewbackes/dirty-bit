@@ -14,7 +14,6 @@ bool DEBUG_FLAG = false;
 
 int main(int argv, char* argc[]) 
 {
-	 
 	/*
 	bitboard mask1 = (((bitboard)1) << b5) | (((bitboard)1) << b6) | (((bitboard)1) << c7);
 	bitprint(mask1);

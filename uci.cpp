@@ -292,6 +292,10 @@ void set_aspiration_window( int previous_depth_score, int fail_low_count, int fa
 			*beta_window = INFTY; 
 			break;
 	}
+	if ( fail_high_count && fail_low_count ) {
+		*beta_window = -INFTY;
+		*alpha_window = INFTY;
+	}
 	#ifdef DEBUG_TIME
 		cout << "\tAspiration window: [" << *alpha_window << ", " << *beta_window << "]" << endl;
 	#endif
@@ -1011,7 +1015,7 @@ int UCI_loop()
 	//uci_position(&active_game, "position startpos moves e2e4 e7e5 d2d4 e5d4 d1d4 g8f6 c1g5 d8e7 b1c3 b8c6 d4c4 a7a5 g1f3 c6b4 c4c7 b4c2");
 	//uci_position(&active_game, "position startpos moves e2e4 e7e5 b1c3 g8f6 g1f3 f8c5 f3e5 e8g8 f1c4 g8h8 e5f7");
 	//uci_position(&active_game, "position startpos moves e2e4 g8f6 b1c3 f6e4 c3e4 d7d5 e4c3 d8d6 d2d4 d6b6 g1f3 b6b2 c1b2 c8h3 g2h3 b8c6 f1b5 e8d8 c3d5 c6d4 d1d4 e7e5 d4e5 f8d6 e5g5 d6e7 d5e7 f7f6 g5e3 c7c6 b5c4 h8e8 b2a3 e8e7 a3e7 d8d7 e1g1 a8e8 f1d1");
-
+	
 	while(cmd_input != "quit" && cmd_input != "q")
 	{
 		getline(cin, cmd_input);

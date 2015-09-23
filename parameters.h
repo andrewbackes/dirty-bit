@@ -26,6 +26,14 @@ Debug:
 
 /*******************************************************************************
 
+I/O:
+
+*******************************************************************************/
+
+#define IO_BUFFER_SIZE				8192
+
+/*******************************************************************************
+
 Search:
 
 *******************************************************************************/
@@ -162,7 +170,7 @@ Engine:
 #define A_LITTLE				16					// TODO: come up with a better name.
 #define DEFAULT_NPS				2500000	// For when the current NPS has not yet been calculated.
 #define DEFAULT_EBF				3.75	//3.75
-#define TIME_WIGGLE_ROOM		1.25	//25% time buffer.
+#define TIME_WIGGLE_ROOM		1.4		//40% time buffer.
 #define DEPTH_CUTOFF			100
 #define GUI_LAG					70
 
