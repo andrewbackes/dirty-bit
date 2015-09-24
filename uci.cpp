@@ -305,7 +305,7 @@ bool terminated_normally( const SEARCH & search, int fail_low_count, int fail_hi
 	return ( !search.TimedOut() && !fail_low_count && !fail_high_count );
 }
 
-bool enough_time_left( long average_EBF, long previous_node_count, long running_node_count, long start_time, long time_for_move ) {
+bool enough_time_left( double average_EBF, long previous_node_count, long running_node_count, long start_time, long time_for_move ) {
 	long time_lapsed = clock()/(CLOCKS_PER_SEC/1000) - start_time;
 	time_lapsed = time_lapsed>0 ? time_lapsed : 1;
 	
