@@ -275,7 +275,7 @@ void set_aspiration_window( int previous_depth_score, int fail_low_count, int fa
 			*alpha_window = previous_depth_score - ASPIRATION_WINDOW;
 			break;
 		case 1:
-			*alpha_window = previous_depth_score - ASPIRATION_WINDOW - A_LOT;
+			*alpha_window = previous_depth_score - (ASPIRATION_WINDOW + A_LOT);
 			break;
 		default:
 			*alpha_window = -INFTY; 
@@ -286,7 +286,7 @@ void set_aspiration_window( int previous_depth_score, int fail_low_count, int fa
 			*beta_window = previous_depth_score + ASPIRATION_WINDOW;
 			break;
 		case 1:
-			*beta_window = previous_depth_score + ASPIRATION_WINDOW + A_LOT;
+			*beta_window = previous_depth_score + (ASPIRATION_WINDOW + A_LOT);
 			break;
 		default:
 			*beta_window = INFTY; 
@@ -347,16 +347,16 @@ void uci_print_bestmove( MOVE best_move, MOVE ponder_move ) {
 bool force_research( bool failed, long fail_low_count, long fail_high_count,
 	long start_time, long time_for_move, long time_on_clock, long moves_to_go  ) {
 	
-	if ( moves_to_go <= 1) {
-		return false;
-	}
-	
 	long time_lapsed = clock()/(CLOCKS_PER_SEC/1000) - start_time;
 	
 	bool timed_out = (time_lapsed >= time_for_move);
 	
 	if( !timed_out && failed ) {
 		return true;
+	}
+	
+	if ( moves_to_go <= 1) {
+		return false;
 	}
 	
 	// out of allotted time but failed high and low. this is a risky situation,
@@ -389,7 +389,7 @@ void update_iteration_stats( const SEARCH & search, int alpha_window, int beta_w
 }
 
 bool search_failed( const SEARCH & search, int alpha_window, int beta_window ) {
-	return (search.getScore() <= alpha_window ) || ( search.getScore() >= beta_window );
+	return ( (search.getScore() <= alpha_window ) || ( search.getScore() >= beta_window ) );
 }
 
 long get_allowed_search_time( long time_on_clock, long time_for_move, long start_time, long moves_to_go,
