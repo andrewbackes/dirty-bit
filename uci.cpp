@@ -293,8 +293,8 @@ void set_aspiration_window( int previous_depth_score, int fail_low_count, int fa
 			break;
 	}
 	if ( fail_high_count && fail_low_count ) {
-		*beta_window = -INFTY;
-		*alpha_window = INFTY;
+		*alpha_window = -INFTY;
+		*beta_window = INFTY;
 	}
 	#ifdef DEBUG_TIME
 		cout << "\tAspiration window: [" << *alpha_window << ", " << *beta_window << "]" << endl;
