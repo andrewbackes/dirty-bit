@@ -1,3 +1,4 @@
+#!/bin/bash
 echo Starting to compile Dirty-Bit
 mkdir bin
 c++ -O2 -w -c -o bin/perft.o perft.cpp
