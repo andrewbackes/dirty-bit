@@ -8,7 +8,7 @@ General Info:
 *******************************************************************************/
 
 #define ID_NAME		"DirtyBit"
-#define ID_VERSION	"0.39.5"
+#define ID_VERSION	"0.39.7 (issue 8b dev)"
 #define ID_AUTHOR	"Andrew Backes"
 
 
@@ -23,6 +23,14 @@ Debug:
 //#define SEARCH_STATS
 //#define DEBUG_ZOBRIST
 //#define DEBUG_KILLERS
+
+/*******************************************************************************
+
+I/O:
+
+*******************************************************************************/
+
+#define IO_BUFFER_SIZE				8192
 
 /*******************************************************************************
 
@@ -163,6 +171,8 @@ Engine:
 #define DEFAULT_NPS				2500000	// For when the current NPS has not yet been calculated.
 #define DEFAULT_EBF				3.75	//3.75
 #define TIME_WIGGLE_ROOM		1.25	//25% time buffer.
+#define DEPTH_CUTOFF			100
+#define GUI_LAG					70
 
 #define ENABLE_PONDERING		false
 

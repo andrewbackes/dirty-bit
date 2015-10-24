@@ -5,6 +5,8 @@
 #include <ctime>
 #include <iostream>
 
+typedef unsigned long long uint64;
+
 class TIMER {
 public:
 	void start()		{ start_time = clock()/(CLOCKS_PER_SEC/1000);	}
