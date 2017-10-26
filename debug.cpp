@@ -181,7 +181,7 @@ void test::bench(CHESSBOARD * game) {
 	
 	game->newgame();
 	game->print();
-	int d1 = uci_go(game, "", &b, "");
+	int d1 = uci_go(*game, "", "");
 	t1.end();
 	TIMER t2;
 
@@ -189,7 +189,7 @@ void test::bench(CHESSBOARD * game) {
 	cout << "\n \nGAME OF THE CENTURY QUEEN SACRIFICE:\n";
 	game->position("r3r1k1/pp3pbp/1qp3p1/2B5/2BP2b1/Q1n2N2/P4PPP/3R1K1R b - - 3 17");
 	game->print();
-	int d2 = uci_go(game, "", &b, "");
+	int d2 = uci_go(*game, "", "");
 	t2.end();
 
 	TIMER t3;
@@ -197,7 +197,7 @@ void test::bench(CHESSBOARD * game) {
 	cout << "\n \nGAME OF THE CENTURY (MATE IN 15?):\n";
 	game->position("4r1k1/1p3pbp/1Qp3p1/8/r1b5/2n2N2/P4PPP/3R2KR b - - 0 25");
 	game->print();
-	int d3 = uci_go(game, "", &b, "");
+	int d3 = uci_go(*game, "", "");
 	t3.end();
 
 	TIMER t4;
@@ -205,7 +205,7 @@ void test::bench(CHESSBOARD * game) {
 	cout << "\n\nRETI ENDGAME POSITION:\n";
 	game->position("7K/8/k1P5/7p/8/8/8/8 w - -");
 	game->print();
-	int d4 = uci_go(game, "", &b, "");
+	int d4 = uci_go(*game, "", "");
 	t4.end();
 	cout << "Position               Depth\tTime" << endl;
 	cout << "-------------------------------------------------\n";
