@@ -17,7 +17,7 @@ extern int previous_score;
 
 void printMoves(CHESSBOARD * b);
 
-int uci_go(CHESSBOARD * game, std::string go_string, BOOK * book, std::string move_history);
+int uci_go(CHESSBOARD game, std::string go_string, std::string move_history);
 void uci_newgame(CHESSBOARD* b, HASHTABLE * h);
 std::string uci_position(CHESSBOARD * b, std::string cmd_input) ;
 int UCI_loop();
