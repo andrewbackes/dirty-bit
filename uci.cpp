@@ -11,6 +11,7 @@
 #include <ctime>
 #include <cmath>
 #include <functional>
+#include <thread>
 
 #include "uci.h"
 
@@ -413,7 +414,9 @@ void uci_print_resign() {
 	cout << "bestmove 0000" << endl;
 }
 
-int uci_go(CHESSBOARD * game, string go_string, BOOK * book, string move_history) {
+int uci_go(CHESSBOARD gameVal, string go_string, string move_history) {
+	CHESSBOARD * game = &gameVal;
+	cout << "inside uci_go()" << endl;
 	long start_time = clock()/(CLOCKS_PER_SEC/1000);
     
 	// constraints:
@@ -1037,7 +1040,11 @@ int UCI_loop()
 			active_game_history = uci_position(&active_game, cmd_input);
 		}
 		else if(command == "go") {
-			uci_go(&active_game,cmd_input, &active_book, active_game_history);
+			cout << "before" << endl;
+			//thread t(uci_go, active_game, cmd_input, active_game_history);
+			cout << "after" << endl;
+			//t.join();
+			uci_go(active_game, cmd_input, active_game_history);
 		}
 		else if(command == "setoption") {
 			uci_setoption(cmd_input);
