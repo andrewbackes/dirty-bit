@@ -2,7 +2,7 @@
 cd "$(dirname "$0")"
 echo Starting to compile Dirty-Bit
 mkdir -p build
-if [[ -z "${TRAVIS_OS_NAME}" ]]; then
+if [[ ! -z "${TRAVIS_OS_NAME}" ]]; then
     SUFFIX=-${TRAVIS_OS_NAME}
 fi
 clang++ -arch x86_64 -std=c++1y -stdlib=libc++ -w -O2 \
