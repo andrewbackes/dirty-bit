@@ -1,10 +1,7 @@
 language: 
   - c++
-  - go
 
 sudo: required
-go:
-  - 1.9
 
 os:
   - linux
@@ -13,5 +10,12 @@ os:
 compiler:
   - clang++
 
+before_install:
+  - curl -o travis-cli https://github.com/andrewbackes/tourney-cli/releases/download/v1.0/tourney-cli-$TRAVIS_OS_NAME
+  - chmod 755 tourney-cli
+
 script:
   - ./compile.sh
+
+after_success:
+  - ./tourney-cli add engine --name=Dirty-Bit --version=$TRAVIS_COMMIT --os=$TRAVIS_OS_NAME build/dirty-bit
