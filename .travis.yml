@@ -1,4 +1,10 @@
-language: c++
+language: 
+  - c++
+  - go
+
+sudo: required
+go:
+  - 1.9
 
 os:
   - linux
