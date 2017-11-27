@@ -11,7 +11,7 @@ compiler:
   - clang++
 
 before_install:
-  - curl -o travis-cli https://github.com/andrewbackes/tourney-cli/releases/download/v1.0/tourney-cli-$TRAVIS_OS_NAME
+  - curl -L -o tourney-cli https://github.com/andrewbackes/tourney-cli/releases/download/v1.0/tourney-cli-$TRAVIS_OS_NAME
   - chmod 755 tourney-cli
 
 script:
